@@ -1,12 +1,14 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { fetchSessions, logoutAll, revokeSession, type Session } from '@/lib/api'
 import { logout } from '@/lib/auth'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Monitor, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import { toast } from 'sonner'
 
 function formatDate(iso: string) {
@@ -19,6 +21,8 @@ function formatDate(iso: string) {
 export default function SettingsPage() {
   const router = useRouter()
   const queryClient = useQueryClient()
+  const [logoutThisDeviceOpen, setLogoutThisDeviceOpen] = useState(false)
+  const [logoutAllDevicesOpen, setLogoutAllDevicesOpen] = useState(false)
 
   const { data: sessions = [], isLoading } = useQuery({
     queryKey: ['auth', 'sessions'],
@@ -109,18 +113,42 @@ export default function SettingsPage() {
           Log out from this device only, or from all devices.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
-          <Button variant="outline" onClick={handleLogoutCurrent}>
+          <Button variant="outline" onClick={() => setLogoutThisDeviceOpen(true)}>
             Log out this device
           </Button>
           <Button
             variant="destructive"
-            onClick={() => logoutAllMutation.mutate()}
+            onClick={() => setLogoutAllDevicesOpen(true)}
             disabled={logoutAllMutation.isPending}
           >
             Log out all devices
           </Button>
         </div>
       </section>
+
+      <ConfirmDialog
+        open={logoutThisDeviceOpen}
+        onOpenChange={setLogoutThisDeviceOpen}
+        title="Log out this device"
+        description="Are you sure you want to logout from this device?"
+        confirmLabel="Logout"
+        cancelLabel="Cancel"
+        onConfirm={handleLogoutCurrent}
+        variant="default"
+      />
+      <ConfirmDialog
+        open={logoutAllDevicesOpen}
+        onOpenChange={setLogoutAllDevicesOpen}
+        title="Log out all devices"
+        description="Are you sure you want to logout from all devices? You will need to sign in again on every device."
+        confirmLabel="Log out all devices"
+        cancelLabel="Cancel"
+        onConfirm={async () => {
+          await logoutAllMutation.mutateAsync()
+        }}
+        variant="destructive"
+        loading={logoutAllMutation.isPending}
+      />
 
       <div>
         <Link href="/dashboard/profile" className="link-highlight text-sm">

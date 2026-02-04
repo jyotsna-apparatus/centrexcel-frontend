@@ -1,45 +1,41 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
-import { fetchChallenges } from '@/lib/api'
+import { fetchChallenges, fetchMe } from '@/lib/api'
 import { useQuery } from '@tanstack/react-query'
-import { Award, Calendar } from 'lucide-react'
+import { Calendar } from 'lucide-react'
 import Link from 'next/link'
 
 export default function SponsorDashboardPage() {
+  const { data: user } = useQuery({
+    queryKey: ['auth', 'me'],
+    queryFn: fetchMe,
+  })
   const { data: challenges = [], isLoading } = useQuery({
     queryKey: ['challenges'],
     queryFn: fetchChallenges,
   })
 
-  const myChallenges = challenges
+  const myChallenges = user?.id
+    ? challenges.filter((c) => c.createdBy === user.id)
+    : []
 
   return (
     <div className="space-y-8">
       <header>
         <h1 className="h2 text-cs-heading">Sponsor dashboard</h1>
-        <p className="p1 mt-1 text-cs-text">Manage your challenges and judges.</p>
+        <p className="p1 mt-1 text-cs-text">View and manage your challenges.</p>
       </header>
 
-      <div className="flex gap-3">
-        <Button asChild>
-          <Link href="/sponsor/challenges/create">Create challenge</Link>
-        </Button>
-        <Button variant="outline" asChild>
-          <Link href="/sponsor/judges/invite">Invite judges</Link>
-        </Button>
-      </div>
-
       <section>
-        <h2 className="h3 text-cs-heading">Challenges</h2>
-        {isLoading ? (
+        <h2 className="h3 text-cs-heading">Your challenges</h2>
+        {isLoading || !user ? (
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3].map((i) => (
               <div key={i} className="h-36 animate-pulse rounded-lg bg-cs-card" />
             ))}
           </div>
         ) : myChallenges.length === 0 ? (
-          <p className="p1 mt-4 text-cs-text">No challenges yet. Create one to get started.</p>
+          <p className="p1 mt-4 text-cs-text">You have no challenges yet.</p>
         ) : (
           <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {myChallenges.map((c) => (

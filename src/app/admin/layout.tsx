@@ -39,31 +39,32 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <AppSidebar />
         <main className="w-full h-full">
           <Header />
-          <nav className="border-b border-cs-border px-4 py-2 flex gap-4">
-            <Link
-              href="/admin"
-              className={`text-sm ${pathname === '/admin' ? 'text-cs-primary font-medium' : 'text-cs-text'}`}
-            >
-              Dashboard
-            </Link>
-            <Link
-              href="/admin/challenges"
-              className={`text-sm ${pathname === '/admin/challenges' ? 'text-cs-primary font-medium' : 'text-cs-text'}`}
-            >
-              Challenges
-            </Link>
-            <Link
-              href="/admin/judges/assign"
-              className={`text-sm ${pathname === '/admin/judges/assign' ? 'text-cs-primary font-medium' : 'text-cs-text'}`}
-            >
-              Assign judges
-            </Link>
-            <Link
-              href="/admin/invitations"
-              className={`text-sm ${pathname === '/admin/invitations' ? 'text-cs-primary font-medium' : 'text-cs-text'}`}
-            >
-              Invitations
-            </Link>
+          <nav className="border-b border-cs-border bg-cs-card/50 px-4 py-2 flex items-center gap-1">
+            {[
+              { href: '/admin', label: 'Dashboard' },
+              { href: '/admin/challenges', label: 'Challenges' },
+              { href: '/admin/challenges/create', label: 'Create challenge' },
+              { href: '/admin/judges/invite', label: 'Invite judges' },
+              { href: '/admin/judges/assign', label: 'Assign judges' },
+              { href: '/admin/invitations', label: 'Invitations' },
+            ].map(({ href, label }) => {
+              const isActive = pathname === href
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`
+                    relative text-sm font-medium px-4 py-2.5 rounded-lg transition-all duration-200
+                    ${isActive
+                      ? 'bg-cs-primary/20 text-cs-primary shadow-[inset_0_0_0_1px_rgba(213,255,64,0.3)]'
+                      : 'text-cs-text hover:bg-white/8 hover:text-cs-heading'
+                    }
+                  `}
+                >
+                  {label}
+                </Link>
+              )
+            })}
           </nav>
           <section className="p-4 mt-2 w-full h-[calc(100dvh-8rem)]">{children}</section>
         </main>

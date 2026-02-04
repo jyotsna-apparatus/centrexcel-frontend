@@ -57,20 +57,20 @@ export default function AssignJudgePage() {
         </Link>
         <h1 className="h2 mt-2 text-cs-heading">Assign judge</h1>
         <p className="p1 mt-1 text-cs-text">
-          Assign a judge to evaluate submissions for a challenge. (API expects judge user ID; you may need to use accepted judge emails or backend-provided list.)
+          Assign a judge.
         </p>
       </header>
 
       <form onSubmit={handleSubmit} className="space-y-4 rounded-lg border border-cs-border bg-cs-card p-6">
         <div>
           <label htmlFor="judge" className="mb-1 block text-sm font-medium text-cs-heading">
-            Judge (user ID from backend)
+            Judge
           </label>
           <Input
             id="judge"
             value={judgeId}
             onChange={(e) => setJudgeId(e.target.value)}
-            placeholder="Judge user UUID"
+            placeholder="Select or enter judge"
             required
           />
           <p className="mt-1 text-xs text-cs-text">

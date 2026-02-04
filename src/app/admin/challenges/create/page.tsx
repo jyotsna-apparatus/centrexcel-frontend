@@ -2,11 +2,11 @@
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { createChallenge, fetchMe, type ChallengeType, type ChallengeStatus } from '@/lib/api'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { createChallenge, type ChallengeType, type ChallengeStatus } from '@/lib/api'
+import { useMutation } from '@tanstack/react-query'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 
 const TYPES: { value: ChallengeType; label: string }[] = [
@@ -20,12 +20,8 @@ const STATUSES: { value: ChallengeStatus; label: string }[] = [
   { value: 'live', label: 'Live' },
 ]
 
-export default function CreateChallengePage() {
+export default function AdminCreateChallengePage() {
   const router = useRouter()
-  const { data: user } = useQuery({ queryKey: ['auth', 'me'], queryFn: fetchMe })
-  useEffect(() => {
-    if (user && user.role !== 'admin') router.replace('/sponsor')
-  }, [user, router])
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [type, setType] = useState<ChallengeType>('free')
@@ -41,7 +37,7 @@ export default function CreateChallengePage() {
     mutationFn: createChallenge,
     onSuccess: (challenge) => {
       toast.success('Challenge created')
-      router.push(`/sponsor/challenges/${challenge.id}/edit`)
+      router.push(`/admin/challenges`)
     },
     onError: (err: Error) => toast.error(err.message),
   })
@@ -74,7 +70,7 @@ export default function CreateChallengePage() {
   return (
     <div className="mx-auto max-w-2xl space-y-8">
       <header>
-        <Link href="/sponsor" className="link-highlight text-sm">
+        <Link href="/admin" className="link-highlight text-sm">
           ← Back to dashboard
         </Link>
         <h1 className="h2 mt-2 text-cs-heading">Create challenge</h1>
@@ -223,7 +219,7 @@ export default function CreateChallengePage() {
             Create challenge
           </Button>
           <Button type="button" variant="outline" asChild>
-            <Link href="/sponsor">Cancel</Link>
+            <Link href="/admin">Cancel</Link>
           </Button>
         </div>
       </form>

@@ -139,15 +139,21 @@ export async function fetchChallenges(): Promise<Challenge[]> {
   return Array.isArray(data) ? data : []
 }
 
+/** GET /challenges/live – challenges with status "live" */
 export async function fetchLiveChallenges(): Promise<Challenge[]> {
-  const res = await fetch(`${getBaseUrl()}/challenges/live`)
+  const res = await fetch(`${getBaseUrl()}/challenges/live`, {
+    headers: { accept: '*/*' },
+  })
   if (!res.ok) throw new Error('Failed to fetch live challenges')
   const data = await res.json()
   return Array.isArray(data) ? data : []
 }
 
+/** GET /challenges/upcoming – challenges with status "upcoming" */
 export async function fetchUpcomingChallenges(): Promise<Challenge[]> {
-  const res = await fetch(`${getBaseUrl()}/challenges/upcoming`)
+  const res = await fetch(`${getBaseUrl()}/challenges/upcoming`, {
+    headers: { accept: '*/*' },
+  })
   if (!res.ok) throw new Error('Failed to fetch upcoming challenges')
   const data = await res.json()
   return Array.isArray(data) ? data : []
@@ -193,15 +199,23 @@ export async function logoutAll(): Promise<void> {
 
 // ─── Teams ──────────────────────────────────────────────────────────────────
 
+/** POST /teams – create a new team (Bearer required). Body: name, challengeId, description (optional). */
 export async function createTeam(body: {
   name: string
   challengeId: string
   description?: string
 }): Promise<Team> {
+  const payload: Record<string, unknown> = {
+    name: body.name.trim(),
+    challengeId: body.challengeId,
+  }
+  if (body.description != null && body.description.trim() !== '') {
+    payload.description = body.description.trim()
+  }
   const res = await authFetch(`${getBaseUrl()}/teams`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+    headers: { 'Content-Type': 'application/json', accept: '*/*' },
+    body: JSON.stringify(payload),
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
@@ -217,8 +231,11 @@ export async function fetchMyTeams(): Promise<Team[]> {
   return Array.isArray(data) ? data : []
 }
 
+/** GET /teams/:id – team details (Bearer required) */
 export async function fetchTeamById(id: string): Promise<Team> {
-  const res = await authFetch(`${getBaseUrl()}/teams/${id}`)
+  const res = await authFetch(`${getBaseUrl()}/teams/${id}`, {
+    headers: { accept: '*/*' },
+  })
   if (!res.ok) {
     if (res.status === 404) throw new Error('Team not found')
     throw new Error('Failed to fetch team')
@@ -226,10 +243,11 @@ export async function fetchTeamById(id: string): Promise<Team> {
   return res.json()
 }
 
+/** POST /teams/:id/invite – send team invitation by email (Bearer required). Body: { email }. */
 export async function inviteToTeam(teamId: string, email: string): Promise<void> {
   const res = await authFetch(`${getBaseUrl()}/teams/${teamId}/invite`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', accept: '*/*' },
     body: JSON.stringify({ email }),
   })
   if (!res.ok) {
@@ -253,15 +271,21 @@ export async function joinTeam(code: string): Promise<{ team: Team }> {
 
 // ─── Participations ─────────────────────────────────────────────────────────
 
+/** POST /participations – register for a challenge (solo or team). userId from token. */
 export async function registerParticipation(body: {
   challengeId: string
   mode: 'solo' | 'team'
-  teamId?: string
+  teamId?: string | null
 }): Promise<Participation> {
+  const payload: Record<string, unknown> = {
+    challengeId: body.challengeId,
+    mode: body.mode,
+    teamId: body.mode === 'team' && body.teamId ? body.teamId : null,
+  }
   const res = await authFetch(`${getBaseUrl()}/participations`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+    headers: { 'Content-Type': 'application/json', accept: '*/*' },
+    body: JSON.stringify(payload),
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
@@ -270,8 +294,11 @@ export async function registerParticipation(body: {
   return res.json()
 }
 
+/** GET /participations/my – current user's participations (Bearer required) */
 export async function fetchMyParticipations(): Promise<Participation[]> {
-  const res = await authFetch(`${getBaseUrl()}/participations/my`)
+  const res = await authFetch(`${getBaseUrl()}/participations/my`, {
+    headers: { accept: '*/*' },
+  })
   if (!res.ok) throw new Error('Failed to fetch participations')
   const data = await res.json()
   return Array.isArray(data) ? data : []
@@ -441,7 +468,7 @@ export async function updateChallenge(
 ): Promise<Challenge> {
   const res = await authFetch(`${getBaseUrl()}/challenges/${id}`, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', accept: '*/*' },
     body: JSON.stringify(body),
   })
   if (!res.ok) {
@@ -452,7 +479,10 @@ export async function updateChallenge(
 }
 
 export async function deleteChallenge(id: string): Promise<void> {
-  const res = await authFetch(`${getBaseUrl()}/challenges/${id}`, { method: 'DELETE' })
+  const res = await authFetch(`${getBaseUrl()}/challenges/${id}`, {
+    method: 'DELETE',
+    headers: { accept: '*/*' },
+  })
   if (!res.ok) throw new Error('Failed to delete challenge')
 }
 

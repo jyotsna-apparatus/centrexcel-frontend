@@ -60,7 +60,7 @@ export default function LandingPage() {
       <div className="pattern" aria-hidden />
       <div className="relative z-10 mx-auto max-w-6xl px-4 py-12">
         <header className="flex flex-wrap items-center justify-between gap-4">
-          <h1 className="h1 text-cs-heading">Centrexcel</h1>
+          <h1 className="text-xl font-semibold tracking-tight text-cs-heading sm:text-2xl">Centrexcel</h1>
           <nav className="flex items-center gap-3">
             <Button variant="ghost" size="sm" asChild>
               <Link href="/challenges">Challenges</Link>

@@ -3,8 +3,8 @@
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -126,19 +126,22 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroup>
         )}
+        <SidebarGroup>
+          <SidebarGroupLabel className="px-3 text-xs font-medium uppercase tracking-wider text-cs-text/80">
+            Explore
+          </SidebarGroupLabel>
+          <SidebarMenu className="mt-1 gap-0.5">
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname.startsWith('/challenges')}>
+                <Link href="/challenges">
+                  <Award className="size-4" />
+                  <span>Challenges</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="bg-cs-card">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <Link href="/challenges">
-                <Award className="size-4" />
-                <span>Challenges</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
     </Sidebar>
   )
 }

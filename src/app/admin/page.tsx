@@ -21,6 +21,12 @@ export default function AdminDashboardPage() {
 
       <div className="flex flex-wrap gap-3">
         <Button asChild>
+          <Link href="/admin/challenges/create">Create challenge</Link>
+        </Button>
+        <Button variant="outline" asChild>
+          <Link href="/admin/judges/invite">Invite judges</Link>
+        </Button>
+        <Button variant="outline" asChild>
           <Link href="/admin/challenges">Manage challenges</Link>
         </Button>
         <Button variant="outline" asChild>

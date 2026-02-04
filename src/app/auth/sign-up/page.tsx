@@ -7,7 +7,7 @@ import { getApiErrorMessage, getApiFieldErrors } from '@/lib/api-errors'
 import { validateEmail, validatePassword, validatePhone } from '@/lib/validate'
 import { cn } from '@/lib/utils'
 import { useMutation } from '@tanstack/react-query'
-import { Gift, Scale, User } from 'lucide-react'
+import { Gift, Gavel, User } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -15,7 +15,7 @@ import { toast } from 'sonner'
 
 const ROLES = [
   { value: 'sponsor', label: 'Sponsor', icon: Gift },
-  { value: 'judge', label: 'Judge', icon: Scale },
+  { value: 'judge', label: 'Judge', icon: Gavel },
   { value: 'participant', label: 'Participant', icon: User },
 ] as const
 
@@ -56,7 +56,7 @@ const signUpMutationFn = async (data: SignUpFormData) => {
     name: data.name,
     email: data.email,
     mobile: data.phoneNumber || undefined,
-    role: data.role === 'judge' ? 'organizer' : data.role,
+    role: data.role,
     password: data.password,
   }
 
@@ -152,14 +152,14 @@ const SignUpPage = () => {
           </div>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4 w-full">
             <div className="flex flex-col gap-2 w-full">
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-2 w-full">
                 {ROLES.map(({ value, label, icon: Icon }) => (
                   <button
                     key={value}
                     type="button"
                     onClick={() => setFormData({ ...formData, role: value })}
                     className={cn(
-                      'flex flex-col items-center justify-center gap-1.5 rounded-md border border-cs-border bg-transparent px-3 py-3 text-sm font-medium transition-all outline-none focus-visible:ring-2 focus-visible:ring-cs-primary/50',
+                      'flex flex-col items-center justify-center gap-1.5 rounded-md border border-cs-border bg-transparent px-3 py-3 text-sm font-medium transition-all outline-none focus-visible:ring-2 focus-visible:ring-cs-primary/50 min-w-0',
                       formData.role === value
                         ? 'border-cs-primary bg-cs-primary/10 text-cs-primary'
                         : 'text-cs-text hover:border-cs-border/80 hover:bg-white/5'

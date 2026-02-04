@@ -2,21 +2,17 @@
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { fetchMe, inviteJudge } from '@/lib/api'
+import { inviteJudge } from '@/lib/api'
 import { validateEmail } from '@/lib/validate'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
 import { Mail } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 
-export default function InviteJudgePage() {
+export default function AdminInviteJudgePage() {
   const router = useRouter()
-  const { data: user } = useQuery({ queryKey: ['auth', 'me'], queryFn: fetchMe })
-  useEffect(() => {
-    if (user && user.role !== 'admin') router.replace('/sponsor')
-  }, [user, router])
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
   const [message, setMessage] = useState('')
@@ -31,7 +27,7 @@ export default function InviteJudgePage() {
       }),
     onSuccess: () => {
       toast.success('Invitation sent')
-      router.push('/sponsor/invitations')
+      router.push('/admin/invitations')
     },
     onError: (err: Error) => toast.error(err.message),
   })
@@ -53,7 +49,7 @@ export default function InviteJudgePage() {
   return (
     <div className="mx-auto max-w-md space-y-8">
       <header>
-        <Link href="/sponsor" className="link-highlight text-sm">
+        <Link href="/admin" className="link-highlight text-sm">
           ← Back to dashboard
         </Link>
         <h1 className="h2 mt-2 text-cs-heading">Invite judge</h1>
@@ -105,7 +101,7 @@ export default function InviteJudgePage() {
             Send invitation
           </Button>
           <Button type="button" variant="outline" asChild>
-            <Link href="/sponsor">Cancel</Link>
+            <Link href="/admin">Cancel</Link>
           </Button>
         </div>
       </form>

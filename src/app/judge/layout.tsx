@@ -39,19 +39,28 @@ export default function JudgeLayout({ children }: { children: React.ReactNode })
         <AppSidebar />
         <main className="w-full h-full">
           <Header />
-          <nav className="border-b border-cs-border px-4 py-2 flex gap-4">
-            <Link
-              href="/judge"
-              className={`text-sm ${pathname === '/judge' ? 'text-cs-primary font-medium' : 'text-cs-text'}`}
-            >
-              Dashboard
-            </Link>
-            <Link
-              href="/judge/submissions"
-              className={`text-sm ${pathname.startsWith('/judge/submissions') ? 'text-cs-primary font-medium' : 'text-cs-text'}`}
-            >
-              Submissions
-            </Link>
+          <nav className="border-b border-cs-border bg-cs-card/50 px-4 py-2 flex items-center gap-1">
+            {[
+              { href: '/judge', label: 'Dashboard', exact: true },
+              { href: '/judge/submissions', label: 'Submissions', exact: false },
+            ].map(({ href, label, exact }) => {
+              const isActive = exact ? pathname === href : pathname.startsWith(href)
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`
+                    relative text-sm font-medium px-4 py-2.5 rounded-lg transition-all duration-200
+                    ${isActive
+                      ? 'bg-cs-primary/20 text-cs-primary shadow-[inset_0_0_0_1px_rgba(213,255,64,0.3)]'
+                      : 'text-cs-text hover:bg-white/8 hover:text-cs-heading'
+                    }
+                  `}
+                >
+                  {label}
+                </Link>
+              )
+            })}
           </nav>
           <section className="p-4 mt-2 w-full h-[calc(100dvh-8rem)]">{children}</section>
         </main>
