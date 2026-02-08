@@ -5,21 +5,21 @@ import { getUsers, type UserListItem } from '@/lib/auth-api'
 
 const REFETCH_INTERVAL_MS = 20_000
 
-export type UseParticipantsParams = {
+export type UseJudgesParams = {
   page: number
   pageSize: number
   search: string
 }
 
-export function useParticipants({ page, pageSize, search }: UseParticipantsParams) {
+export function useJudges({ page, pageSize, search }: UseJudgesParams) {
   return useQuery({
-    queryKey: ['participants', page, pageSize, search],
+    queryKey: ['judges', page, pageSize, search],
     queryFn: () =>
       getUsers({
         page: page + 1,
         limit: pageSize,
         search: search.trim() || undefined,
-        role: 'participant',
+        role: 'judge',
       }),
     refetchInterval: REFETCH_INTERVAL_MS,
     refetchOnMount: 'always',

@@ -1,29 +1,30 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { getUsers, type UserListItem } from '@/lib/auth-api'
+import { getTeams, type TeamListItem } from '@/lib/auth-api'
 
 const REFETCH_INTERVAL_MS = 20_000
 
-export type UseParticipantsParams = {
+export type UseTeamsParams = {
   page: number
   pageSize: number
   search: string
+  hackathonId?: string
 }
 
-export function useParticipants({ page, pageSize, search }: UseParticipantsParams) {
+export function useTeams({ page, pageSize, search, hackathonId }: UseTeamsParams) {
   return useQuery({
-    queryKey: ['participants', page, pageSize, search],
+    queryKey: ['teams', page, pageSize, search, hackathonId],
     queryFn: () =>
-      getUsers({
+      getTeams({
         page: page + 1,
         limit: pageSize,
         search: search.trim() || undefined,
-        role: 'participant',
+        hackathonId,
       }),
     refetchInterval: REFETCH_INTERVAL_MS,
     refetchOnMount: 'always',
   })
 }
 
-export type { UserListItem }
+export type { TeamListItem }

@@ -10,7 +10,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         <AppSidebar />
         <main className="w-full h-full">
           <Header />
-          <section className="p-4 mt-16 w-full h-[calc(100dvh-4rem)]">
+          <section className="p-4  w-full h-[calc(100dvh-4rem)]">
             {children}
           </section>
         </main>

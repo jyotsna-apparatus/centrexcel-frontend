@@ -546,20 +546,129 @@ export async function getUsers(params: {
   const json = (await res.json()) as {
     success?: boolean
     message?: string
-    data?: { data?: UserListItem[]; pagination?: GetUsersResponse['pagination'] }
+    data?:
+      | UserListItem[]
+      | { data?: UserListItem[]; pagination?: GetUsersResponse['pagination'] }
   }
   if (!res.ok) {
     throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to fetch users')
   }
+  
+  // Backend returns: { success: true, message: "...", data: { data: [...], pagination: {...} } }
   const payload = json.data
-  const list = Array.isArray(payload?.data) ? payload.data : payload?.data ?? []
-  const pagination = payload?.pagination ?? {
-    page: params.page,
-    limit: params.limit,
-    total: list.length,
-    totalPages: 1,
+  
+  // Handle different response structures
+  let list: UserListItem[] = []
+  let pagination: GetUsersResponse['pagination']
+  
+  if (Array.isArray(payload)) {
+    // Direct array response
+    list = payload
+    pagination = {
+      page: params.page,
+      limit: params.limit,
+      total: list.length,
+      totalPages: 1,
+    }
+  } else if (payload && typeof payload === 'object') {
+    // Nested structure: { data: [...], pagination: {...} }
+    list = Array.isArray(payload.data) ? payload.data : []
+    pagination = payload.pagination || {
+      page: params.page,
+      limit: params.limit,
+      total: list.length,
+      totalPages: 1,
+    }
   }
+  
   return { data: list, pagination }
+}
+
+/** Fetch a single user by id (admin). */
+export async function getUser(id: string): Promise<UserListItem> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(`${baseUrl}/users/${encodeURIComponent(id)}`, {
+    method: 'GET',
+    headers: { accept: 'application/json' },
+  })
+  const json = (await res.json()) as { data?: UserListItem; message?: string }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to fetch user')
+  }
+  const user = json?.data
+  if (!user || typeof user.id === 'undefined') throw new Error('Invalid user response')
+  return user
+}
+
+/** Update a user (admin). */
+export type UpdateUserBody = {
+  email?: string
+  username?: string | null
+  role?: string
+  emailVerified?: boolean
+}
+
+export async function updateUser(id: string, body: UpdateUserBody): Promise<UserListItem> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(`${baseUrl}/users/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: { accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  const json = (await res.json()) as { data?: UserListItem; message?: string }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to update user')
+  }
+  const user = json?.data
+  if (!user || typeof user.id === 'undefined') throw new Error('Invalid user response')
+  return user
+}
+
+/** Delete a user (admin). */
+export async function deleteUser(id: string): Promise<void> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(`${baseUrl}/users/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: { accept: 'application/json' },
+  })
+  if (!res.ok) {
+    const json = (await res.json()) as { message?: string }
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to delete user')
+  }
+}
+
+/** Create a user (admin). Uses same shape as register but authenticated. */
+export async function createUser(credentials: RegisterCredentials): Promise<RegisterResponse> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(`${baseUrl}/users`, {
+    method: 'POST',
+    headers: { accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: credentials.email,
+      password: credentials.password,
+      role: credentials.role,
+      ...(credentials.username != null && credentials.username.trim() !== ''
+        ? { username: credentials.username.trim() }
+        : {}),
+      ...(credentials.phone != null && credentials.phone.trim() !== ''
+        ? { phone: credentials.phone.trim() }
+        : {}),
+    }),
+  })
+  const json = (await res.json()) as RegisterResponse & { message?: string; error?: string; userId?: string }
+  if (!res.ok) {
+    const message =
+      typeof json?.message === 'string' ? json.message : typeof (json as { error?: string })?.error === 'string' ? (json as { error: string }).error : 'Failed to create user'
+    throw new Error(message)
+  }
+  const id = json?.data?.id ?? (json as { userId?: string }).userId ?? ''
+  const email = json?.data?.email ?? (json as { email?: string }).email ?? credentials.email
+  const msg = json?.data?.message ?? json?.message ?? 'User created.'
+  return { success: true, message: msg, data: { id, email, message: msg } }
 }
 
 /** Call backend to blacklist the current access token, then clear tokens locally. */
@@ -577,4 +686,439 @@ export async function logoutApi(): Promise<void> {
     }
   }
   clearTokens()
+}
+
+// --- Favorites API ---
+
+export type FavoriteType = 'judge' | 'sponsor'
+
+export type Favorite = {
+  id: string
+  adminId: string
+  favoriteType: FavoriteType
+  favoriteId: string
+  createdAt: string
+  favoriteUser?: {
+    id: string
+    email: string
+    username: string | null
+    role: string
+  }
+}
+
+export type CreateFavoriteResponse = {
+  success: boolean
+  message: string
+  data: Favorite
+}
+
+export type GetFavoritesResponse = {
+  success: boolean
+  message: string
+  data: Favorite[]
+}
+
+/** Create a favorite (admin only) */
+export async function createFavorite(favoriteType: FavoriteType, favoriteId: string): Promise<CreateFavoriteResponse> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(`${baseUrl}/favorites`, {
+    method: 'POST',
+    headers: { accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ favoriteType, favoriteId }),
+  })
+  const json = (await res.json()) as CreateFavoriteResponse & { message?: string; error?: string }
+  if (!res.ok) {
+    const message =
+      typeof json?.message === 'string' ? json.message : (json as { error?: string })?.error ?? 'Failed to create favorite'
+    throw new Error(message)
+  }
+  return json as CreateFavoriteResponse
+}
+
+/** Get favorites (admin only) */
+export async function getFavorites(favoriteType?: FavoriteType): Promise<GetFavoritesResponse> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const q = new URLSearchParams()
+  if (favoriteType) q.set('favoriteType', favoriteType)
+  const res = await authenticatedFetch(`${baseUrl}/favorites?${q}`, {
+    method: 'GET',
+    headers: { accept: 'application/json' },
+  })
+  const json = (await res.json()) as GetFavoritesResponse & { message?: string; error?: string }
+  if (!res.ok) {
+    const message =
+      typeof json?.message === 'string' ? json.message : (json as { error?: string })?.error ?? 'Failed to fetch favorites'
+    throw new Error(message)
+  }
+  return json as GetFavoritesResponse
+}
+
+/** Delete a favorite (admin only) */
+export async function deleteFavorite(favoriteId: string): Promise<void> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(`${baseUrl}/favorites/${encodeURIComponent(favoriteId)}`, {
+    method: 'DELETE',
+    headers: { accept: 'application/json' },
+  })
+  if (!res.ok) {
+    const json = (await res.json()) as { message?: string }
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to delete favorite')
+  }
+}
+
+// --- Teams API ---
+
+export type TeamMember = {
+  id: string
+  userId: string
+  role: string
+  createdAt: string
+  user: {
+    id: string
+    email: string
+    username: string | null
+  }
+}
+
+export type Team = {
+  id: string
+  name: string
+  inviteCode: string
+  hackathonId: string
+  isDissolved: boolean
+  deletionRequestedAt: string | null
+  createdAt: string
+  updatedAt: string
+  members: TeamMember[]
+  hackathon: {
+    id: string
+    title: string
+  }
+}
+
+export type TeamListItem = {
+  id: string
+  name: string
+  inviteCode: string
+  hackathonId: string
+  isDissolved: boolean
+  deletionRequestedAt: string | null
+  createdAt: string
+  updatedAt: string
+  members: TeamMember[]
+  hackathon: {
+    id: string
+    title: string
+  }
+}
+
+export type GetTeamsResponse = {
+  data: TeamListItem[]
+  pagination: { page: number; limit: number; total: number; totalPages: number }
+}
+
+export type CreateTeamBody = {
+  name: string
+  hackathonId: string
+}
+
+export type CreateTeamResponse = {
+  success: boolean
+  message: string
+  data: Team
+}
+
+/** Get teams with pagination and optional search/hackathon filter */
+export async function getTeams(params: {
+  page: number
+  limit: number
+  search?: string
+  hackathonId?: string
+}): Promise<GetTeamsResponse> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const q = new URLSearchParams()
+  q.set('page', String(params.page))
+  q.set('limit', String(params.limit))
+  if (params.search) q.set('search', params.search)
+  if (params.hackathonId) q.set('hackathonId', params.hackathonId)
+  const res = await authenticatedFetch(`${baseUrl}/teams?${q}`, {
+    method: 'GET',
+    headers: { accept: 'application/json' },
+  })
+  const json = (await res.json()) as {
+    success?: boolean
+    message?: string
+    data?:
+      | TeamListItem[]
+      | { data?: TeamListItem[]; pagination?: GetTeamsResponse['pagination'] }
+  }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to fetch teams')
+  }
+
+  const payload = json.data
+  let list: TeamListItem[] = []
+  let pagination: GetTeamsResponse['pagination']
+
+  if (Array.isArray(payload)) {
+    list = payload
+    pagination = {
+      page: params.page,
+      limit: params.limit,
+      total: list.length,
+      totalPages: 1,
+    }
+  } else if (payload && typeof payload === 'object') {
+    list = Array.isArray(payload.data) ? payload.data : []
+    pagination = payload.pagination || {
+      page: params.page,
+      limit: params.limit,
+      total: list.length,
+      totalPages: 1,
+    }
+  }
+
+  return { data: list, pagination }
+}
+
+/** Get a single team by ID */
+export async function getTeam(id: string): Promise<Team> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(`${baseUrl}/teams/${encodeURIComponent(id)}`, {
+    method: 'GET',
+    headers: { accept: 'application/json' },
+  })
+  const json = (await res.json()) as { data?: Team; message?: string }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to fetch team')
+  }
+  const team = json?.data
+  if (!team || typeof team.id === 'undefined') throw new Error('Invalid team response')
+  return team
+}
+
+/** Create a team */
+export async function createTeam(body: CreateTeamBody): Promise<CreateTeamResponse> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(`${baseUrl}/teams`, {
+    method: 'POST',
+    headers: { accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  const json = (await res.json()) as CreateTeamResponse & { message?: string; error?: string }
+  if (!res.ok) {
+    const message =
+      typeof json?.message === 'string' ? json.message : (json as { error?: string })?.error ?? 'Failed to create team'
+    throw new Error(message)
+  }
+  return json as CreateTeamResponse
+}
+
+/** Delete a team */
+export async function deleteTeam(id: string): Promise<void> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(`${baseUrl}/teams/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: { accept: 'application/json' },
+  })
+  if (!res.ok) {
+    const json = (await res.json()) as { message?: string }
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to delete team')
+  }
+}
+
+// --- Hackathons API ---
+
+export type Hackathon = {
+  id: string
+  title: string
+  shortDescription: string
+  image: string | null
+  submissionDeadline: string
+  scoringDeadline: string
+  instructions: string
+  sponsorId: string
+  isPaid: boolean
+  priceOfEntry: number | null
+  status: string
+  createdAt: string
+  updatedAt: string
+  sponsor?: {
+    id: string
+    email: string
+    username: string | null
+  }
+  _count?: {
+    submissions: number
+    teams: number
+  }
+}
+
+export type HackathonListItem = Hackathon
+
+export type GetHackathonsResponse = {
+  data: HackathonListItem[]
+  pagination: { page: number; limit: number; total: number; totalPages: number }
+}
+
+/** Get hackathons with pagination and optional filters */
+export async function getHackathons(params: {
+  page: number
+  limit: number
+  search?: string
+  status?: string
+  sponsorId?: string
+}): Promise<GetHackathonsResponse> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const q = new URLSearchParams()
+  q.set('page', String(params.page))
+  q.set('limit', String(params.limit))
+  if (params.search) q.set('search', params.search)
+  if (params.status) q.set('status', params.status)
+  if (params.sponsorId) q.set('sponsorId', params.sponsorId)
+  const res = await authenticatedFetch(`${baseUrl}/hackathons?${q}`, {
+    method: 'GET',
+    headers: { accept: 'application/json' },
+  })
+  const json = (await res.json()) as {
+    success?: boolean
+    message?: string
+    data?:
+      | HackathonListItem[]
+      | { data?: HackathonListItem[]; pagination?: GetHackathonsResponse['pagination'] }
+  }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to fetch hackathons')
+  }
+
+  const payload = json.data
+  let list: HackathonListItem[] = []
+  let pagination: GetHackathonsResponse['pagination']
+
+  if (Array.isArray(payload)) {
+    list = payload
+    pagination = {
+      page: params.page,
+      limit: params.limit,
+      total: list.length,
+      totalPages: 1,
+    }
+  } else if (payload && typeof payload === 'object') {
+    list = Array.isArray(payload.data) ? payload.data : []
+    pagination = payload.pagination || {
+      page: params.page,
+      limit: params.limit,
+      total: list.length,
+      totalPages: 1,
+    }
+  }
+
+  return { data: list, pagination }
+}
+
+// --- Submissions API ---
+
+export type Submission = {
+  id: string
+  hackathonId: string
+  teamId: string | null
+  userId: string
+  title: string
+  description: string
+  filePath: string
+  fileSize: string
+  averageScore: number | null
+  createdAt: string
+  updatedAt: string
+  hackathon?: {
+    id: string
+    title: string
+    status: string
+  }
+  team?: {
+    id: string
+    name: string
+  }
+  user?: {
+    id: string
+    email: string
+    username: string | null
+  }
+  scores?: Array<{
+    id: string
+    judgeId: string
+    score: number
+    feedback: string | null
+    createdAt: string
+    judge?: {
+      id: string
+      email: string
+      username: string | null
+    }
+  }>
+}
+
+export type SubmissionListItem = Submission
+
+export type GetSubmissionsResponse = {
+  data: SubmissionListItem[]
+  pagination: { page: number; limit: number; total: number; totalPages: number }
+}
+
+/** Get user's submissions (participant sees their own, team submissions) */
+export async function getSubmissions(params: {
+  page: number
+  limit: number
+}): Promise<GetSubmissionsResponse> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const q = new URLSearchParams()
+  q.set('page', String(params.page))
+  q.set('limit', String(params.limit))
+  const res = await authenticatedFetch(`${baseUrl}/submissions?${q}`, {
+    method: 'GET',
+    headers: { accept: 'application/json' },
+  })
+  const json = (await res.json()) as {
+    success?: boolean
+    message?: string
+    data?:
+      | SubmissionListItem[]
+      | { data?: SubmissionListItem[]; pagination?: GetSubmissionsResponse['pagination'] }
+  }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to fetch submissions')
+  }
+
+  const payload = json.data
+  let list: SubmissionListItem[] = []
+  let pagination: GetSubmissionsResponse['pagination']
+
+  if (Array.isArray(payload)) {
+    list = payload
+    pagination = {
+      page: params.page,
+      limit: params.limit,
+      total: list.length,
+      totalPages: 1,
+    }
+  } else if (payload && typeof payload === 'object') {
+    list = Array.isArray(payload.data) ? payload.data : []
+    pagination = payload.pagination || {
+      page: params.page,
+      limit: params.limit,
+      total: list.length,
+      totalPages: 1,
+    }
+  }
+
+  return { data: list, pagination }
 }

@@ -57,18 +57,7 @@ export const SIDEBAR_NAV_CONFIG: SidebarNavItem[] = [
     icon: Award,
     roles: [ROLES.ADMIN, ROLES.SPONSOR, ROLES.PARTICIPANT, ROLES.JUDGE],
   },
-  {
-    label: 'Judges',
-    href: '/judges',
-    icon: Gavel,
-    roles: [ROLES.ADMIN, ROLES.JUDGE],
-  },
-  {
-    label: 'Sponsors',
-    href: '/sponsors',
-    icon: Building2,
-    roles: [ROLES.ADMIN, ROLES.SPONSOR],
-  },
+ 
   {
     label: 'Users',
     icon: UsersRound,
