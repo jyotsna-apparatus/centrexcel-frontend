@@ -3,7 +3,7 @@ import { AppSidebar } from "@/components/app-sidebar"
 import Header from "@/components/header/Header"
 import { SidebarProvider } from "@/components/ui/sidebar"
 
-export default function Layout({ children }: { children: React.ReactNode }) {
+export default function MainLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthGuard>
       <SidebarProvider>

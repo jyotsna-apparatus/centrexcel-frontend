@@ -8,19 +8,7 @@ export default function LandingPage() {
     <div className="min-h-dvh bg-cs-black">
       <div className="pattern" aria-hidden />
       <div className="relative z-10 mx-auto max-w-6xl px-4 py-12">
-        <header className="flex flex-wrap items-center justify-between gap-4">
-          <h1 className="text-xl font-semibold tracking-tight text-cs-heading sm:text-2xl">
-            Centrexcel
-          </h1>
-          <nav className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/auth/login">Login</Link>
-            </Button>
-            <Button size="sm" asChild>
-              <Link href="/auth/sign-up">Sign up</Link>
-            </Button>
-          </nav>
-        </header>
+    
 
         <section className="mt-16 text-center">
           <h2 className="h2 text-cs-heading">Build. Compete. Win.</h2>
@@ -38,15 +26,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <footer className="mt-24 border-t border-cs-border pt-8 text-center text-sm text-cs-text">
-          <Link href="/auth/login" className="link-highlight">
-            Login
-          </Link>
-          {' · '}
-          <Link href="/auth/sign-up" className="link-highlight">
-            Sign up
-          </Link>
-        </footer>
+        
       </div>
     </div>
   )

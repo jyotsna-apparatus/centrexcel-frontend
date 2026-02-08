@@ -10,6 +10,7 @@ import {
 } from '@/lib/auth-api'
 import { validatePassword } from '@/lib/validate-password'
 import { useMutation } from '@tanstack/react-query'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -129,6 +130,14 @@ const ResetPasswordPage = () => {
     <div className="parent h-dvh">
       <div className="container flex flex-col gap-4 items-center justify-center">
         <div className="card flex flex-col gap-4 items-center justify-center">
+          <Image
+            src="/logo-full.svg"
+            alt="Centrexcel"
+            width={200}
+            height={39}
+            className="h-9 w-auto"
+            priority
+          />
           <div className="flex flex-col gap-2 my-5">
             <h1 className="h3">Reset password</h1>
             <p className="p1 text-center">
@@ -195,9 +204,7 @@ const ResetPasswordPage = () => {
                 }}
                 required
               />
-              <p className="text-xs text-cs-text/70 mt-1">
-                At least 8 characters, 1 uppercase, 1 lowercase, 1 number, 1 symbol
-              </p>
+             
               {passwordError && (
                 <p className="text-sm text-destructive">{passwordError}</p>
               )}

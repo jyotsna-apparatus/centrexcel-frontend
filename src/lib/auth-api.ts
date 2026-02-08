@@ -1,4 +1,4 @@
-import { getAccessToken } from '@/lib/auth'
+import { getAccessToken, getRefreshToken, setTokens, clearTokens } from '@/lib/auth'
 
 /** Use same-origin /api in the browser (proxied via next.config rewrites) to avoid CORS. */
 const getBaseUrl = () =>
@@ -40,6 +40,43 @@ async function authFetch(url: string, options: RequestInit): Promise<Response> {
     }
     throw err
   }
+}
+
+/** Authenticated fetch: adds Bearer token, on 401 tries refresh once and retries. Use for /auth/me, /auth/change-password, etc. */
+async function authenticatedFetch(
+  url: string,
+  options: RequestInit & { skipRetry?: boolean } = {}
+): Promise<Response> {
+  const { skipRetry, ...fetchOptions } = options
+  const token = getAccessToken()
+  if (!token) throw new Error('Not authenticated')
+  let res = await authFetch(url, {
+    ...fetchOptions,
+    headers: { ...(fetchOptions.headers as Record<string, string>), Authorization: `Bearer ${token}` },
+  })
+  if (res.status === 401 && !skipRetry) {
+    const refreshTokenValue = getRefreshToken()
+    if (refreshTokenValue) {
+      try {
+        const refreshed = await refresh(refreshTokenValue)
+        setTokens(refreshed.data.accessToken, refreshed.data.refreshToken)
+        res = await authFetch(url, {
+          ...fetchOptions,
+          headers: {
+            ...(fetchOptions.headers as Record<string, string>),
+            Authorization: `Bearer ${refreshed.data.accessToken}`,
+          },
+        })
+      } catch {
+        clearTokens()
+        throw new Error('Session expired. Please log in again.')
+      }
+    } else {
+      clearTokens()
+      throw new Error('Session expired. Please log in again.')
+    }
+  }
+  return res
 }
 
 export async function login(credentials: LoginCredentials): Promise<LoginResponse> {
@@ -139,13 +176,13 @@ export async function getMe(accessToken?: string | null): Promise<MeResponse> {
   if (!token) {
     throw new Error('Not authenticated')
   }
-  const res = await authFetch(`${baseUrl}/auth/me`, {
-    method: 'GET',
-    headers: {
-      accept: '*/*',
-      Authorization: `Bearer ${token}`,
-    },
-  })
+  const res =
+    accessToken != null
+      ? await authFetch(`${baseUrl}/auth/me`, {
+          method: 'GET',
+          headers: { accept: '*/*', Authorization: `Bearer ${token}` },
+        })
+      : await authenticatedFetch(`${baseUrl}/auth/me`, { method: 'GET', headers: { accept: '*/*' } })
   const json = (await res.json()) as MeResponse & { message?: string; error?: string; user?: { userId?: string; id?: string; email: string; role: string } }
   if (!res.ok) {
     const message =
@@ -172,6 +209,35 @@ export type RegisterCredentials = {
   password: string
   role: 'sponsor' | 'judge' | 'participant'
   username?: string
+  phone?: string
+}
+
+export type CheckUsernameResponse = {
+  success: boolean
+  data?: { available: boolean }
+}
+
+export async function checkUsername(username: string): Promise<CheckUsernameResponse> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) {
+    throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  }
+  const trimmed = username.trim()
+  if (trimmed.length < 3) {
+    return { success: true, data: { available: false } }
+  }
+  const res = await authFetch(`${baseUrl}/auth/check-username/${encodeURIComponent(trimmed)}`, {
+    method: 'GET',
+    headers: { accept: 'application/json' },
+  })
+  const json = (await res.json()) as CheckUsernameResponse & { message?: string; data?: { available?: boolean } }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Username check failed')
+  }
+  return {
+    success: true,
+    data: { available: json?.data?.available ?? false },
+  }
 }
 
 /** Normalized shape after register (backend may return { message, userId, email } or wrapped) */
@@ -203,6 +269,9 @@ export async function register(credentials: RegisterCredentials): Promise<Regist
       role: credentials.role,
       ...(credentials.username != null && credentials.username.trim() !== ''
         ? { username: credentials.username.trim() }
+        : {}),
+      ...(credentials.phone != null && credentials.phone.trim() !== ''
+        ? { phone: credentials.phone.trim() }
         : {}),
     }),
   })
@@ -415,18 +484,22 @@ export async function changePassword(
   if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
   const token = accessToken ?? getAccessToken()
   if (!token) throw new Error('Not authenticated')
-  const res = await authFetch(`${baseUrl}/auth/change-password`, {
-    method: 'POST',
-    headers: {
-      accept: '*/*',
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
-      currentPassword: payload.currentPassword,
-      newPassword: payload.newPassword,
-    }),
+  const body = JSON.stringify({
+    currentPassword: payload.currentPassword,
+    newPassword: payload.newPassword,
   })
+  const res =
+    accessToken != null
+      ? await authFetch(`${baseUrl}/auth/change-password`, {
+          method: 'POST',
+          headers: { accept: '*/*', 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body,
+        })
+      : await authenticatedFetch(`${baseUrl}/auth/change-password`, {
+          method: 'POST',
+          headers: { accept: '*/*', 'Content-Type': 'application/json' },
+          body,
+        })
   const json = (await res.json()) as ChangePasswordResponse & { message?: string; error?: string }
   if (!res.ok) {
     const message =
@@ -434,4 +507,74 @@ export async function changePassword(
     throw new Error(message)
   }
   return { success: true, message: (json as { message?: string })?.message ?? 'Password changed successfully' }
+}
+
+/** User list item from GET /users (admin). */
+export type UserListItem = {
+  id: string
+  email: string
+  username: string | null
+  role: string
+  emailVerified: boolean
+  createdAt: string
+}
+
+/** Paginated users response from GET /users. */
+export type GetUsersResponse = {
+  data: UserListItem[]
+  pagination: { page: number; limit: number; total: number; totalPages: number }
+}
+
+/** Fetch users (admin). Supports pagination and optional search + role filter. */
+export async function getUsers(params: {
+  page: number
+  limit: number
+  search?: string
+  role?: string
+}): Promise<GetUsersResponse> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const q = new URLSearchParams()
+  q.set('page', String(params.page))
+  q.set('limit', String(params.limit))
+  if (params.search) q.set('search', params.search)
+  if (params.role) q.set('role', params.role)
+  const res = await authenticatedFetch(`${baseUrl}/users?${q}`, {
+    method: 'GET',
+    headers: { accept: 'application/json' },
+  })
+  const json = (await res.json()) as {
+    success?: boolean
+    message?: string
+    data?: { data?: UserListItem[]; pagination?: GetUsersResponse['pagination'] }
+  }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to fetch users')
+  }
+  const payload = json.data
+  const list = Array.isArray(payload?.data) ? payload.data : payload?.data ?? []
+  const pagination = payload?.pagination ?? {
+    page: params.page,
+    limit: params.limit,
+    total: list.length,
+    totalPages: 1,
+  }
+  return { data: list, pagination }
+}
+
+/** Call backend to blacklist the current access token, then clear tokens locally. */
+export async function logoutApi(): Promise<void> {
+  const baseUrl = getBaseUrl()
+  const token = getAccessToken()
+  if (baseUrl && token) {
+    try {
+      await authFetch(`${baseUrl}/auth/logout`, {
+        method: 'POST',
+        headers: { accept: '*/*', Authorization: `Bearer ${token}` },
+      })
+    } catch {
+      // Ignore network errors; still clear local tokens
+    }
+  }
+  clearTokens()
 }

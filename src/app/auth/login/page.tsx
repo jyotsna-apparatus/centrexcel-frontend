@@ -3,10 +3,12 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/ui/password-input'
+import { RedirectIfAuthenticated } from '@/components/redirect-if-authenticated'
 import { setTokens } from '@/lib/auth'
 import { login } from '@/lib/auth-api'
 import { validateEmail } from '@/lib/validate'
 import { useMutation } from '@tanstack/react-query'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -17,12 +19,11 @@ type LoginFormData = {
   password: string
 }
 
+const defaultCredentials = { email: 'admin@hackathon.com', password: 'Admin@123' }
+
 const LoginPage = () => {
   const router = useRouter()
-  const [formData, setFormData] = useState<LoginFormData>({
-    email: '',
-    password: '',
-  })
+  const [formData, setFormData] = useState<LoginFormData>(defaultCredentials)
   const [emailError, setEmailError] = useState<string | null>(null)
 
   const loginMutation = useMutation({
@@ -50,9 +51,18 @@ const LoginPage = () => {
   }
 
   return (
-    <div className="parent h-dvh">
-      <div className="container flex flex-col gap-4 items-center justify-center">
+    <RedirectIfAuthenticated>
+      <div className="parent h-dvh">
+        <div className="container flex flex-col gap-4 items-center justify-center">
         <div className="card flex flex-col gap-4 items-center justify-center">
+          <Image
+            src="/logo-full.svg"
+            alt="Centrexcel"
+            width={200}
+            height={39}
+            className="h-9 w-auto"
+            priority
+          />
           <div className="flex flex-col items-center justify-center gap-2 my-5">
             <h1 className="h3">Login</h1>
             <p className="p1">Enter your email and password to login</p>
@@ -68,6 +78,7 @@ const LoginPage = () => {
               }}
               required
               aria-invalid={!!emailError}
+              className={emailError ? 'border-destructive' : ''}
             />
             {emailError && <p className="text-sm text-destructive">{emailError}</p>}
             <div className="flex flex-col gap-1 w-full">
@@ -93,6 +104,7 @@ const LoginPage = () => {
         </p>
       </div>
     </div>
+    </RedirectIfAuthenticated>
   )
 }
 

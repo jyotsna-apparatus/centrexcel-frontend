@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button'
 import { PasswordInput } from '@/components/ui/password-input'
 import { changePassword } from '@/lib/auth-api'
 import { getAccessToken } from '@/lib/auth'
-import { validatePassword } from '@/lib/validate-password'
+import { validatePassword } from '@/lib/validate'
 import { useMutation } from '@tanstack/react-query'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -79,6 +80,14 @@ const ChangePasswordPage = () => {
     <div className="parent h-dvh">
       <div className="container flex flex-col gap-4 items-center justify-center">
         <div className="card flex flex-col gap-4 items-center justify-center">
+          <Image
+            src="/logo-full.svg"
+            alt="Centrexcel"
+            width={200}
+            height={39}
+            className="h-9 w-auto"
+            priority
+          />
           <div className="flex flex-col items-center justify-center gap-2 my-5">
             <h1 className="h3">Change password</h1>
             <p className="p1 text-center">
@@ -103,9 +112,7 @@ const ChangePasswordPage = () => {
               }}
               required
             />
-            <p className="text-xs text-cs-text/70 mt-1">
-              At least 8 characters, 1 uppercase, 1 lowercase, 1 number, 1 symbol
-            </p>
+           
             {passwordError && (
               <p className="text-sm text-destructive">{passwordError}</p>
             )}

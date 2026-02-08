@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { useRouter } from 'next/navigation'
-import { logout } from '@/lib/auth'
+import { logoutApi } from '@/lib/auth-api'
 import { Button } from '../ui/button'
 import { ConfirmDialog } from '../ui/confirm-dialog'
 import { SidebarTrigger } from '../ui/sidebar'
@@ -12,7 +12,7 @@ const Header = () => {
   const [logoutDialogOpen, setLogoutDialogOpen] = React.useState(false)
 
   const handleLogout = async () => {
-    await logout()
+    await logoutApi()
     router.replace('/auth/login')
   }
 

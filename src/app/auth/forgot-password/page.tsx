@@ -2,9 +2,11 @@
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { RedirectIfAuthenticated } from '@/components/redirect-if-authenticated'
 import { forgotPassword } from '@/lib/auth-api'
 import { validateEmail } from '@/lib/validate'
 import { useMutation } from '@tanstack/react-query'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -39,9 +41,18 @@ const ForgotPasswordPage = () => {
   }
 
   return (
-    <div className="parent h-dvh">
-      <div className="container flex flex-col gap-4 items-center justify-center">
+    <RedirectIfAuthenticated>
+      <div className="parent h-dvh">
+        <div className="container flex flex-col gap-4 items-center justify-center">
         <div className="card flex flex-col gap-4 items-center justify-center">
+          <Image
+            src="/logo-full.svg"
+            alt="Centrexcel"
+            width={200}
+            height={39}
+            className="h-9 w-auto"
+            priority
+          />
           <div className="flex flex-col items-center justify-center gap-2 my-5">
             <h1 className="h3">Forgot password</h1>
             <p className="p1 text-center">
@@ -75,6 +86,7 @@ const ForgotPasswordPage = () => {
         </p>
       </div>
     </div>
+    </RedirectIfAuthenticated>
   )
 }
 

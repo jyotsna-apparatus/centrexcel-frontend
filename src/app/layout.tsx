@@ -21,8 +21,8 @@ export const metadata: Metadata = {
   },
   themeColor: "#000000",
   icons: {
-    icon: "/icon",
-    apple: "/icon",
+    icon: "/logo-mark.svg",
+    apple: "/logo-mark.svg",
   },
 };
 
@@ -38,9 +38,11 @@ export default function RootLayout({
       >
         <Providers>
           <PWARegister />
-          <div className='pattern' />
-          <div className='relative z-2'>
+          <div className='pattern' aria-hidden />
+          <div className="relative z-2">
+            {/* <SiteHeader /> */}
             {children}
+            {/* <Footer /> */}
           </div>
         </Providers>
 

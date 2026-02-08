@@ -1,25 +1,52 @@
 'use client'
 
-import { getAccessToken } from '@/lib/auth'
+import { getAccessToken, clearTokens } from '@/lib/auth'
+import { useAuth } from '@/contexts/auth-context'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter()
-  const [isChecking, setIsChecking] = useState(true)
-  const [hasToken, setHasToken] = useState(false)
+  const { loadUser } = useAuth()
+  const [authState, setAuthState] = useState<'checking' | 'authenticated' | 'unauthenticated'>('checking')
 
   useEffect(() => {
-    const token = getAccessToken()
-    if (!token) {
-      router.replace('/auth/login')
-      return
-    }
-    setHasToken(true)
-    setIsChecking(false)
-  }, [router])
+    let cancelled = false
 
-  if (isChecking) {
+    async function validateAuth() {
+      const token = getAccessToken()
+      if (!token) {
+        if (!cancelled) {
+          setAuthState('unauthenticated')
+          router.replace('/auth/login')
+        }
+        return
+      }
+
+      try {
+        const user = await loadUser()
+        if (!cancelled && user) setAuthState('authenticated')
+        else if (!cancelled) {
+          clearTokens()
+          setAuthState('unauthenticated')
+          router.replace('/auth/login')
+        }
+      } catch {
+        if (!cancelled) {
+          clearTokens()
+          setAuthState('unauthenticated')
+          router.replace('/auth/login')
+        }
+      }
+    }
+
+    validateAuth()
+    return () => {
+      cancelled = true
+    }
+  }, [router, loadUser])
+
+  if (authState === 'checking') {
     return (
       <div className="flex w-full h-[calc(100dvh-4rem)] items-center justify-center">
         <div className="text-cs-text p1">Loading...</div>
@@ -27,7 +54,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     )
   }
 
-  if (!hasToken) return null
+  if (authState !== 'authenticated') return null
 
   return <>{children}</>
 }
