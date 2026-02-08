@@ -936,6 +936,14 @@ export async function deleteTeam(id: string): Promise<void> {
 
 // --- Hackathons API ---
 
+export type HackathonJudge = {
+  id: string
+  hackathonId: string
+  judgeId: string
+  createdAt: string
+  judge: { id: string; email: string; username: string | null }
+}
+
 export type Hackathon = {
   id: string
   title: string
@@ -955,6 +963,7 @@ export type Hackathon = {
     email: string
     username: string | null
   }
+  judges?: HackathonJudge[]
   _count?: {
     submissions: number
     teams: number
@@ -1026,6 +1035,16 @@ export async function getHackathons(params: {
 
 // --- Submissions API ---
 
+export type JudgeScore = {
+  id: string
+  submissionId: string
+  judgeId: string
+  score: number
+  feedback: string | null
+  createdAt: string
+  judge?: { id: string; email: string; username: string | null }
+}
+
 export type Submission = {
   id: string
   hackathonId: string
@@ -1034,36 +1053,29 @@ export type Submission = {
   title: string
   description: string
   filePath: string
-  fileSize: string
+  fileSize: number
   averageScore: number | null
   createdAt: string
   updatedAt: string
   hackathon?: {
     id: string
     title: string
-    status: string
+    status?: string
   }
-  team?: {
-    id: string
-    name: string
-  }
-  user?: {
-    id: string
-    email: string
-    username: string | null
-  }
-  scores?: Array<{
-    id: string
-    judgeId: string
-    score: number
-    feedback: string | null
-    createdAt: string
-    judge?: {
-      id: string
-      email: string
-      username: string | null
-    }
-  }>
+  team?: { id: string; name: string } | null
+  user?: { id: string; email: string; username: string | null }
+  scores?: JudgeScore[]
+}
+
+export type Winner = {
+  id: string
+  hackathonId: string
+  submissionId: string
+  position: 1 | 2 | 3
+  selectedBy: string
+  createdAt: string
+  submission?: Submission
+  selector?: { id: string; email: string; username: string | null }
 }
 
 export type SubmissionListItem = Submission
@@ -1121,4 +1133,402 @@ export async function getSubmissions(params: {
   }
 
   return { data: list, pagination }
+}
+
+// --- Hackathon single & CRUD ---
+
+/** Get a single hackathon by ID */
+export async function getHackathon(id: string): Promise<Hackathon> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(`${baseUrl}/hackathons/${encodeURIComponent(id)}`, {
+    method: 'GET',
+    headers: { accept: 'application/json' },
+  })
+  const json = (await res.json()) as { data?: Hackathon; message?: string }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to fetch hackathon')
+  }
+  const hackathon = json?.data
+  if (!hackathon || typeof hackathon.id === 'undefined') throw new Error('Invalid hackathon response')
+  return hackathon
+}
+
+export type CreateHackathonFormData = {
+  title: string
+  shortDescription: string
+  submissionDeadline: string
+  scoringDeadline: string
+  instructions: string
+  sponsorId: string
+  judgeIds: string[]
+  isPaid: boolean
+  priceOfEntry?: number | null
+  image?: File | null
+}
+
+/** Create hackathon (Admin only). multipart/form-data. */
+export async function createHackathon(form: CreateHackathonFormData): Promise<{ success: boolean; message: string; data: Hackathon }> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const body = new FormData()
+  body.append('title', form.title)
+  body.append('shortDescription', form.shortDescription)
+  body.append('submissionDeadline', form.submissionDeadline)
+  body.append('scoringDeadline', form.scoringDeadline)
+  body.append('instructions', form.instructions)
+  body.append('sponsorId', form.sponsorId)
+  body.append('judgeIds', JSON.stringify(form.judgeIds))
+  body.append('isPaid', form.isPaid ? 'true' : 'false')
+  if (form.isPaid && form.priceOfEntry != null) body.append('priceOfEntry', String(form.priceOfEntry))
+  if (form.image) body.append('image', form.image)
+  const res = await authenticatedFetch(`${baseUrl}/hackathons`, {
+    method: 'POST',
+    headers: { accept: 'application/json' },
+    body,
+  })
+  const json = (await res.json()) as { success?: boolean; message?: string; data?: Hackathon }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to create hackathon')
+  }
+  const data = json?.data
+  if (!data) throw new Error('Invalid create hackathon response')
+  return { success: true, message: (json as { message?: string })?.message ?? 'Hackathon created successfully', data }
+}
+
+export type UpdateHackathonFormData = Partial<CreateHackathonFormData> & { status?: string }
+
+/** Update hackathon (Admin only). multipart/form-data. */
+export async function updateHackathon(id: string, form: UpdateHackathonFormData): Promise<Hackathon> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const body = new FormData()
+  if (form.title !== undefined) body.append('title', form.title)
+  if (form.shortDescription !== undefined) body.append('shortDescription', form.shortDescription)
+  if (form.submissionDeadline !== undefined) body.append('submissionDeadline', form.submissionDeadline)
+  if (form.scoringDeadline !== undefined) body.append('scoringDeadline', form.scoringDeadline)
+  if (form.instructions !== undefined) body.append('instructions', form.instructions)
+  if (form.sponsorId !== undefined) body.append('sponsorId', form.sponsorId)
+  if (form.judgeIds !== undefined) body.append('judgeIds', JSON.stringify(form.judgeIds))
+  if (form.isPaid !== undefined) body.append('isPaid', form.isPaid ? 'true' : 'false')
+  if (form.priceOfEntry !== undefined && form.priceOfEntry != null) body.append('priceOfEntry', String(form.priceOfEntry))
+  if (form.status !== undefined) body.append('status', form.status)
+  if (form.image) body.append('image', form.image)
+  const res = await authenticatedFetch(`${baseUrl}/hackathons/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    headers: { accept: 'application/json' },
+    body,
+  })
+  const json = (await res.json()) as { data?: Hackathon; message?: string }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to update hackathon')
+  }
+  const data = json?.data
+  if (!data) throw new Error('Invalid update hackathon response')
+  return data
+}
+
+/** Delete hackathon (Admin only) */
+export async function deleteHackathon(id: string): Promise<void> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(`${baseUrl}/hackathons/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: { accept: 'application/json' },
+  })
+  if (!res.ok) {
+    const json = (await res.json()) as { message?: string }
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to delete hackathon')
+  }
+}
+
+/** Get all submissions for a hackathon (Admin or Sponsor) */
+export async function getHackathonEntries(hackathonId: string): Promise<Submission[]> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(`${baseUrl}/hackathons/${encodeURIComponent(hackathonId)}/entries`, {
+    method: 'GET',
+    headers: { accept: 'application/json' },
+  })
+  const json = (await res.json()) as { data?: Submission[]; message?: string }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to fetch entries')
+  }
+  return Array.isArray(json?.data) ? json.data : []
+}
+
+/** Download all hackathon submissions as ZIP (Admin or Sponsor) */
+export async function downloadHackathonEntries(hackathonId: string): Promise<Blob> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(`${baseUrl}/hackathons/${encodeURIComponent(hackathonId)}/download-entries`, {
+    method: 'GET',
+    headers: { accept: 'application/zip' },
+  })
+  if (!res.ok) {
+    const text = await res.text()
+    let msg = 'Failed to download entries'
+    try {
+      const j = JSON.parse(text) as { message?: string }
+      if (typeof j?.message === 'string') msg = j.message
+    } catch {
+      // ignore
+    }
+    throw new Error(msg)
+  }
+  return res.blob()
+}
+
+// --- Teams: join, remove member, deletion flow ---
+
+/** Join a team by invite code */
+export async function joinTeam(inviteCode: string): Promise<Team> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(`${baseUrl}/teams/join`, {
+    method: 'POST',
+    headers: { accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ inviteCode: inviteCode.trim() }),
+  })
+  const json = (await res.json()) as { data?: Team; message?: string }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to join team')
+  }
+  const data = json?.data
+  if (!data) throw new Error('Invalid join team response')
+  return data
+}
+
+/** Remove a team member (team leader only) */
+export async function removeTeamMember(teamId: string, userId: string): Promise<void> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(
+    `${baseUrl}/teams/${encodeURIComponent(teamId)}/members/${encodeURIComponent(userId)}`,
+    { method: 'DELETE', headers: { accept: 'application/json' } }
+  )
+  if (!res.ok) {
+    const json = (await res.json()) as { message?: string }
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to remove member')
+  }
+}
+
+/** Request team deletion (leader only). All members must confirm. */
+export async function requestTeamDeletion(teamId: string): Promise<{ success: boolean; message: string }> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(`${baseUrl}/teams/${encodeURIComponent(teamId)}/request-deletion`, {
+    method: 'POST',
+    headers: { accept: 'application/json' },
+  })
+  const json = (await res.json()) as { success?: boolean; message?: string; data?: { message?: string } }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to request deletion')
+  }
+  return { success: true, message: json?.data?.message ?? json?.message ?? 'Deletion requested' }
+}
+
+/** Confirm team deletion (any member). When all confirm, team is dissolved. */
+export async function confirmTeamDeletion(teamId: string): Promise<{ success: boolean; message: string }> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(`${baseUrl}/teams/${encodeURIComponent(teamId)}/confirm-deletion`, {
+    method: 'POST',
+    headers: { accept: 'application/json' },
+  })
+  const json = (await res.json()) as { success?: boolean; message?: string; data?: { message?: string } }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to confirm deletion')
+  }
+  return { success: true, message: json?.data?.message ?? json?.message ?? 'Deletion confirmed' }
+}
+
+export type TeamDeletionStatus = {
+  deletionRequested: boolean
+  confirmations: Array<{
+    id: string
+    teamId: string
+    userId: string
+    confirmed: boolean
+    confirmedAt: string | null
+    createdAt: string
+    user: { id: string; email: string; username: string | null }
+  }>
+  totalMembers: number
+  confirmedCount: number
+}
+
+/** Get team deletion confirmation status */
+export async function getTeamDeletionStatus(teamId: string): Promise<TeamDeletionStatus> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(`${baseUrl}/teams/${encodeURIComponent(teamId)}/deletion-status`, {
+    method: 'GET',
+    headers: { accept: 'application/json' },
+  })
+  const json = (await res.json()) as { data?: TeamDeletionStatus; message?: string }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to fetch deletion status')
+  }
+  const data = json?.data
+  if (!data) throw new Error('Invalid deletion status response')
+  return data
+}
+
+// --- Submissions: single, by hackathon, create, delete ---
+
+/** Get a single submission by ID */
+export async function getSubmission(id: string): Promise<Submission> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(`${baseUrl}/submissions/${encodeURIComponent(id)}`, {
+    method: 'GET',
+    headers: { accept: 'application/json' },
+  })
+  const json = (await res.json()) as { data?: Submission; message?: string }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to fetch submission')
+  }
+  const data = json?.data
+  if (!data) throw new Error('Invalid submission response')
+  return data
+}
+
+/** Get all submissions for a hackathon (Admin or Sponsor) */
+export async function getSubmissionsByHackathon(hackathonId: string): Promise<Submission[]> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(`${baseUrl}/submissions/hackathon/${encodeURIComponent(hackathonId)}`, {
+    method: 'GET',
+    headers: { accept: 'application/json' },
+  })
+  const json = (await res.json()) as { data?: Submission[]; message?: string }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to fetch submissions')
+  }
+  return Array.isArray(json?.data) ? json.data : []
+}
+
+export type CreateSubmissionFormData = {
+  hackathonId: string
+  title: string
+  description: string
+  teamId?: string | null
+  file: File
+}
+
+/** Create submission (multipart/form-data) */
+export async function createSubmission(form: CreateSubmissionFormData): Promise<Submission> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const body = new FormData()
+  body.append('hackathonId', form.hackathonId)
+  body.append('title', form.title)
+  body.append('description', form.description)
+  if (form.teamId) body.append('teamId', form.teamId)
+  body.append('file', form.file)
+  const res = await authenticatedFetch(`${baseUrl}/submissions`, {
+    method: 'POST',
+    headers: { accept: 'application/json' },
+    body,
+  })
+  const json = (await res.json()) as { data?: Submission; message?: string }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to create submission')
+  }
+  const data = json?.data
+  if (!data) throw new Error('Invalid create submission response')
+  return data
+}
+
+/** Delete submission (owner, team leader, or admin) */
+export async function deleteSubmission(id: string): Promise<void> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(`${baseUrl}/submissions/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: { accept: 'application/json' },
+  })
+  if (!res.ok) {
+    const json = (await res.json()) as { message?: string }
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to delete submission')
+  }
+}
+
+// --- Scores ---
+
+export type CreateScoreBody = { submissionId: string; score: number; feedback?: string | null }
+
+/** Create judge score (Judge only) */
+export async function createScore(body: CreateScoreBody): Promise<JudgeScore> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(`${baseUrl}/scores`, {
+    method: 'POST',
+    headers: { accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      submissionId: body.submissionId,
+      score: body.score,
+      ...(body.feedback != null ? { feedback: body.feedback } : {}),
+    }),
+  })
+  const json = (await res.json()) as { data?: JudgeScore; message?: string }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to create score')
+  }
+  const data = json?.data
+  if (!data) throw new Error('Invalid create score response')
+  return data
+}
+
+/** Get scores for a submission (Judge sees own only; Admin/Sponsor see all) */
+export async function getSubmissionScores(submissionId: string): Promise<JudgeScore[]> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(`${baseUrl}/scores/submission/${encodeURIComponent(submissionId)}`, {
+    method: 'GET',
+    headers: { accept: 'application/json' },
+  })
+  const json = (await res.json()) as { data?: JudgeScore[]; message?: string }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to fetch scores')
+  }
+  return Array.isArray(json?.data) ? json.data : []
+}
+
+// --- Winners ---
+
+export type CreateWinnerBody = { hackathonId: string; submissionId: string; position: 1 | 2 | 3 }
+
+/** Select winner (Admin or Sponsor) */
+export async function createWinner(body: CreateWinnerBody): Promise<Winner> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(`${baseUrl}/winners`, {
+    method: 'POST',
+    headers: { accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  const json = (await res.json()) as { data?: Winner; message?: string }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to select winner')
+  }
+  const data = json?.data
+  if (!data) throw new Error('Invalid create winner response')
+  return data
+}
+
+/** Get hackathon winners (ordered by position 1, 2, 3) */
+export async function getHackathonWinners(hackathonId: string): Promise<Winner[]> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(`${baseUrl}/winners/hackathon/${encodeURIComponent(hackathonId)}`, {
+    method: 'GET',
+    headers: { accept: 'application/json' },
+  })
+  const json = (await res.json()) as { data?: Winner[]; message?: string }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to fetch winners')
+  }
+  return Array.isArray(json?.data) ? json.data : []
 }

@@ -100,7 +100,7 @@ export function AppSidebar() {
                     isActive={item.href ? isActive(item.href) : false}
                     className={cn(
                       item.href && canAccessPath(item.href, user?.role)
-                        ? 'text-cs-primary'
+                        ? '!text-cs-primary'
                         : 'text-cs-text'
                     )}
                   >
