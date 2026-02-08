@@ -1,6 +1,6 @@
 'use client'
 
-import { getToken } from '@/lib/auth'
+import { getAccessToken } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
@@ -10,7 +10,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const [hasToken, setHasToken] = useState(false)
 
   useEffect(() => {
-    const token = getToken()
+    const token = getAccessToken()
     if (!token) {
       router.replace('/auth/login')
       return

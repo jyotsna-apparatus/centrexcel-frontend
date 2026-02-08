@@ -1,170 +1,233 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/ui/password-input'
-import { getApiErrorMessage } from '@/lib/api-errors'
+import {
+  resendResetOtp,
+  resetPassword,
+  verifyResetOtp,
+} from '@/lib/auth-api'
 import { validatePassword } from '@/lib/validate-password'
 import { useMutation } from '@tanstack/react-query'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
-type ResetPasswordFormData = {
-  email: string
-  code: string
-  newPassword: string
-  confirmPassword: string
-}
+const RESET_TOKEN_KEY = 'auth_reset_token'
 
-const resetPasswordMutationFn = async (data: ResetPasswordFormData) => {
-  if (data.newPassword !== data.confirmPassword) {
-    throw new Error('Passwords do not match')
-  }
-
-  const validation = validatePassword(data.newPassword)
-  if (!validation.valid) {
-    throw new Error(validation.message ?? 'Invalid password')
-  }
-
-  const baseUrl = process.env.NEXT_PUBLIC_BACKEND_BASE_URL
-  if (!baseUrl) throw new Error('Backend URL is not configured')
-
-  const response = await fetch(`${baseUrl}/auth/reset-password`, {
-    method: 'POST',
-    headers: {
-      accept: 'application/json',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      email: data.email,
-      code: data.code,
-      newPassword: data.newPassword,
-    }),
-  })
-
-  const result = await response.json().catch(() => ({}))
-  if (!response.ok) {
-    throw new Error(getApiErrorMessage(result, 'Failed to reset password'))
-  }
-  return result
-}
+type Step1Data = { email: string; code: string }
+type Step2Data = { newPassword: string; confirmPassword: string }
 
 const ResetPasswordPage = () => {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const email = searchParams.get('email') ?? ''
-  const code = searchParams.get('code') ?? ''
+  const emailParam = searchParams.get('email') ?? ''
 
-  const [formData, setFormData] = useState<ResetPasswordFormData>({
-    email,
-    code,
+  const [step, setStep] = useState<1 | 2>(1)
+  const [step1, setStep1] = useState<Step1Data>({
+    email: emailParam,
+    code: '',
+  })
+  const [step2, setStep2] = useState<Step2Data>({
     newPassword: '',
     confirmPassword: '',
   })
   const [passwordError, setPasswordError] = useState<string | null>(null)
-  const [otpExpiredHint, setOtpExpiredHint] = useState(false)
+  const [resendCooldownSeconds, setResendCooldownSeconds] = useState(0)
 
-  const resetPasswordMutation = useMutation({
-    mutationFn: resetPasswordMutationFn,
-    onSuccess: () => {
-      toast.success('Password reset successfully')
-      router.push('/auth/login')
+  useEffect(() => {
+    if (resendCooldownSeconds <= 0) return
+    const id = setInterval(() => setResendCooldownSeconds((s) => (s <= 1 ? 0 : s - 1)), 1000)
+    return () => clearInterval(id)
+  }, [resendCooldownSeconds])
+
+  useEffect(() => {
+    if (typeof sessionStorage === 'undefined') return
+    if (sessionStorage.getItem(RESET_TOKEN_KEY)) setStep(2)
+  }, [])
+
+  const verifyOtpMutation = useMutation({
+    mutationFn: ({ email, otp }: { email: string; otp: string }) =>
+      verifyResetOtp(email, otp),
+    onSuccess: (data) => {
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem(RESET_TOKEN_KEY, data.data.resetToken)
+      }
+      toast.success(data.data.message ?? 'Code verified. Set your new password.')
+      setStep(2)
     },
     onError: (error: Error) => {
-      const msg = error.message.toLowerCase()
-      if (msg.includes('expired') || (msg.includes('invalid') && msg.includes('otp'))) {
-        setOtpExpiredHint(true)
-      }
-      toast.error(error.message)
+      toast.error(error.message ?? 'Invalid or expired code')
     },
   })
 
-  const verifyOtpResendUrl = formData.email
-    ? `/auth/verify-otp?email=${encodeURIComponent(formData.email)}&purpose=reset_password`
-    : null
+  const resetMutation = useMutation({
+    mutationFn: (payload: { resetToken: string; newPassword: string }) =>
+      resetPassword(payload),
+    onSuccess: () => {
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.removeItem(RESET_TOKEN_KEY)
+      }
+      toast.success('Password reset successfully. You can log in now.')
+      router.push('/auth/login')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message ?? 'Reset failed')
+    },
+  })
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const resendMutation = useMutation({
+    mutationFn: resendResetOtp,
+    onSuccess: () => {
+      setResendCooldownSeconds(60)
+      toast.success('A new code has been sent to your email.')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message ?? 'Failed to resend code')
+    },
+  })
+
+  const handleStep1 = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!step1.email.trim()) {
+      toast.error('Email is required')
+      return
+    }
+    if (step1.code.trim().length !== 6) {
+      toast.error('Please enter the 6-digit code from your email')
+      return
+    }
+    verifyOtpMutation.mutate({ email: step1.email.trim(), otp: step1.code.trim() })
+  }
+
+  const handleStep2 = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setPasswordError(null)
-    const validation = validatePassword(formData.newPassword)
+    const validation = validatePassword(step2.newPassword)
     if (!validation.valid) {
       setPasswordError(validation.message ?? 'Invalid password')
       toast.error(validation.message)
       return
     }
-    if (formData.newPassword !== formData.confirmPassword) {
+    if (step2.newPassword !== step2.confirmPassword) {
       toast.error('Passwords do not match')
       return
     }
-    resetPasswordMutation.mutate(formData)
+    const resetToken =
+      typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(RESET_TOKEN_KEY) : null
+    if (!resetToken) {
+      toast.error('Session expired. Please request a new code from the forgot password page.')
+      setStep(1)
+      return
+    }
+    resetMutation.mutate({ resetToken, newPassword: step2.newPassword })
   }
 
-  const canSubmit = formData.email && formData.code
-
   return (
-    <div className='parent h-[100dvh]'>
-      <div className='container flex flex-col gap-4 items-center justify-center'>
-        <div className='card flex flex-col gap-4 items-center justify-center'>
+    <div className="parent h-dvh">
+      <div className="container flex flex-col gap-4 items-center justify-center">
+        <div className="card flex flex-col gap-4 items-center justify-center">
           <div className="flex flex-col gap-2 my-5">
-            <h1 className='h3'>Reset password</h1>
-            <p className="p1 text-center">Enter your new password below</p>
-          </div>
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4 w-full">
-            <PasswordInput
-              placeholder='New password'
-              value={formData.newPassword}
-              onChange={(e) => {
-                setFormData({ ...formData, newPassword: e.target.value })
-                setPasswordError(null)
-              }}
-              required
-            />
-            <p className="text-xs text-cs-text/70 mt-1">
-              At least 8 characters, 1 uppercase, 1 lowercase, 1 number, 1 symbol
+            <h1 className="h3">Reset password</h1>
+            <p className="p1 text-center">
+              {step === 1
+                ? 'Enter the 6-digit code we sent to your email'
+                : 'Enter your new password below'}
             </p>
-            {passwordError && (
-              <p className="text-sm text-destructive">{passwordError}</p>
-            )}
-            <PasswordInput
-              placeholder='Confirm password'
-              value={formData.confirmPassword}
-              onChange={(e) =>
-                setFormData({ ...formData, confirmPassword: e.target.value })
-              }
-              required
-            />
-            <Button
-              type="submit"
-              className='w-full mt-4'
-              disabled={resetPasswordMutation.isPending || !canSubmit}
-            >
-              Update password
-            </Button>
-            {otpExpiredHint && (
-              <p className="p1 text-center text-cs-text/90 mt-2">
-                Code expired?{' '}
-                <Link
-                  href={verifyOtpResendUrl ?? '#'}
-                  className="link-highlight !text-base"
-                  onClick={(e) => !verifyOtpResendUrl && e.preventDefault()}
+          </div>
+
+          {step === 1 ? (
+            <form onSubmit={handleStep1} className="flex flex-col gap-4 w-full">
+              <Input
+                type="email"
+                placeholder="Email"
+                value={step1.email}
+                onChange={(e) => setStep1({ ...step1, email: e.target.value })}
+                required
+              />
+              <Input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={6}
+                placeholder="6-digit code"
+                className="text-center tracking-[0.25em] font-mono"
+                value={step1.code}
+                onChange={(e) =>
+                  setStep1({
+                    ...step1,
+                    code: e.target.value.replace(/\D/g, '').slice(0, 6),
+                  })
+                }
+              />
+              <Button
+                type="submit"
+                className="w-full mt-4"
+                disabled={verifyOtpMutation.isPending}
+              >
+                {verifyOtpMutation.isPending ? 'Verifying…' : 'Verify code'}
+              </Button>
+              {step1.email && (
+                <button
+                  type="button"
+                  onClick={() => resendMutation.mutate(step1.email)}
+                  disabled={resendMutation.isPending || resendCooldownSeconds > 0}
+                  className="link-highlight text-sm mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Get a new code
-                </Link>
+                  {resendMutation.isPending
+                    ? 'Sending…'
+                    : resendCooldownSeconds > 0
+                      ? `Resend code in ${resendCooldownSeconds}s`
+                      : 'Resend code'}
+                </button>
+              )}
+            </form>
+          ) : (
+            <form onSubmit={handleStep2} className="flex flex-col gap-4 w-full">
+              <PasswordInput
+                placeholder="New password"
+                value={step2.newPassword}
+                onChange={(e) => {
+                  setStep2({ ...step2, newPassword: e.target.value })
+                  setPasswordError(null)
+                }}
+                required
+              />
+              <p className="text-xs text-cs-text/70 mt-1">
+                At least 8 characters, 1 uppercase, 1 lowercase, 1 number, 1 symbol
               </p>
-            )}
-          </form>
+              {passwordError && (
+                <p className="text-sm text-destructive">{passwordError}</p>
+              )}
+              <PasswordInput
+                placeholder="Confirm password"
+                value={step2.confirmPassword}
+                onChange={(e) =>
+                  setStep2({ ...step2, confirmPassword: e.target.value })
+                }
+                required
+              />
+              <Button
+                type="submit"
+                className="w-full mt-4"
+                disabled={resetMutation.isPending}
+              >
+                {resetMutation.isPending ? 'Updating…' : 'Update password'}
+              </Button>
+              <button
+                type="button"
+                onClick={() => setStep(1)}
+                className="link-highlight text-sm mt-2"
+              >
+                Use a different code
+              </button>
+            </form>
+          )}
         </div>
-        {verifyOtpResendUrl && (
-          <p className='p1'>
-            Code expired or didn&apos;t receive it?{' '}
-            <Link href={verifyOtpResendUrl} className='link-highlight !text-base'>
-              Resend OTP
-            </Link>
-          </p>
-        )}
-        <p className='p1'>
-          <Link href='/auth/login' className='link-highlight !text-base'>
+        <p className="p1">
+          <Link href="/auth/login" className="link-highlight text-base!">
             Back to login
           </Link>
         </p>

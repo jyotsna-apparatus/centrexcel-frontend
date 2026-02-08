@@ -39,18 +39,5 @@ export function clearToken(): void {
 }
 
 export async function logout(): Promise<void> {
-  const refreshToken = getRefreshToken()
-  const baseUrl = process.env.NEXT_PUBLIC_BACKEND_BASE_URL
-  if (refreshToken && baseUrl) {
-    try {
-      await fetch(`${baseUrl}/auth/logout`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken }),
-      })
-    } catch {
-      // Fire-and-forget; do not block on network failure
-    }
-  }
   clearTokens()
 }
