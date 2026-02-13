@@ -6,6 +6,11 @@
 :root {
   --cs-primary: #d5ff40;
   --cs-secondary: #94b813;
+
+  /* --cs-primary: #86ee02; */
+  /* --cs-secondary: #06301d; */
+
+
   --cs-black: #000000;
   --cs-card: #0f0e0e;
   --cs-white: #ffffff;
@@ -121,6 +126,10 @@ h6 {
   font-weight: 600;
   color: var(--cs-heading);
   line-height: 100%;
+
+  span{
+    color: var(--cs-primary);
+  }
 }
 
 .p1 {
@@ -243,4 +252,11 @@ h6 {
 .link-highlight{
   color: var(--cs-primary);
   font-size: 0.75rem;
+}
+
+.glass{
+  background: rgba(188, 188, 188, 0.166);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }

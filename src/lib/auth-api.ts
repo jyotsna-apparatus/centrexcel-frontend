@@ -1532,3 +1532,64 @@ export async function getHackathonWinners(hackathonId: string): Promise<Winner[]
   }
   return Array.isArray(json?.data) ? json.data : []
 }
+
+// --- Payments (PhonePe) ---
+
+export type CreatePaymentBody = {
+  amount: number
+  merchantOrderId?: string
+  redirectPath?: string
+  userId?: string
+  hackathonId?: string
+  metaInfo?: Record<string, string>
+}
+
+export type CreatePaymentResponse = {
+  success: boolean
+  message?: string
+  data: {
+    redirectUrl: string
+    merchantOrderId: string
+    orderId: string
+  }
+}
+
+export type PaymentStatusResponse = {
+  success: boolean
+  message?: string
+  data: {
+    state: string
+    amount: number
+    orderId?: string
+    merchantOrderId?: string
+  }
+}
+
+export async function createPayment(body: CreatePaymentBody): Promise<CreatePaymentResponse> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authFetch(`${baseUrl}/payments/create`, {
+    method: 'POST',
+    headers: { accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  const json = (await res.json()) as CreatePaymentResponse & { message?: string }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Payment initiation failed')
+  }
+  return json as CreatePaymentResponse
+}
+
+export async function getPaymentStatus(merchantOrderId: string): Promise<PaymentStatusResponse> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authFetch(
+    `${baseUrl}/payments/status?${new URLSearchParams({ merchantOrderId })}`,
+    { method: 'GET', headers: { accept: 'application/json' } }
+  )
+  const json = (await res.json()) as PaymentStatusResponse & { message?: string }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to fetch payment status')
+  }
+  return json as PaymentStatusResponse
+}

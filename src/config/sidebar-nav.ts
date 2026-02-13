@@ -8,6 +8,7 @@ import {
   Building2,
   UsersRound,
   Settings,
+  CreditCard,
 } from 'lucide-react';
 import type { Role } from '@/types/roles';
 import { ROLES, isRole } from '@/types/roles';
@@ -57,7 +58,12 @@ export const SIDEBAR_NAV_CONFIG: SidebarNavItem[] = [
     icon: Award,
     roles: [ROLES.ADMIN, ROLES.SPONSOR, ROLES.PARTICIPANT, ROLES.JUDGE],
   },
- 
+  {
+    label: 'Payments',
+    href: '/payments/checkout',
+    icon: CreditCard,
+    roles: [ROLES.ADMIN, ROLES.SPONSOR, ROLES.PARTICIPANT, ROLES.JUDGE],
+  },
   {
     label: 'Users',
     icon: UsersRound,
