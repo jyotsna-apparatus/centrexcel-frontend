@@ -1,12 +1,15 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useHackathons } from '@/hooks/use-hackathons'
 import { useHackathonWinners } from '@/hooks/use-winners'
 import PageHeader from '@/components/pageHeader/PageHeader'
 import { Select } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Medal, Trophy } from 'lucide-react'
+import { useAuth } from '@/contexts/auth-context'
+import { canAccessPath } from '@/config/sidebar-nav'
 import { toast } from 'sonner'
 
 const POSITION_LABELS: Record<number, string> = {
@@ -16,7 +19,15 @@ const POSITION_LABELS: Record<number, string> = {
 }
 
 export default function WinnersPage() {
+  const router = useRouter()
+  const { user } = useAuth()
   const [selectedHackathonId, setSelectedHackathonId] = useState<string>('')
+
+  useEffect(() => {
+    if (user?.role && !canAccessPath('/winners', user.role)) {
+      router.replace('/dashboard')
+    }
+  }, [user?.role, router])
 
   const { data: hackathonsData, isLoading: loadingHackathons, isError: hackathonsError, error: hackathonsErr } = useHackathons({
     page: 0,
@@ -53,8 +64,8 @@ export default function WinnersPage() {
   return (
     <div>
       <PageHeader
-        title="Winners"
-        description="View hackathon winners and results."
+        title="Winnings"
+        description="View hackathon winners and your results."
       />
 
       <div className="mb-6 flex flex-wrap items-center gap-4">
@@ -76,11 +87,11 @@ export default function WinnersPage() {
       {loadingHackathons && hackathons.length === 0 ? (
         <Skeleton className="h-32 w-full rounded-lg" />
       ) : !selectedHackathonId ? (
-        <p className="text-muted-foreground">Select a hackathon to view winners.</p>
+        <p className="text-muted-foreground">Select a hackathon to view winnings.</p>
       ) : loadingWinners ? (
         <Skeleton className="h-48 w-full rounded-lg" />
       ) : winnersList.length === 0 ? (
-        <p className="text-muted-foreground">No winners announced yet for this hackathon.</p>
+        <p className="text-muted-foreground">No winnings announced yet for this hackathon.</p>
       ) : (
         <ul className="space-y-4">
           {winnersList

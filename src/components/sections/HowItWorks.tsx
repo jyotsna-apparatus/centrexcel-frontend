@@ -3,7 +3,7 @@ import { Fragment } from "react";
 const steps = [
   {
     step: 1,
-    title: "Sign up",
+    title: "Create an account",
     description: "Create your free account in seconds. No credit card required.",
   },
   {
@@ -13,39 +13,35 @@ const steps = [
   },
   {
     step: 3,
-    title: "Build & submit",
+    title: "Build your solution",
     description: "Form a team, build your solution, and submit before the deadline.",
   },
   {
     step: 4,
     title: "Win or get hired",
-    description: "Compete for prizes and visibility. Many participants land jobs from our sponsors.",
+    description: "Compete for prizes and visibility, get feedback from experts.",
   },
 ];
 
 const HowItWorks = () => {
   return (
-    <section className="parent py-[100px] bg-white/5">
-      <div className="container px-4 flex flex-col items-center gap-12">
+    <section id="how-it-works" className="parent py-[100px] bg-white/3">
+      <div className="container px-4 flex flex-col items-center gap-4">
         <h2 className="h2 text-center" data-aos="fade-up" data-aos-delay="0">
           How it <span>Works</span>
         </h2>
         <p
-          className="p1 text-center max-w-2xl"
+          className="p1 text-center max-w-2xl mb-8"
           data-aos="fade-up"
           data-aos-delay="100"
         >
           Get from signup to submission in four simple steps.
         </p>
-        <div className="flex flex-col md:flex-row items-stretch justify-center gap-6 md:gap-2 w-full max-w-5xl">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl">
           {steps.map((item, i) => (
             <Fragment key={item.step}>
-              {i > 0 && (
-                <div
-                  className="hidden md:block flex-1 max-w-[60px] self-center border-t border-cs-border -mx-1"
-                  aria-hidden
-                />
-              )}
+              <div className="card cs-card glass">
+            
               <div
                 key={item.step}
                 className="flex flex-1 flex-col items-center text-center gap-3 min-w-0"
@@ -57,6 +53,7 @@ const HowItWorks = () => {
                 </div>
                 <h3 className="h3">{item.title}</h3>
                 <p className="p1">{item.description}</p>
+              </div>
               </div>
             </Fragment>
           ))}

@@ -1,20 +1,21 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import PageHeader from '@/components/pageHeader/PageHeader'
 import {
-  createHackathon,
+  updateHackathon,
   getUsers,
   getFavorites,
-  type CreateHackathonFormData,
+  type UpdateHackathonFormData,
   type UserListItem,
 } from '@/lib/auth-api'
-import { HACKATHON_CONSTANTS } from '@/config/hackathon-constants'
+import { useHackathon } from '@/hooks/use-hackathons'
+import { HACKATHON_CONSTANTS, HACKATHON_STATUS_LABELS } from '@/config/hackathon-constants'
 import { cn } from '@/lib/utils'
 import { DateTimePicker } from '@/components/ui/date-time-picker'
 import { TiptapEditor } from '@/components/ui/tiptap-editor'
@@ -22,6 +23,7 @@ import { SearchableSelect } from '@/components/ui/searchable-select'
 import { SearchableMultiSelect } from '@/components/ui/searchable-multi-select'
 import { ArrowLeft, IndianRupee } from 'lucide-react'
 import { toast } from 'sonner'
+import { useAuth } from '@/contexts/auth-context'
 
 function toOptions(
   users: UserListItem[],
@@ -38,8 +40,12 @@ function sortWithFavoritesFirst<T extends { isFavorite?: boolean }>(options: T[]
   return [...options].sort((a, b) => (b.isFavorite ? 1 : 0) - (a.isFavorite ? 1 : 0))
 }
 
-export default function NewHackathonPage() {
+export default function EditHackathonPage() {
+  const params = useParams()
   const router = useRouter()
+  const id = typeof params.id === 'string' ? params.id : ''
+  const { user } = useAuth()
+
   const [title, setTitle] = useState('')
   const [shortDescription, setShortDescription] = useState('')
   const [submissionDeadline, setSubmissionDeadline] = useState('')
@@ -49,8 +55,11 @@ export default function NewHackathonPage() {
   const [judgeIds, setJudgeIds] = useState<string[]>([])
   const [isPaid, setIsPaid] = useState(false)
   const [priceOfEntry, setPriceOfEntry] = useState('')
+  const [status, setStatus] = useState('')
   const [image, setImage] = useState<File | null>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const { data: hackathon, isLoading, isError, error } = useHackathon(id || null)
 
   const { data: sponsorsData } = useQuery({
     queryKey: ['users', 'sponsor', 1, 100],
@@ -68,6 +77,27 @@ export default function NewHackathonPage() {
     queryKey: ['favorites', 'judge'],
     queryFn: () => getFavorites('judge'),
   })
+
+  useEffect(() => {
+    if (user?.role !== 'admin') {
+      router.replace('/hackathons')
+      return
+    }
+  }, [user?.role, router])
+
+  useEffect(() => {
+    if (!hackathon) return
+    setTitle(hackathon.title)
+    setShortDescription(hackathon.shortDescription ?? '')
+    setSubmissionDeadline(hackathon.submissionDeadline ? new Date(hackathon.submissionDeadline).toISOString().slice(0, 16) : '')
+    setScoringDeadline(hackathon.scoringDeadline ? new Date(hackathon.scoringDeadline).toISOString().slice(0, 16) : '')
+    setInstructions(hackathon.instructions ?? '')
+    setSponsorId(hackathon.sponsorId ?? '')
+    setJudgeIds(hackathon.judges?.map((j) => j.judgeId) ?? [])
+    setIsPaid(hackathon.isPaid ?? false)
+    setPriceOfEntry(hackathon.priceOfEntry != null ? String(hackathon.priceOfEntry) : '')
+    setStatus(hackathon.status ?? '')
+  }, [hackathon])
 
   const sponsors: UserListItem[] = sponsorsData?.data ?? []
   const judges: UserListItem[] = judgesData?.data ?? []
@@ -90,13 +120,13 @@ export default function NewHackathonPage() {
   )
 
   const mutation = useMutation({
-    mutationFn: (form: CreateHackathonFormData) => createHackathon(form),
+    mutationFn: (form: UpdateHackathonFormData) => updateHackathon(id, form),
     onSuccess: () => {
-      toast.success('Hackathon created successfully.')
-      router.push('/hackathons')
+      toast.success('Hackathon updated successfully.')
+      router.push(`/hackathons/${id}`)
     },
     onError: (err: Error) => {
-      toast.error(err.message ?? 'Failed to create hackathon')
+      toast.error(err.message ?? 'Failed to update hackathon')
     },
   })
 
@@ -115,14 +145,11 @@ export default function NewHackathonPage() {
     }
 
     if (!submissionDeadline) next.submissionDeadline = 'Submission deadline is required'
-    else if (new Date(submissionDeadline) <= new Date()) {
-      next.submissionDeadline = 'Must be a future date'
+    else if (scoringDeadline && new Date(scoringDeadline) <= new Date(submissionDeadline)) {
+      next.scoringDeadline = 'Must be after submission deadline'
     }
 
     if (!scoringDeadline) next.scoringDeadline = 'Scoring deadline is required'
-    else if (submissionDeadline && new Date(scoringDeadline) <= new Date(submissionDeadline)) {
-      next.scoringDeadline = 'Must be after submission deadline'
-    }
 
     const instructionsPlain = instructions.replace(/<[^>]*>/g, '').trim()
     if (!instructionsPlain) next.instructions = 'Instructions are required'
@@ -153,7 +180,7 @@ export default function NewHackathonPage() {
       return
     }
 
-    const form: CreateHackathonFormData = {
+    const form: UpdateHackathonFormData = {
       title: title.trim(),
       shortDescription: shortDescription.trim(),
       submissionDeadline: new Date(submissionDeadline).toISOString(),
@@ -163,18 +190,42 @@ export default function NewHackathonPage() {
       judgeIds,
       isPaid,
       priceOfEntry: isPaid && priceOfEntry ? Number(priceOfEntry) : null,
+      status: status || undefined,
       image: image ?? undefined,
     }
     mutation.mutate(form)
   }
 
+  if (user?.role !== 'admin') return null
+
+  if (isLoading || !hackathon) {
+    return (
+      <div>
+        <PageHeader title="Edit hackathon" description="Loading..." />
+      </div>
+    )
+  }
+
+  if (isError && error) {
+    toast.error(error instanceof Error ? error.message : 'Failed to load hackathon')
+    return (
+      <div>
+        <PageHeader title="Edit hackathon" description="Error loading hackathon.">
+          <Button variant="outline" asChild>
+            <Link href="/hackathons">Back to list</Link>
+          </Button>
+        </PageHeader>
+      </div>
+    )
+  }
+
   return (
     <div>
-      <PageHeader title="Create hackathon" description="Add a new hackathon event.">
-        <Button variant="outline"  asChild>
-          <Link href="/hackathons">
+      <PageHeader title="Edit hackathon" description={`Update ${hackathon.title}.`}>
+        <Button variant="outline" asChild>
+          <Link href={`/hackathons/${id}`}>
             <ArrowLeft className="mr-2 size-4" />
-            Back to list
+            Back to hackathon
           </Link>
         </Button>
       </PageHeader>
@@ -209,6 +260,24 @@ export default function NewHackathonPage() {
             className="border-cs-border placeholder:text-muted-foreground w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus:ring-2 focus:ring-cs-primary/20"
           />
           {errors.shortDescription && <p className="text-sm text-destructive">{errors.shortDescription}</p>}
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium" htmlFor="status">
+            Status
+          </label>
+          <select
+            id="status"
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            className="border-cs-border w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus:ring-2 focus:ring-cs-primary/20"
+          >
+            {Object.entries(HACKATHON_STATUS_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -337,7 +406,7 @@ export default function NewHackathonPage() {
 
         <div className="space-y-2">
           <label className="text-sm font-medium" htmlFor="image">
-            Banner image (optional, 5:3 aspect ratio, max 2 MB)
+            Banner image (optional, 5:3 aspect ratio, max 2 MB). Leave empty to keep current.
           </label>
           <Input
             id="image"
@@ -350,10 +419,10 @@ export default function NewHackathonPage() {
 
         <div className="flex gap-3 pb-[100px]">
           <Button type="submit" disabled={mutation.isPending}>
-            {mutation.isPending ? 'Creating...' : 'Create hackathon'}
+            {mutation.isPending ? 'Saving...' : 'Save changes'}
           </Button>
           <Button type="button" variant="outline" asChild>
-            <Link href="/hackathons">Cancel</Link>
+            <Link href={`/hackathons/${id}`}>Cancel</Link>
           </Button>
         </div>
       </form>

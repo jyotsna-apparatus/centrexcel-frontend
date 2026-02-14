@@ -7,8 +7,10 @@ import {
   Gavel,
   Building2,
   UsersRound,
+  Users,
   Settings,
   CreditCard,
+  UserCheck,
 } from 'lucide-react';
 import type { Role } from '@/types/roles';
 import { ROLES, isRole } from '@/types/roles';
@@ -47,22 +49,40 @@ export const SIDEBAR_NAV_CONFIG: SidebarNavItem[] = [
     roles: [ROLES.ADMIN, ROLES.SPONSOR, ROLES.PARTICIPANT, ROLES.JUDGE],
   },
   {
+    label: 'My participations',
+    href: '/participations',
+    icon: UserCheck,
+    roles: [ROLES.PARTICIPANT],
+  },
+  {
+    label: 'Team',
+    href: '/users/teams',
+    icon: Users,
+    roles: [ROLES.PARTICIPANT],
+  },
+  {
+    label: 'Score submissions',
+    href: '/judge/hackathons',
+    icon: Gavel,
+    roles: [ROLES.JUDGE],
+  },
+  {
     label: 'Submissions',
     href: '/submissions',
     icon: FileUp,
-    roles: [ROLES.ADMIN, ROLES.SPONSOR, ROLES.PARTICIPANT, ROLES.JUDGE],
+    roles: [ROLES.PARTICIPANT],
   },
   {
-    label: 'Winners',
+    label: 'Winnings',
     href: '/winners',
     icon: Award,
-    roles: [ROLES.ADMIN, ROLES.SPONSOR, ROLES.PARTICIPANT, ROLES.JUDGE],
+    roles: [ROLES.PARTICIPANT],
   },
   {
-    label: 'Payments',
-    href: '/payments/checkout',
+    label: 'Transactions',
+    href: '/payments',
     icon: CreditCard,
-    roles: [ROLES.ADMIN, ROLES.SPONSOR, ROLES.PARTICIPANT, ROLES.JUDGE],
+    roles: [ROLES.ADMIN, ROLES.PARTICIPANT],
   },
   {
     label: 'Users',

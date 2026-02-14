@@ -4,7 +4,7 @@ import { Button } from "../ui/button";
 
 const Hero = () => {
   return (
-    <section className="parent py-[100px] h-[100dvh] relative">
+    <section id="hero" className="parent py-[100px] h-[100dvh] relative">
       <video
         src="/bg1.mp4"
         autoPlay
@@ -15,8 +15,8 @@ const Hero = () => {
         aria-hidden
       />
       <div className="container flex flex-col items-center justify-center gap-8 px-4 relative">
-        <h1 className="h1 text-center" data-aos="fade-up">
-          Where <span>Hackathons</span> Meet Opportunity.
+        <h1 className="h1 text-center !text-[4.5rem]" data-aos="fade-up">
+          Ship at Hackathons. <span className="text-cs-primary">Get Hired</span> by Top Companies.
         </h1>
         <p className="p1 text-center max-w-2xl" data-aos="fade-up" data-aos-delay="100">
           Join world-class hackathons, solve real challenges from top companies, and launch your career — all in one platform.

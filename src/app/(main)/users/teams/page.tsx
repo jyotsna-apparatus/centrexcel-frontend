@@ -11,11 +11,14 @@ import PageHeader from '@/components/pageHeader/PageHeader'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { deleteTeam } from '@/lib/auth-api'
-import { Eye, Trash2, Users } from 'lucide-react'
+import { useAuth } from '@/contexts/auth-context'
+import { Eye, Pencil, Trash2, Users } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function UsersTeamsPage() {
+  const { user } = useAuth()
   const queryClient = useQueryClient()
+  const isAdmin = user?.role === 'admin'
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
@@ -145,16 +148,23 @@ export default function UsersTeamsPage() {
                   <Eye className="size-3.5" />
                 </Link>
               </Button>
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
-                onClick={() => setDeleteTarget({ id: row.id, name: row.name })}
-                title="Delete"
-                disabled={row.isDissolved}
-              >
-                <Trash2 className="size-3.5" />
+              <Button variant="ghost" size="icon-xs" asChild>
+                <Link href={`/users/teams/${row.id}`} title="Edit / Manage team">
+                  <Pencil className="size-3.5" />
+                </Link>
               </Button>
+              {isAdmin && (
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                  onClick={() => setDeleteTarget({ id: row.id, name: row.name })}
+                  title="Delete"
+                  disabled={row.isDissolved}
+                >
+                  <Trash2 className="size-3.5" />
+                </Button>
+              )}
             </div>
           )
         },
@@ -165,10 +175,15 @@ export default function UsersTeamsPage() {
 
   return (
     <div>
-      <PageHeader title="Teams" description="View and manage teams.">
-        <Button variant="default" asChild>
-          <Link href="/users/teams/add">Add Team</Link>
-        </Button>
+      <PageHeader
+        title="Teams"
+        description={isAdmin ? 'View and manage teams.' : 'View and manage your teams.'}
+      >
+        {isAdmin && (
+          <Button variant="default" asChild>
+            <Link href="/users/teams/add">Add Team</Link>
+          </Button>
+        )}
       </PageHeader>
 
       <ConfirmDialog

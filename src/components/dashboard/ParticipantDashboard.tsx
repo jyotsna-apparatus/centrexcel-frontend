@@ -3,15 +3,13 @@
 import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { getTeams, getSubmissions, getHackathons } from '@/lib/auth-api'
+import { getTeams, getSubmissions } from '@/lib/auth-api'
 import {
   Users,
   FileUp,
   Trophy,
   ArrowRight,
   Plus,
-  Calendar,
-  Award,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 
@@ -25,7 +23,7 @@ type StatCardProps = {
 
 function StatCard({ title, value, icon, href, className = '' }: StatCardProps) {
   const content = (
-    <div className={`rounded-lg border border-cs-border bg-cs-card p-6 shadow-sm transition-all hover:shadow-md ${className}`}>
+    <div className={`glass cs-card rounded-lg border border-cs-border p-6 shadow-sm transition-all hover:shadow-md ${className}`}>
       <div className="flex items-center justify-between">
         <div>
           <p className="text-muted-foreground text-sm font-medium">{title}</p>
@@ -64,17 +62,10 @@ export default function ParticipantDashboard() {
     queryFn: () => getSubmissions({ page: 1, limit: 5 }),
   })
 
-  // Fetch open hackathons
-  const { data: hackathonsData } = useQuery({
-    queryKey: ['dashboard', 'open-hackathons'],
-    queryFn: () => getHackathons({ page: 1, limit: 5, status: 'open' }),
-  })
-
   const myTeams = teamsData?.data?.filter((team) =>
     team.members?.some((member) => member.userId === user?.id)
   ) ?? []
   const mySubmissions = submissionsData?.data ?? []
-  const openHackathons = hackathonsData?.data ?? []
 
   return (
     <div className="space-y-8">
@@ -86,7 +77,7 @@ export default function ParticipantDashboard() {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2">
         <StatCard
           title="My Teams"
           value={myTeams.length}
@@ -99,16 +90,10 @@ export default function ParticipantDashboard() {
           icon={<FileUp className="size-6" />}
           href="/submissions"
         />
-        <StatCard
-          title="Open Hackathons"
-          value={openHackathons.length}
-          icon={<Trophy className="size-6" />}
-          href="/hackathons"
-        />
       </div>
 
       {/* Quick Actions */}
-      <div className="rounded-lg border border-cs-border bg-cs-card p-6">
+      <div className="glass cs-card rounded-lg border border-cs-border p-6">
         <h2 className="mb-4 text-lg font-semibold">Quick Actions</h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <Button variant="outline" className="justify-start" asChild>
@@ -135,7 +120,7 @@ export default function ParticipantDashboard() {
       {/* Recent Activity */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* My Teams */}
-        <div className="rounded-lg border border-cs-border bg-cs-card p-6">
+        <div className="glass cs-card rounded-lg border border-cs-border p-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold">My Teams</h2>
             <Button variant="ghost" size="sm" asChild>
@@ -160,7 +145,9 @@ export default function ParticipantDashboard() {
                     <div>
                       <p className="font-medium">{team.name}</p>
                       <p className="text-muted-foreground text-sm">
-                        {team.hackathon?.title ?? 'No hackathon'}
+                        {team.participations?.length
+                          ? `${team.participations.length} hackathon(s)`
+                          : 'Not in any hackathon yet'}
                       </p>
                     </div>
                   </div>
@@ -186,7 +173,7 @@ export default function ParticipantDashboard() {
         </div>
 
         {/* My Submissions */}
-        <div className="rounded-lg border border-cs-border bg-cs-card p-6">
+        <div className="glass cs-card rounded-lg border border-cs-border p-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold">My Submissions</h2>
             <Button variant="ghost" size="sm" asChild>
@@ -244,47 +231,6 @@ export default function ParticipantDashboard() {
         </div>
       </div>
 
-      {/* Open Hackathons */}
-      {openHackathons.length > 0 && (
-        <div className="rounded-lg border border-cs-border bg-cs-card p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Open Hackathons</h2>
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/hackathons">
-                View all
-                <ArrowRight className="ml-2 size-4" />
-              </Link>
-            </Button>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {openHackathons.slice(0, 3).map((hackathon) => (
-              <Link
-                key={hackathon.id}
-                href={`/hackathons/${hackathon.id}`}
-                className="rounded-md border border-cs-border bg-cs-card/50 p-4 transition-colors hover:bg-accent/50"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="rounded-full bg-primary/10 p-2 text-primary">
-                    <Trophy className="size-5" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium">{hackathon.title}</p>
-                    <p className="text-muted-foreground mt-1 text-sm line-clamp-2">
-                      {hackathon.shortDescription}
-                    </p>
-                    <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-                      <Calendar className="size-3" />
-                      <span>
-                        {new Date(hackathon.submissionDeadline).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   )
 }

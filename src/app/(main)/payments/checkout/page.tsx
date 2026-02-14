@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useMutation } from '@tanstack/react-query'
 import { createPayment } from '@/lib/auth-api'
 import { useAuth } from '@/contexts/auth-context'
+import { canAccessPath } from '@/config/sidebar-nav'
 import PageHeader from '@/components/pageHeader/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,9 +17,16 @@ const MIN_AMOUNT_RS = 1
 const MAX_AMOUNT_RS = 999999
 
 export default function PaymentCheckoutPage() {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const { user } = useAuth()
   const hackathonId = searchParams.get('hackathonId') ?? undefined
+
+  useEffect(() => {
+    if (user?.role && !canAccessPath('/payments', user.role)) {
+      router.replace('/dashboard')
+    }
+  }, [user?.role, router])
   const presetAmount = searchParams.get('amount')
   const [amountRs, setAmountRs] = useState(() => {
     const n = presetAmount ? Number(presetAmount) : NaN
@@ -61,53 +69,68 @@ export default function PaymentCheckoutPage() {
     createMutation.mutate(paisa)
   }
 
+  const isAdmin = user?.role === 'admin'
+
   return (
     <div>
       <PageHeader
         title="Pay with PhonePe"
-        description="Enter the amount and you will be redirected to PhonePe to complete the payment."
+        description={isAdmin ? 'Admins do not make payments here.' : 'Enter the amount and you will be redirected to PhonePe to complete the payment.'}
       >
         <Button variant="outline" size="sm" asChild>
-          <Link href={hackathonId ? `/hackathons/${hackathonId}` : '/dashboard'}>
+          <Link href={isAdmin ? '/payments' : hackathonId ? `/hackathons/${hackathonId}` : '/dashboard'}>
             <ArrowLeft className="mr-2 size-4" />
-            Back
+            {isAdmin ? 'View transactions' : 'Back'}
           </Link>
         </Button>
       </PageHeader>
 
-      <div className="mt-6 max-w-md">
-        <div className="rounded-lg border border-cs-border bg-card p-6">
-          <h2 className="mb-4 flex items-center gap-2 font-medium text-cs-heading">
-            <CreditCard className="size-5" />
-            Payment details
-          </h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="amount" className="mb-1.5 block text-sm font-medium text-cs-heading">
-                Amount (₹)
-              </label>
-              <Input
-                id="amount"
-                type="number"
-                min={MIN_AMOUNT_RS}
-                max={MAX_AMOUNT_RS}
-                step="0.01"
-                placeholder="e.g. 100"
-                value={amountRs}
-                onChange={(e) => setAmountRs(e.target.value)}
-                disabled={createMutation.isPending}
-                className="w-full"
-              />
-              <p className="mt-1 text-xs text-muted-foreground">
-                Minimum ₹{MIN_AMOUNT_RS}. You will be redirected to PhonePe to pay securely.
-              </p>
-            </div>
-            <Button type="submit" disabled={createMutation.isPending} className="w-full">
-              {createMutation.isPending ? 'Redirecting to PhonePe...' : 'Pay with PhonePe'}
+      {isAdmin ? (
+        <div className="mt-6 max-w-md">
+          <div className="rounded-lg border border-cs-border bg-card p-6">
+            <p className="text-cs-text mb-4">
+              Admins do not make payments here. View all transactions on the Transactions page.
+            </p>
+            <Button asChild>
+              <Link href="/payments">View all transactions</Link>
             </Button>
-          </form>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="mt-6 max-w-md">
+          <div className="rounded-lg border border-cs-border bg-card p-6">
+            <h2 className="mb-4 flex items-center gap-2 font-medium text-cs-heading">
+              <CreditCard className="size-5" />
+              Payment details
+            </h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="amount" className="mb-1.5 block text-sm font-medium text-cs-heading">
+                  Amount (₹)
+                </label>
+                <Input
+                  id="amount"
+                  type="number"
+                  min={MIN_AMOUNT_RS}
+                  max={MAX_AMOUNT_RS}
+                  step="0.01"
+                  placeholder="e.g. 100"
+                  value={amountRs}
+                  onChange={(e) => setAmountRs(e.target.value)}
+                  disabled={createMutation.isPending}
+                  className="w-full"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Minimum ₹{MIN_AMOUNT_RS}. You will be redirected to PhonePe to pay securely.
+                </p>
+              </div>
+              <Button type="submit" disabled={createMutation.isPending} className="w-full">
+                {createMutation.isPending ? 'Redirecting to PhonePe...' : 'Pay with PhonePe'}
+              </Button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

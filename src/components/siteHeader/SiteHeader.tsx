@@ -9,34 +9,12 @@ const SiteHeader = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   const navItems = [
-    {
-      label: "Home",
-      href: "/",
-    },
-    {
-      label: "Features",
-      href: "/features",
-    },
-    {
-      label: "How It Works",
-      href: "/how-it-works",
-    },
-    {
-      label: "Hackathons",
-      href: "/hackathons",
-    },
-    {
-      label: "FAQs",
-      href: "/faqs",
-    },
-    {
-      label: "Sign In",
-      href: "/auth/sign-in",
-    },
-    {
-      label: "Sign Up",
-      href: "/auth/sign-up",
-    },
+    { label: "Home", href: "/" },
+    { label: "Features", href: "/#features" },
+    { label: "How It Works", href: "/#how-it-works" },
+    { label: "Hackathons", href: "/#hackathons" },
+    { label: "FAQs", href: "/#faqs" },
+    { label: "Get Started", href: "/auth/sign-in" },
   ];
 
   return (
@@ -73,8 +51,9 @@ const SiteHeader = () => {
         className={`h-screen w-screen fixed top-0 left-0 bg-cs-card z-50 p-8 transition parent ${
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
+        inert={!isOpen}
       >
-        <div className="conatiner relative">
+        <div className="conatiner relative h-full">
           <button
             className="p-2 rounded-md hover:bg-cs-card border border-cs-border absolute top-8 right-8 "
             onClick={() => setIsOpen(false)}
@@ -82,7 +61,14 @@ const SiteHeader = () => {
             <X className="size-6" />
           </button>
 
-          <div className="flex"></div>
+          <div className="flex flex-col gap-2 items-center justify-center h-full">
+
+          {navItems.map((item) => (
+            <Link href={item.href} key={item.label} className="text-cs-text h2 w-full hover:bg-cs-primary hover:!text-cs-black p-4 rounded " onClick={() => setIsOpen(false)}>
+              {item.label}
+            </Link>
+          ))}
+          </div>
         </div>
       </nav>
     </>

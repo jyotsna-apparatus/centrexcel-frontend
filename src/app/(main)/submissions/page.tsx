@@ -1,11 +1,14 @@
 'use client'
 
 import { useMemo, useState, useCallback, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import type { ColumnDef } from '@tanstack/react-table'
 import type { PaginationState } from '@tanstack/react-table'
 import { DataTable } from '@/components/ui/data-table'
 import { useSubmissions, type SubmissionListItem } from '@/hooks/use-submissions'
 import PageHeader from '@/components/pageHeader/PageHeader'
+import { useAuth } from '@/contexts/auth-context'
+import { canAccessPath } from '@/config/sidebar-nav'
 import { toast } from 'sonner'
 
 function formatBytes(bytes: number): string {
@@ -15,10 +18,18 @@ function formatBytes(bytes: number): string {
 }
 
 export default function SubmissionsPage() {
+  const router = useRouter()
+  const { user } = useAuth()
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
   })
+
+  useEffect(() => {
+    if (user?.role && !canAccessPath('/submissions', user.role)) {
+      router.replace('/dashboard')
+    }
+  }, [user?.role, router])
 
   const { data, isLoading, isError, error, isFetching } = useSubmissions({
     page: pagination.pageIndex,

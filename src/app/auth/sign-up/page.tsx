@@ -188,7 +188,7 @@ const SignUpPage = () => {
                         ? 'border-destructive text-cs-text'
                         : formData.role === value
                           ? 'border border-cs-primary bg-cs-primary/10 text-cs-primary'
-                          : 'border border-cs-border text-cs-text hover:border-cs-border/80 hover:bg-white/5'
+                          : 'border border-cs-border text-cs-text hover:border-cs-border/80 hover:bg-white/3'
                     )}
                   >
                     <Icon className="size-5 shrink-0" />
@@ -311,7 +311,7 @@ const SignUpPage = () => {
           </div>
         <p className="p1">
           Already have an account?{' '}
-          <Link href="/auth/login" className="link-highlight text-base!">
+          <Link href="/auth/sign-in" className="link-highlight text-base!">
             Login
           </Link>
         </p>

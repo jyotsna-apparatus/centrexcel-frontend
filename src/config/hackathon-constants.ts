@@ -20,6 +20,8 @@ export const HACKATHON_CONSTANTS = {
     MAX_IMAGE_HEIGHT: 2000,
     ALLOWED_IMAGE_TYPES: ['image/webp', 'image/png', 'image/jpeg', 'image/jpg'],
   },
+  /** Banner image must be 5:3 aspect ratio (e.g. 500×300, 1000×600) */
+  BANNER_ASPECT_RATIO: '5:3',
 } as const
 
 export const HACKATHON_STATUS_LABELS: Record<string, string> = {

@@ -1,9 +1,10 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getHackathons, getHackathon, type Hackathon, type HackathonListItem } from '@/lib/auth-api'
+import { getHackathons, getHackathon, getFeaturedHackathons, type Hackathon, type HackathonListItem } from '@/lib/auth-api'
 
 const REFETCH_INTERVAL_MS = 30_000
+const FEATURED_LIMIT = 3
 
 export type UseHackathonsParams = {
   page: number
@@ -11,11 +12,37 @@ export type UseHackathonsParams = {
   search?: string
   status?: string
   sponsorId?: string
+  forJudge?: 'me'
 }
 
-export function useHackathons({ page, pageSize, search, status, sponsorId }: UseHackathonsParams) {
+/** Hackathons assigned to the current user (judge). */
+export function useJudgeHackathons(params: { page?: number; pageSize?: number }) {
+  const page = params.page ?? 0
+  const pageSize = params.pageSize ?? 20
   return useQuery({
-    queryKey: ['hackathons', page, pageSize, search, status, sponsorId],
+    queryKey: ['hackathons', 'judge', page, pageSize],
+    queryFn: () =>
+      getHackathons({
+        page: page + 1,
+        limit: pageSize,
+        forJudge: 'me',
+      }),
+    refetchOnMount: 'always',
+  })
+}
+
+/** Public: top 3 hackathons for landing page. No auth required. */
+export function useFeaturedHackathons(limit: number = FEATURED_LIMIT) {
+  return useQuery({
+    queryKey: ['featured-hackathons', limit],
+    queryFn: () => getFeaturedHackathons(limit),
+    refetchOnMount: 'always',
+  })
+}
+
+export function useHackathons({ page, pageSize, search, status, sponsorId, forJudge }: UseHackathonsParams) {
+  return useQuery({
+    queryKey: ['hackathons', page, pageSize, search, status, sponsorId, forJudge],
     queryFn: () =>
       getHackathons({
         page: page + 1,
@@ -23,6 +50,7 @@ export function useHackathons({ page, pageSize, search, status, sponsorId }: Use
         search: search?.trim() || undefined,
         status,
         sponsorId,
+        forJudge,
       }),
     refetchInterval: REFETCH_INTERVAL_MS,
     refetchOnMount: 'always',

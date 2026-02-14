@@ -31,7 +31,7 @@ const ChangePasswordPage = () => {
   useEffect(() => {
     if (typeof window === 'undefined') return
     if (!getAccessToken()) {
-      router.replace('/auth/login')
+      router.replace('/auth/sign-in')
       return
     }
     setIsCheckingAuth(false)

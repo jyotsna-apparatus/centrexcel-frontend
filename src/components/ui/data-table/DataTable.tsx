@@ -146,7 +146,7 @@ export function DataTable<TData extends RowData>({
       )}
 
       {/* Table: scroll wrapper + optional card layout on small screens */}
-      <div className="w-full overflow-x-auto rounded-lg border border-cs-border bg-cs-card">
+      <div className="glass cs-card w-full overflow-x-auto rounded-lg border border-cs-border">
         {responsiveCardLayout ? (
           <>
             <div className="hidden min-[640px]:block">
@@ -251,13 +251,13 @@ function TableDesktop<TData extends RowData>({
 }) {
   return (
     <table className="w-full min-w-[640px] caption-bottom text-sm">
-      <thead>
+      <thead className=" ">
         {table.getHeaderGroups().map((headerGroup) => (
-          <tr key={headerGroup.id} className="border-b border-cs-border">
+          <tr key={headerGroup.id} className="border-b border-cs-border ">
             {headerGroup.headers.map((header) => (
               <th
                 key={header.id}
-                className="text-muted-foreground h-12 px-4 text-left font-medium"
+                className=" h-12 px-4 text-left font-medium !bg-gradient-to-b from-cs-primary to-cs-secondary"
               >
                 <SortableHeader header={header} />
               </th>
@@ -269,7 +269,7 @@ function TableDesktop<TData extends RowData>({
         {table.getRowModel().rows.map((row) => (
           <tr
             key={row.id}
-            className="border-b border-cs-border transition-colors hover:bg-accent/50"
+            className="border-b border-cs-border transition-colors hover:bg-white/10 hover:cursor-pointer "
           >
             {row.getVisibleCells().map((cell) => (
               <td key={cell.id} className="p-4">
@@ -289,13 +289,17 @@ function SortableHeader({ header }: { header: { column: { getCanSort: () => bool
   const toggle = header.column.getToggleSortingHandler()
 
   if (!canSort) {
-    return flexRender(header.column.columnDef.header, header.getContext())
+    return (
+      <span className="!text-cs-black [&_svg]:brightness-0">
+        {flexRender(header.column.columnDef.header, header.getContext())}
+      </span>
+    )
   }
 
   return (
     <button
       type="button"
-      className="flex items-center gap-1 hover:text-foreground"
+      className="flex items-center !text-cs-black gap-1 hover:text-foreground"
       onClick={toggle}
     >
       {flexRender(header.column.columnDef.header, header.getContext())}
@@ -304,7 +308,7 @@ function SortableHeader({ header }: { header: { column: { getCanSort: () => bool
       ) : sorted === "desc" ? (
         <ChevronDown className="size-4" />
       ) : (
-        <ChevronsUpDown className="text-muted-foreground size-4" />
+        <ChevronsUpDown className="brightness-0 size-4" />
       )}
     </button>
   )

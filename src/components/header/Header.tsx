@@ -13,7 +13,7 @@ const Header = () => {
 
   const handleLogout = async () => {
     await logoutApi()
-    router.replace('/auth/login')
+    router.replace('/auth/sign-in')
   }
 
   return (

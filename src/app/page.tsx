@@ -10,16 +10,18 @@ import FooterSection from "@/components/sections/FooterSection";
 
 export default function LandingPage() {
   return (
-    <AOSProvider>
+    <>
+     <AOSProvider>
       <SiteHeader />
       <Hero />
       <StatsSection />
       <Features />
       <HowItWorks />
       <Hackathons />
-      <Faqs />
+      <Faqs />  
       <FooterSection />
     </AOSProvider>
+    </>
   );
 }
 

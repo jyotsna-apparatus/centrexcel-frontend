@@ -35,13 +35,13 @@ const Faqs = () => {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
-    <section className="parent py-[100px] bg-white/5">
-      <div className="container px-4 flex flex-col items-center gap-12">
+    <section id="faqs" className="parent py-[100px] bg-white/3">
+      <div className="container px-4 flex flex-col items-center gap-4">
         <h2 className="h2 text-center" data-aos="fade-up" data-aos-delay="0">
           Frequently <span>Asked</span> Questions
         </h2>
         <p
-          className="p1 text-center max-w-2xl"
+          className="p1 text-center max-w-2xl mb-8"
           data-aos="fade-up"
           data-aos-delay="100"
         >
@@ -49,7 +49,7 @@ const Faqs = () => {
           to our support team.
         </p>
         <div
-          className="w-full max-w-2xl border border-cs-border rounded-lg overflow-hidden"
+          className="w-full max-w-2xl  rounded-lg overflow-hidden grid grid-cols-1 gap-4 p-4"
           data-aos="fade-up"
           data-aos-delay="200"
         >
@@ -58,12 +58,12 @@ const Faqs = () => {
             return (
               <div
                 key={item.question}
-                className="border-b border-cs-border last:border-b-0"
+                className=" cs-card glass w-full rounded-lg"
               >
                 <button
                   type="button"
                   onClick={() => setOpenIndex(isOpen ? null : i)}
-                  className="w-full flex items-center justify-between gap-4 p-4 text-left hover:bg-white/5 transition-colors"
+                  className="w-full flex items-center justify-between gap-4 p-4 text-left hover:bg-white/3 transition-colors"
                   aria-expanded={isOpen}
                 >
                   <span className="font-semibold text-cs-heading">

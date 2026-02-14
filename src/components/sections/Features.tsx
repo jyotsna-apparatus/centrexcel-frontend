@@ -34,13 +34,13 @@ const features = [
 
 const Features = () => {
   return (
-    <section className="parent py-[100px]">
-      <div className="container px-4 flex flex-col items-center gap-12">
+    <section id="features" className="parent py-[100px]">
+      <div className="container px-4 flex flex-col items-center gap-4">
         <h2 className="h2 text-center" data-aos="fade-up" data-aos-delay="0">
           Why <span>CentreExcel</span>
         </h2>
         <p
-          className="p1 text-center max-w-2xl"
+          className="p1 text-center max-w-2xl mb-8"
           data-aos="fade-up"
           data-aos-delay="100"
         >
@@ -53,15 +53,15 @@ const Features = () => {
             return (
               <div
                 key={feature.title}
-                className="card flex flex-col gap-3"
+                className="card cs-card flex flex-col gap-4 glass"
                 data-aos="fade-up"
                 data-aos-delay={String(200 + i * 100)}
               >
-                <div className="text-cs-primary">
-                  <Icon className="size-8" />
+                <div className="text-cs-primary bg-cs-primary rounded-lg p-2 w-fit">
+                  <Icon className="size-8" color="black" />
                 </div>
                 <h3 className="h3">{feature.title}</h3>
-                <p className="p1">{feature.description}</p>
+                <p className="p1 opacity-50">{feature.description}</p>
               </div>
             );
           })}

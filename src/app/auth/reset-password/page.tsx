@@ -72,7 +72,7 @@ const ResetPasswordPage = () => {
         sessionStorage.removeItem(RESET_TOKEN_KEY)
       }
       toast.success('Password reset successfully. You can log in now.')
-      router.push('/auth/login')
+      router.push('/auth/sign-in')
     },
     onError: (error: Error) => {
       toast.error(error.message ?? 'Reset failed')
@@ -234,7 +234,7 @@ const ResetPasswordPage = () => {
           )}
         </div>
         <p className="p1">
-          <Link href="/auth/login" className="link-highlight text-base!">
+          <Link href="/auth/sign-in" className="link-highlight text-base!">
             Back to login
           </Link>
         </p>

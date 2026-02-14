@@ -80,7 +80,7 @@ const ForgotPasswordPage = () => {
           </form>
         </div>
         <p className="p1">
-          <Link href="/auth/login" className="link-highlight text-base!">
+          <Link href="/auth/sign-in" className="link-highlight text-base!">
             Back to login
           </Link>
         </p>

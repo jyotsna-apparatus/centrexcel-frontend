@@ -18,7 +18,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       if (!token) {
         if (!cancelled) {
           setAuthState('unauthenticated')
-          router.replace('/auth/login')
+          router.replace('/auth/sign-in')
         }
         return
       }
@@ -29,13 +29,13 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         else if (!cancelled) {
           clearTokens()
           setAuthState('unauthenticated')
-          router.replace('/auth/login')
+          router.replace('/auth/sign-in')
         }
       } catch {
         if (!cancelled) {
           clearTokens()
           setAuthState('unauthenticated')
-          router.replace('/auth/login')
+          router.replace('/auth/sign-in')
         }
       }
     }

@@ -38,12 +38,12 @@ export default function RootLayout({
       >
         <Providers>
           <PWARegister />
-          <div className='pattern' aria-hidden />
-          <div className="relative z-2">
+          {/* <div className='pattern' aria-hidden /> */}
+          {/* <div className="relative z-2"> */}
             {/* <SiteHeader /> */}
             {children}
             {/* <Footer /> */}
-          </div>
+          {/* </div> */}
         </Providers>
 
       </body>
