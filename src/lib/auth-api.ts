@@ -1,8 +1,13 @@
 import { getAccessToken, getRefreshToken, setTokens, clearTokens } from '@/lib/auth'
 
 /** Use same-origin /api in the browser (proxied via next.config rewrites) to avoid CORS. */
-const getBaseUrl = () =>
-  typeof window !== 'undefined' ? '/api' : (process.env.NEXT_PUBLIC_BACKEND_BASE_URL?.replace(/\/$/, '') ?? '')
+const DEFAULT_BACKEND_BASE_URL = 'http://localhost:5080/api'
+const getBaseUrl = (): string => {
+  if (typeof window !== 'undefined') return '/api'
+  const raw = process.env.NEXT_PUBLIC_BACKEND_BASE_URL
+  const base = raw?.replace(/\/$/, '') ?? DEFAULT_BACKEND_BASE_URL.replace(/\/$/, '')
+  return base || DEFAULT_BACKEND_BASE_URL.replace(/\/$/, '')
+}
 
 export type LoginCredentials = {
   email: string
