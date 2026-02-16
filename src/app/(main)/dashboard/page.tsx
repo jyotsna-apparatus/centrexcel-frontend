@@ -10,8 +10,7 @@ export default function DashboardPage() {
   const { user } = useAuth()
   const role = user?.role
 
-  // Admin can see all dashboards - show admin dashboard by default
-  // But could add a switcher if needed
+ 
   if (role === 'admin') {
     return <AdminDashboard />
   }
