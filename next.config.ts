@@ -3,9 +3,12 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   reactCompiler: true,
   async rewrites() {
-    const backend =
+    let backend =
       process.env.NEXT_PUBLIC_BACKEND_BASE_URL?.replace(/\/$/, "") ?? "http://localhost:5080/api";
-    // Log so you can confirm .env was loaded (restart dev server after changing .env)
+    // Backend serves routes under /api (e.g. /api/auth/login). Ensure destination includes /api.
+    if (!backend.endsWith("/api")) {
+      backend = `${backend}/api`;
+    }
     console.log("[next.config] Proxying /api/* to:", backend);
     return [{ source: "/api/:path*", destination: `${backend}/:path*` }];
   },
