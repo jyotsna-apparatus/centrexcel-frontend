@@ -4,8 +4,8 @@
 @custom-variant dark (&&:where(.dark, .dark *));
 
 :root {
-  --cs-primary: #d5ff40;
-  --cs-secondary: #94b813;
+  --cs-primary: #0073ff;
+  --cs-secondary: #0037ff;
 
   /* --cs-primary: #86ee02; */
   /* --cs-secondary: #06301d; */
@@ -27,13 +27,13 @@
   --popover: var(--cs-card);
   --popover-foreground: var(--cs-heading);
   --primary: var(--cs-primary);
-  --primary-foreground: var(--cs-black);
+  --primary-foreground: var(--cs-white);
   --secondary: var(--cs-secondary);
-  --secondary-foreground: var(--cs-black);
+  --secondary-foreground: var(--cs-white);
   --muted: var(--cs-card);
   --muted-foreground: var(--cs-text);
   --accent: var(--cs-primary);
-  --accent-foreground: var(--cs-black);
+  --accent-foreground: var(--cs-white);
   --destructive: oklch(0.577 0.245 27.325);
   --border: var(--cs-border);
   --input: var(--cs-border);
@@ -46,9 +46,9 @@
   --sidebar: var(--cs-card);
   --sidebar-foreground: var(--cs-heading);
   --sidebar-primary: var(--cs-primary);
-  --sidebar-primary-foreground: var(--cs-black);
+  --sidebar-primary-foreground: var(--cs-white);
   --sidebar-accent: var(--cs-primary);
-  --sidebar-accent-foreground: var(--cs-black);
+  --sidebar-accent-foreground: var(--cs-white);
   --sidebar-border: var(--cs-border);
   --sidebar-ring: var(--cs-primary);
 }
@@ -115,6 +115,10 @@
   font-family: var(--font-poppins);
   color: var(--cs-text);
   text-wrap: balance;
+}
+
+body {
+  background: var(--cs-black);
 }
 
 h1,
@@ -207,13 +211,13 @@ h6 {
   --popover: var(--cs-card);
   --popover-foreground: var(--cs-heading);
   --primary: var(--cs-primary);
-  --primary-foreground: var(--cs-black);
+  --primary-foreground: var(--cs-white);
   --secondary: var(--cs-secondary);
-  --secondary-foreground: var(--cs-black);
+  --secondary-foreground: var(--cs-white);
   --muted: var(--cs-card);
   --muted-foreground: var(--cs-text);
   --accent: var(--cs-primary);
-  --accent-foreground: var(--cs-black);
+  --accent-foreground: var(--cs-white);
   --destructive: oklch(0.704 0.191 22.216);
   --border: var(--cs-border);
   --input: var(--cs-border);
@@ -226,9 +230,9 @@ h6 {
   --sidebar: var(--cs-card);
   --sidebar-foreground: var(--cs-heading);
   --sidebar-primary: var(--cs-primary);
-  --sidebar-primary-foreground: var(--cs-black);
+  --sidebar-primary-foreground: var(--cs-white);
   --sidebar-accent: var(--cs-primary);
-  --sidebar-accent-foreground: var(--cs-black);
+  --sidebar-accent-foreground: var(--cs-white);
   --sidebar-border: var(--cs-border);
   --sidebar-ring: var(--cs-primary);
 }
@@ -252,10 +256,11 @@ h6 {
 }
 
 .glass {
-  background: linear-gradient(#fff2, transparent);
+  /* background: linear-gradient(#fff2, transparent); */
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 25px 25px rgba(0, 0, 0, 0.25);
+  /* box-shadow: 0 25px 25px rgba(0, 0, 0, 0.25); */
+  background: rgba(255, 255, 255, 0.05);
 
 }
 
@@ -272,5 +277,212 @@ h6 {
     transform: translateY(-2px);
     
 
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+@keyframes floatDiagonal {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate(10px, -15px) rotate(5deg);
+  }
+  50% {
+    transform: translate(0, -25px) rotate(0deg);
+  }
+  75% {
+    transform: translate(-10px, -15px) rotate(-5deg);
+  }
+}
+
+@keyframes floatHorizontal {
+  0%, 100% {
+    transform: translateX(0) translateY(0);
+  }
+  50% {
+    transform: translateX(15px) translateY(-15px);
+  }
+}
+
+@keyframes floatPulse {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  25% {
+    transform: translateY(-10px) scale(1.05);
+  }
+  50% {
+    transform: translateY(-20px) scale(1);
+  }
+  75% {
+    transform: translateY(-10px) scale(1.05);
+  }
+}
+
+@keyframes floatLeftRight {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(20px);
+  }
+}
+
+.satellite-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.rocket-float {
+  animation: float 3.5s ease-in-out infinite;
+  animation-delay: 0.5s;
+}
+
+.brain-float {
+  animation: floatHorizontal 3.5s ease-in-out infinite;
+  animation-delay: 0.8s;
+}
+
+.trophy-float {
+  animation: floatLeftRight 3s ease-in-out infinite;
+  animation-delay: 1.2s;
+}
+
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    linear-gradient(var(--cs-black), var(--cs-black)) padding-box,
+    linear-gradient(90deg,
+      var(--cs-primary) 0%, transparent 35%, transparent 70%,
+      var(--cs-secondary) 100%) border-box;
+  border: 2px solid transparent;
+  color: var(--cs-white);
+  padding: 0.25rem 1rem;
+  border-radius: 999px;
+
+
+
+}
+
+.btn {
+
+  background: rgb(0, 0, 0);
+  position: relative;
+  padding: 0.75rem 1rem;
+  border-radius: 1rem;
+  transition: all 0.3s ease;
+
+  &:hover {
+    &::before {
+      top: -10px;
+    }
+  }
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0px;
+
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60%;
+    height: 30px;
+    background: var(--cs-primary);
+    filter: blur(15px);
+    z-index: -1;
+    border-radius: 100%;
+    transition: all 0.3s ease;
+
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: calc(100% + 4px);
+    height: calc(100% + 4px);
+    background: linear-gradient(145deg, var(--cs-primary), transparent, var(--cs-secondary));
+    z-index: -2;
+    border-radius: 1rem;
+
+
+  }
+
+
+
+
+}
+
+.btn-2 {
+  background: black;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.75rem 1rem;
+  border-radius: 1rem;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: var(--cs-primary);
+  }
+
+}
+
+
+
+
+
+.card-wrapper {
+  padding: 4px;
+  border-radius: 0.5rem;
+  position: relative;
+  overflow: hidden;
+
+  .spinner {
+    position: absolute !important;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 150%;
+    aspect-ratio: 1/1;
+    background: linear-gradient(45deg, var(--cs-primary), transparent, transparent , var(--cs-secondary) );
+    border-radius: 100rem;
+    z-index: -1;
+    animation: spinner 6s linear infinite;
+
+  }
+
+
+  .card-container {
+    background: var(--cs-card);
+    padding: 1rem;
+    border-radius: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+
+  }
+
+
+}
+
+@keyframes spinner {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg);
   }
 }

@@ -484,7 +484,7 @@ const sidebarMenuButtonVariants = cva(
     // With menu action
     "group-has-data-[sidebar=menu-action]/menu-item:pr-8",
     // Active state (current page)
-    "data-[active=true]:bg-gradient-to-b data-[active=true]:from-cs-primary data-[active=true]:to-cs-secondary data-[active=true]:font-medium data-[active=true]:!text-black data-[active=true]:[&>span]:!text-black data-[active=true]:[&_svg]:!text-black data-[active=true]:[&_svg]:!stroke-black",
+    "data-[active=true]:bg-gradient-to-b data-[active=true]:from-cs-primary data-[active=true]:to-cs-secondary data-[active=true]:font-medium data-[active=true]:!text-white data-[active=true]:[&>span]:!text-white data-[active=true]:[&_svg]:!text-white data-[active=true]:[&_svg]:!stroke-white",
     // Open (expanded) state
     "data-[state=open]:hover:bg-black data-[state=open]:hover:text-sidebar-accent-foreground",
     // Collapsed icon mode
@@ -704,7 +704,7 @@ function SidebarMenuSubButton({
       data-active={isActive}
       className={cn(
         "text-sidebar-foreground ring-sidebar-ring hover:bg-sidebar-accent/10 hover:text-sidebar-accent-foreground active:bg-sidebar-accent active:text-sidebar-accent-foreground [&>svg]:text-sidebar-accent-foreground flex h-9 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-4 outline-hidden focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
-        "data-[active=true]:bg-sidebar-accent data-[active=true]:text-black! data-[active=true]:[&_svg]:text-black! data-[active=true]:[&_svg]:stroke-black!",
+        "data-[active=true]:bg-sidebar-accent data-[active=true]:!text-white data-[active=true]:[&_svg]:!text-white data-[active=true]:[&_svg]:!stroke-white",
         size === "sm" && "text-xs",
         size === "md" && "text-sm",
         "group-data-[collapsible=icon]:hidden",

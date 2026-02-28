@@ -21,22 +21,23 @@ const SiteHeader = () => {
     <>
       <header className="parent py-4 border-b border-cs-border fixed top-0 left-0 right-0 z-50 glass">
         <div className="container flex flex-wrap items-center justify-between gap-4">
-          <Link href="/" data-aos="fade-down">
+          <Link href="/" data-aos="fade-down" className="flex items-center gap-2">
             <Image
-              src="/logo-full.svg"
+              src="/logo-mark.svg"
               alt="Centrexcel"
-              width={180}
-              height={35}
-              className="h-8 w-auto"
+              width={32}
+              height={32}
+              className="h-8 w-8"
               priority
             />
+            <span className="text-xl font-semibold text-cs-heading">centrexcel</span>
           </Link>
           <nav className="flex items-center gap-3">
             <Button size="sm" asChild data-aos="fade-down" data-aos-delay="100">
               <Link href="/auth/sign-in">Get Started</Link>
             </Button>
             <button
-              className="p-2 rounded-md hover:bg-cs-card border border-cs-border"
+              className="p-2 rounded-md hover:bg-cs-card border border-cs-border cursor-pointer"
               onClick={() => setIsOpen(true)}
               data-aos="fade-down"
               data-aos-delay="200"
@@ -55,7 +56,7 @@ const SiteHeader = () => {
       >
         <div className="conatiner relative h-full">
           <button
-            className="p-2 rounded-md hover:bg-cs-card border border-cs-border absolute top-8 right-8 "
+            className="p-2 rounded-md hover:bg-cs-card border border-cs-border absolute top-8 right-8 cursor-pointer"
             onClick={() => setIsOpen(false)}
           >
             <X className="size-6" />

@@ -82,9 +82,11 @@ export function AppSidebar() {
                               asChild
                               isActive={isActive(child.href)}
                               className={cn(
-                                canAccessPath(child.href, user?.role)
-                                  ? 'text-cs-primary'
-                                  : 'text-cs-text'
+                                isActive(child.href)
+                                  ? ''
+                                  : canAccessPath(child.href, user?.role)
+                                    ? 'text-cs-primary'
+                                    : 'text-cs-text'
                               )}
                             >
                               <Link href={child.href}>{child.label}</Link>

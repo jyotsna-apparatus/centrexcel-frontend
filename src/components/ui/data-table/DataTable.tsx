@@ -257,7 +257,7 @@ function TableDesktop<TData extends RowData>({
             {headerGroup.headers.map((header) => (
               <th
                 key={header.id}
-                className=" h-12 px-4 text-left font-medium !bg-gradient-to-b from-cs-primary to-cs-secondary"
+                className=" h-12 px-4 text-left font-medium !bg-gradient-to-b from-cs-primary to-cs-secondary !text-white"
               >
                 <SortableHeader header={header} />
               </th>
@@ -290,7 +290,7 @@ function SortableHeader({ header }: { header: { column: { getCanSort: () => bool
 
   if (!canSort) {
     return (
-      <span className="!text-cs-black [&_svg]:brightness-0">
+      <span className="!text-white [&_svg]:brightness-0">
         {flexRender(header.column.columnDef.header, header.getContext())}
       </span>
     )
@@ -299,7 +299,7 @@ function SortableHeader({ header }: { header: { column: { getCanSort: () => bool
   return (
     <button
       type="button"
-      className="flex items-center !text-cs-black gap-1 hover:text-foreground"
+      className="flex items-center !text-white gap-1 hover:text-foreground"
       onClick={toggle}
     >
       {flexRender(header.column.columnDef.header, header.getContext())}
