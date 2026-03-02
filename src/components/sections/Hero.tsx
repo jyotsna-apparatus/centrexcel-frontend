@@ -7,7 +7,7 @@ const Hero = () => {
   return (
     <section id="hero" className="parent py-12 md:py-[100px] h-[100dvh] relative">
       <video
-        src="/blue-background.mp4"
+        src="/hero-video.mp4"
         autoPlay
         muted
         loop
