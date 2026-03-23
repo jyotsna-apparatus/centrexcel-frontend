@@ -182,7 +182,9 @@ export default function ParticipationsPage() {
         confirmLabel="Withdraw"
         variant="destructive"
         loading={withdrawMutation.isPending}
-        onConfirm={() => withdrawTarget && withdrawMutation.mutate(withdrawTarget.id)}
+        onConfirm={() => {
+          if (withdrawTarget) withdrawMutation.mutate(withdrawTarget.id)
+        }}
       />
     </div>
   )

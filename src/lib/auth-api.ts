@@ -21,6 +21,10 @@ export type LoginUser = {
   username?: string | null
   role: string
   emailVerified?: boolean
+  /** When not true, user must complete onboarding before browsing hackathons */
+  isOnboarded?: boolean
+  profileBio?: string | null
+  profilePic?: string | null
 }
 
 /** Normalized shape: tokens and user for use after login/verify-email */
@@ -33,6 +37,16 @@ export type LoginResponse = {
     user: LoginUser
   }
 }
+
+/** Login succeeded but email is not verified — OTP was sent; redirect to verify-email. */
+export type LoginNeedsVerificationResult = {
+  success: true
+  needsEmailVerification: true
+  message?: string
+  email: string
+}
+
+export type LoginResult = LoginResponse | LoginNeedsVerificationResult
 
 async function authFetch(url: string, options: RequestInit): Promise<Response> {
   try {
@@ -85,7 +99,7 @@ async function authenticatedFetch(
   return res
 }
 
-export async function login(credentials: LoginCredentials): Promise<LoginResponse> {
+export async function login(credentials: LoginCredentials): Promise<LoginResult> {
   const baseUrl = getBaseUrl()
   if (!baseUrl) {
     throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
@@ -100,6 +114,18 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
   })
   const json = (await res.json()) as
     | (LoginResponse & { message?: string; error?: string })
+    | ({
+        success?: boolean
+        message?: string
+        error?: string
+        data?: {
+          needsEmailVerification?: boolean
+          email?: string
+          accessToken?: string
+          refreshToken?: string
+          user?: LoginUser
+        }
+      })
     | ({ accessToken?: string; refreshToken?: string; user?: LoginUser; error?: string; message?: string })
   if (!res.ok) {
     const message =
@@ -110,6 +136,17 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
           : 'Login failed'
     throw new Error(message)
   }
+
+  const payload = (json as { data?: { needsEmailVerification?: boolean; email?: string } }).data
+  if (payload?.needsEmailVerification === true && typeof payload.email === 'string') {
+    return {
+      success: true,
+      needsEmailVerification: true,
+      email: payload.email,
+      message: typeof (json as { message?: string }).message === 'string' ? (json as { message: string }).message : undefined,
+    }
+  }
+
   const accessToken = (json as LoginResponse).data?.accessToken ?? (json as { accessToken?: string }).accessToken
   const refreshToken = (json as LoginResponse).data?.refreshToken ?? (json as { refreshToken?: string }).refreshToken
   const user = (json as LoginResponse).data?.user ?? (json as { user?: LoginUser }).user
@@ -518,8 +555,10 @@ export async function changePassword(
 /** User list item from GET /users (admin). */
 export type UserListItem = {
   id: string
+  name?: string | null
   email: string
   username: string | null
+  profilePic?: string | null
   role: string
   emailVerified: boolean
   createdAt: string
@@ -585,8 +624,15 @@ export async function getUsers(params: {
       total: list.length,
       totalPages: 1,
     }
+  } else {
+    pagination = {
+      page: params.page,
+      limit: params.limit,
+      total: 0,
+      totalPages: 1,
+    }
   }
-  
+
   return { data: list, pagination }
 }
 
@@ -682,6 +728,7 @@ export async function createUser(credentials: RegisterCredentials): Promise<Regi
 export type UpdateProfileBody = {
   name?: string | null
   username?: string | null
+  profileBio?: string | null
 }
 
 export type UpdateProfileResponse = {
@@ -703,6 +750,52 @@ export async function updateProfile(body: UpdateProfileBody): Promise<UpdateProf
     throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to update profile')
   }
   return { success: true, data: json?.data, message: json?.message }
+}
+
+export type OnboardingCompleteResponse = {
+  success: boolean
+  message?: string
+  data?: { user: LoginUser }
+}
+
+export async function completeOnboarding(params: {
+  profileBio: string
+  profilePic: File
+}): Promise<OnboardingCompleteResponse> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const form = new FormData()
+  form.append('profileBio', params.profileBio)
+  form.append('profilePic', params.profilePic)
+  const res = await authenticatedFetch(`${baseUrl}/auth/onboarding/complete`, {
+    method: 'POST',
+    body: form,
+  })
+  const json = (await res.json()) as OnboardingCompleteResponse & { message?: string }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to complete onboarding')
+  }
+  const user = json?.data?.user
+  if (!user) throw new Error('Invalid onboarding response')
+  return { success: true, message: json.message, data: { user: { ...user, id: user.id ?? '' } } }
+}
+
+export async function updateProfilePicture(file: File): Promise<OnboardingCompleteResponse> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const form = new FormData()
+  form.append('profilePic', file)
+  const res = await authenticatedFetch(`${baseUrl}/auth/me/profile-picture`, {
+    method: 'POST',
+    body: form,
+  })
+  const json = (await res.json()) as OnboardingCompleteResponse & { message?: string }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to update profile picture')
+  }
+  const user = json?.data?.user
+  if (!user) throw new Error('Invalid response')
+  return { success: true, message: json.message, data: { user: { ...user, id: user.id ?? '' } } }
 }
 
 export type RequestEmailChangeResponse = { success: boolean; message?: string }
@@ -967,6 +1060,13 @@ export async function getTeams(params: {
       total: list.length,
       totalPages: 1,
     }
+  } else {
+    pagination = {
+      page: params.page,
+      limit: params.limit,
+      total: 0,
+      totalPages: 1,
+    }
   }
 
   return { data: list, pagination }
@@ -1063,6 +1163,10 @@ export type Hackathon = {
   isPaid: boolean
   priceOfEntry: number | null
   status: string
+  approvalStatus?: string
+  adminFeedback?: string | null
+  reviewedAt?: string | null
+  reviewedById?: string | null
   createdAt: string
   updatedAt: string
   sponsor?: {
@@ -1070,6 +1174,11 @@ export type Hackathon = {
     email: string
     username: string | null
   }
+  reviewedBy?: {
+    id: string
+    email: string
+    username: string | null
+  } | null
   judges?: HackathonJudge[]
   _count?: {
     submissions: number
@@ -1107,6 +1216,8 @@ export async function getHackathons(params: {
   status?: string
   sponsorId?: string
   forJudge?: 'me'
+  /** Admin-only: filter by sponsor submission workflow status */
+  approvalStatus?: string
 }): Promise<GetHackathonsResponse> {
   const baseUrl = getBaseUrl()
   if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
@@ -1117,6 +1228,7 @@ export async function getHackathons(params: {
   if (params.status) q.set('status', params.status)
   if (params.sponsorId) q.set('sponsorId', params.sponsorId)
   if (params.forJudge === 'me') q.set('forJudge', 'me')
+  if (params.approvalStatus) q.set('approvalStatus', params.approvalStatus)
   const res = await authenticatedFetch(`${baseUrl}/hackathons?${q}`, {
     method: 'GET',
     headers: { accept: 'application/json' },
@@ -1150,6 +1262,13 @@ export async function getHackathons(params: {
       page: params.page,
       limit: params.limit,
       total: list.length,
+      totalPages: 1,
+    }
+  } else {
+    pagination = {
+      page: params.page,
+      limit: params.limit,
+      total: 0,
       totalPages: 1,
     }
   }
@@ -1254,6 +1373,13 @@ export async function getSubmissions(params: {
       total: list.length,
       totalPages: 1,
     }
+  } else {
+    pagination = {
+      page: params.page,
+      limit: params.limit,
+      total: 0,
+      totalPages: 1,
+    }
   }
 
   return { data: list, pagination }
@@ -1284,7 +1410,8 @@ export type CreateHackathonFormData = {
   submissionDeadline: string
   scoringDeadline: string
   instructions: string
-  sponsorId: string
+  /** Set by admin when creating; omitted for sponsors (server uses current user). */
+  sponsorId?: string
   judgeIds: string[]
   isPaid: boolean
   priceOfEntry?: number | null
@@ -1301,7 +1428,7 @@ export async function createHackathon(form: CreateHackathonFormData): Promise<{ 
   body.append('submissionDeadline', form.submissionDeadline)
   body.append('scoringDeadline', form.scoringDeadline)
   body.append('instructions', form.instructions)
-  body.append('sponsorId', form.sponsorId)
+  if (form.sponsorId) body.append('sponsorId', form.sponsorId)
   body.append('judgeIds', JSON.stringify(form.judgeIds))
   body.append('isPaid', form.isPaid ? 'true' : 'false')
   if (form.isPaid && form.priceOfEntry != null) body.append('priceOfEntry', String(form.priceOfEntry))
@@ -1352,7 +1479,28 @@ export async function updateHackathon(id: string, form: UpdateHackathonFormData)
   return data
 }
 
-/** Delete hackathon (Admin only) */
+/** Admin: approve, reject, or request changes on a sponsor-submitted hackathon. */
+export async function reviewHackathon(
+  id: string,
+  payload: { action: 'approve' | 'reject' | 'request_changes'; feedback?: string }
+): Promise<Hackathon> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(`${baseUrl}/hackathons/${encodeURIComponent(id)}/approval`, {
+    method: 'PATCH',
+    headers: { accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  const json = (await res.json()) as { data?: Hackathon; message?: string }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to update review')
+  }
+  const data = json?.data
+  if (!data) throw new Error('Invalid review response')
+  return data
+}
+
+/** Delete hackathon (admin any; sponsor only while not yet approved) */
 export async function deleteHackathon(id: string): Promise<void> {
   const baseUrl = getBaseUrl()
   if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')

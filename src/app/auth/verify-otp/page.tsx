@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { useMutation } from '@tanstack/react-query'
 
@@ -20,7 +20,7 @@ type VerifyOtpFormData = {
   code: string
 }
 
-const VerifyOtpPage = () => {
+const VerifyOtpPageInner = () => {
   const router = useRouter()
   const searchParams = useSearchParams()
   const emailFromSignUp = searchParams.get('email') ?? ''
@@ -112,7 +112,8 @@ const VerifyOtpPage = () => {
       if (data.data?.accessToken && data.data?.refreshToken) {
         setTokens(data.data.accessToken, data.data.refreshToken)
         toast.success(data.message ?? 'Email verified. Welcome!')
-        router.push('/dashboard')
+        const onboarded = data.data.user?.isOnboarded === true
+        router.push(onboarded ? '/dashboard' : '/onboarding')
       } else {
         toast.success(data.message ?? 'Email verified. You can now log in.')
         router.push('/auth/sign-in')
@@ -229,4 +230,16 @@ const VerifyOtpPage = () => {
   )
 }
 
-export default VerifyOtpPage
+export default function VerifyOtpPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="parent h-dvh flex items-center justify-center">
+          <p className="p1 text-cs-text">Loading…</p>
+        </div>
+      }
+    >
+      <VerifyOtpPageInner />
+    </Suspense>
+  )
+}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { getPaymentStatus } from '@/lib/auth-api'
@@ -12,7 +12,7 @@ const TIMEOUT_MS = 120000
 
 type Status = 'loading' | 'COMPLETED' | 'FAILED' | 'PENDING' | 'timeout' | 'error'
 
-export default function PaymentReturnPage() {
+function PaymentReturnPage() {
   const searchParams = useSearchParams()
   const merchantOrderId = searchParams.get('merchantOrderId')
   const [status, setStatus] = useState<Status>('loading')
@@ -152,5 +152,19 @@ export default function PaymentReturnPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function PaymentReturnPageWrapper() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[50vh] items-center justify-center">
+          <Loader2 className="size-8 animate-spin text-cs-primary" aria-hidden />
+        </div>
+      }
+    >
+      <PaymentReturnPage />
+    </Suspense>
   )
 }

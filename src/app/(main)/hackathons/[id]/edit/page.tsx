@@ -15,7 +15,11 @@ import {
   type UserListItem,
 } from '@/lib/auth-api'
 import { useHackathon } from '@/hooks/use-hackathons'
-import { HACKATHON_CONSTANTS, HACKATHON_STATUS_LABELS } from '@/config/hackathon-constants'
+import {
+  HACKATHON_CONSTANTS,
+  HACKATHON_STATUS_LABELS,
+  HACKATHON_APPROVAL_LABELS,
+} from '@/config/hackathon-constants'
 import { cn } from '@/lib/utils'
 import { DateTimePicker } from '@/components/ui/date-time-picker'
 import { TiptapEditor } from '@/components/ui/tiptap-editor'
@@ -64,6 +68,7 @@ export default function EditHackathonPage() {
   const { data: sponsorsData } = useQuery({
     queryKey: ['users', 'sponsor', 1, 100],
     queryFn: () => getUsers({ page: 1, limit: 100, role: 'sponsor' }),
+    enabled: user?.role === 'admin',
   })
   const { data: judgesData } = useQuery({
     queryKey: ['users', 'judge', 1, 100],
@@ -72,18 +77,25 @@ export default function EditHackathonPage() {
   const { data: sponsorFavoritesData } = useQuery({
     queryKey: ['favorites', 'sponsor'],
     queryFn: () => getFavorites('sponsor'),
+    enabled: user?.role === 'admin',
   })
   const { data: judgeFavoritesData } = useQuery({
     queryKey: ['favorites', 'judge'],
     queryFn: () => getFavorites('judge'),
   })
 
+  const allowEdit =
+    user?.role === 'admin' ||
+    (user?.role === 'sponsor' &&
+      hackathon &&
+      hackathon.sponsorId === user?.id &&
+      ['pending_review', 'changes_requested', 'rejected'].includes(hackathon.approvalStatus ?? ''))
+
   useEffect(() => {
-    if (user?.role !== 'admin') {
-      router.replace('/hackathons')
-      return
-    }
-  }, [user?.role, router])
+    if (!user || isLoading || !hackathon) return
+    if (allowEdit) return
+    router.replace('/hackathons')
+  }, [user, isLoading, hackathon, allowEdit, router])
 
   useEffect(() => {
     if (!hackathon) return
@@ -122,7 +134,11 @@ export default function EditHackathonPage() {
   const mutation = useMutation({
     mutationFn: (form: UpdateHackathonFormData) => updateHackathon(id, form),
     onSuccess: () => {
-      toast.success('Hackathon updated successfully.')
+      if (user?.role === 'sponsor') {
+        toast.success('Updated. Your challenge is pending admin review again.')
+      } else {
+        toast.success('Hackathon updated successfully.')
+      }
       router.push(`/hackathons/${id}`)
     },
     onError: (err: Error) => {
@@ -157,7 +173,7 @@ export default function EditHackathonPage() {
       next.instructions = `Max ${HACKATHON_CONSTANTS.TEXT_LIMITS.INSTRUCTIONS} characters`
     }
 
-    if (!sponsorId) next.sponsorId = 'Please select a sponsor'
+    if (user?.role === 'admin' && !sponsorId) next.sponsorId = 'Please select a sponsor'
 
     if (judgeIds.length < HACKATHON_CONSTANTS.JUDGE_COUNT.MIN) {
       next.judgeIds = `Select at least ${HACKATHON_CONSTANTS.JUDGE_COUNT.MIN} judge(s)`
@@ -193,10 +209,16 @@ export default function EditHackathonPage() {
       status: status || undefined,
       image: image ?? undefined,
     }
+    if (user?.role === 'sponsor') {
+      delete form.sponsorId
+      delete form.status
+    }
     mutation.mutate(form)
   }
 
-  if (user?.role !== 'admin') return null
+  if (!user) {
+    return null
+  }
 
   if (isLoading || !hackathon) {
     return (
@@ -219,6 +241,12 @@ export default function EditHackathonPage() {
     )
   }
 
+  if (!allowEdit) {
+    return null
+  }
+
+  const isAdmin = user.role === 'admin'
+
   return (
     <div>
       <PageHeader title="Edit hackathon" description={`Update ${hackathon.title}.`}>
@@ -231,6 +259,15 @@ export default function EditHackathonPage() {
       </PageHeader>
 
       <form onSubmit={handleSubmit} className="mx-auto max-w-2xl space-y-6">
+        {!isAdmin && hackathon.adminFeedback ? (
+          <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
+            <p className="font-medium text-amber-900 dark:text-amber-100">Admin feedback</p>
+            <p className="mt-1 whitespace-pre-wrap text-muted-foreground">{hackathon.adminFeedback}</p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Status: {HACKATHON_APPROVAL_LABELS[hackathon.approvalStatus ?? ''] ?? hackathon.approvalStatus}
+            </p>
+          </div>
+        ) : null}
         <div className="space-y-2">
           <label className="text-sm font-medium" htmlFor="title">
             Title
@@ -262,23 +299,25 @@ export default function EditHackathonPage() {
           {errors.shortDescription && <p className="text-sm text-destructive">{errors.shortDescription}</p>}
         </div>
 
-        <div className="space-y-2">
-          <label className="text-sm font-medium" htmlFor="status">
-            Status
-          </label>
-          <select
-            id="status"
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            className="border-cs-border w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus:ring-2 focus:ring-cs-primary/20"
-          >
-            {Object.entries(HACKATHON_STATUS_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </div>
+        {isAdmin ? (
+          <div className="space-y-2">
+            <label className="text-sm font-medium" htmlFor="status">
+              Status
+            </label>
+            <select
+              id="status"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className="border-cs-border w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus:ring-2 focus:ring-cs-primary/20"
+            >
+              {Object.entries(HACKATHON_STATUS_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
@@ -322,20 +361,29 @@ export default function EditHackathonPage() {
           {errors.instructions && <p className="text-sm text-destructive">{errors.instructions}</p>}
         </div>
 
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Sponsor</label>
-          <SearchableSelect
-            options={sponsorOptions}
-            value={sponsorId}
-            onChange={setSponsorId}
-            placeholder="Select sponsor"
-            searchPlaceholder="Search sponsors..."
-            emptyText="No sponsor found."
-            className={errors.sponsorId ? 'border-destructive' : ''}
-            aria-invalid={!!errors.sponsorId}
-          />
-          {errors.sponsorId && <p className="text-sm text-destructive">{errors.sponsorId}</p>}
-        </div>
+        {isAdmin ? (
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Sponsor</label>
+            <SearchableSelect
+              options={sponsorOptions}
+              value={sponsorId}
+              onChange={setSponsorId}
+              placeholder="Select sponsor"
+              searchPlaceholder="Search sponsors..."
+              emptyText="No sponsor found."
+              className={errors.sponsorId ? 'border-destructive' : ''}
+              aria-invalid={!!errors.sponsorId}
+            />
+            {errors.sponsorId && <p className="text-sm text-destructive">{errors.sponsorId}</p>}
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Sponsor</label>
+            <p className="rounded-md border border-cs-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+              You (this challenge is linked to your sponsor account)
+            </p>
+          </div>
+        )}
 
         <div className="space-y-2">
           <label className="text-sm font-medium">Judges (1–5)</label>
@@ -419,7 +467,11 @@ export default function EditHackathonPage() {
 
         <div className="flex gap-3 pb-[100px]">
           <Button type="submit" disabled={mutation.isPending}>
-            {mutation.isPending ? 'Saving...' : 'Save changes'}
+            {mutation.isPending
+              ? 'Saving...'
+              : isAdmin
+                ? 'Save changes'
+                : 'Save & resubmit for review'}
           </Button>
           <Button type="button" variant="outline" asChild>
             <Link href={`/hackathons/${id}`}>Cancel</Link>

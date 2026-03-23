@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { HACKATHON_STATUS_LABELS } from '@/config/hackathon-constants'
 import { useAuth } from '@/contexts/auth-context'
-import { Plus, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, ChevronLeft, ChevronRight, ClipboardCheck } from 'lucide-react'
 import { toast } from 'sonner'
 
 const DEBOUNCE_MS = 300
@@ -34,6 +34,7 @@ export default function HackathonsPage() {
   const { user } = useAuth()
   const isParticipant = user?.role === 'participant'
   const isAdmin = user?.role === 'admin'
+  const isSponsor = user?.role === 'sponsor'
 
   const [pageIndex, setPageIndex] = useState(0)
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
@@ -94,14 +95,24 @@ export default function HackathonsPage() {
         title="Hackathons"
         description="Browse and manage hackathon events."
       >
-        {isAdmin && (
-          <Button variant="default" asChild>
-            <Link href="/hackathons/new">
-              <Plus className="size-4" color="black" />
-              Create hackathon
-            </Link>
-          </Button>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {isAdmin && (
+            <Button variant="outline" asChild>
+              <Link href="/hackathons/approvals">
+                <ClipboardCheck className="mr-2 size-4" />
+                Approvals
+              </Link>
+            </Button>
+          )}
+          {(isAdmin || isSponsor) && (
+            <Button variant="default" asChild>
+              <Link href="/hackathons/new">
+                <Plus className="size-4" color="black" />
+                {isSponsor && !isAdmin ? 'Submit challenge' : 'Create hackathon'}
+              </Link>
+            </Button>
+          )}
+        </div>
       </PageHeader>
 
       <div className="mb-6 flex flex-wrap items-center gap-4">
@@ -159,16 +170,18 @@ export default function HackathonsPage() {
           <p className="text-muted-foreground mb-4">
             {isFetching && debouncedSearch ? 'Searching...' : 'No hackathons found.'}
           </p>
-          {isAdmin && !isFetching && !debouncedSearch && (
+          {(isAdmin || isSponsor) && !isFetching && !debouncedSearch && (
             <p className="text-muted-foreground text-sm mb-4">
-              Create your first hackathon to get started.
+              {isSponsor && !isAdmin
+                ? 'Submit a challenge for admin approval to list it here once approved.'
+                : 'Create your first hackathon to get started.'}
             </p>
           )}
-          {isAdmin && !isFetching && (
+          {(isAdmin || isSponsor) && !isFetching && (
             <Button asChild>
               <Link href="/hackathons/new">
                 <Plus className="mr-2 size-4" />
-                Create hackathon
+                {isSponsor && !isAdmin ? 'Submit challenge' : 'Create hackathon'}
               </Link>
             </Button>
           )}
@@ -182,6 +195,8 @@ export default function HackathonsPage() {
                 hackathon={hackathon}
                 variant="list"
                 isAdmin={isAdmin}
+                showApprovalBadge={isAdmin || isSponsor}
+                isSponsor={isSponsor}
                 isParticipant={isParticipant}
                 userTeamForHackathon={isParticipant ? (teamByHackathonId[hackathon.id] ?? null) : null}
               />

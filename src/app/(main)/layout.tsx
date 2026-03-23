@@ -1,4 +1,5 @@
 import { AuthGuard } from "@/components/auth-guard"
+import { OnboardingGuard } from "@/components/onboarding-guard"
 import { AppSidebar } from "@/components/app-sidebar"
 import Header from "@/components/header/Header"
 import { SidebarProvider } from "@/components/ui/sidebar"
@@ -6,15 +7,17 @@ import { SidebarProvider } from "@/components/ui/sidebar"
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthGuard>
-      <SidebarProvider>
-        <AppSidebar />
-        <main className="w-full h-full">
-          <Header />
-          <section className="p-4  w-full h-[calc(100dvh-4rem)]">
-            {children}
-          </section>
-        </main>
-      </SidebarProvider>
+      <OnboardingGuard>
+        <SidebarProvider>
+          <AppSidebar />
+          <main className="w-full h-full">
+            <Header />
+            <section className="p-4  w-full h-[calc(100dvh-4rem)]">
+              {children}
+            </section>
+          </main>
+        </SidebarProvider>
+      </OnboardingGuard>
     </AuthGuard>
   )
 }

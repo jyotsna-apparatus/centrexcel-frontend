@@ -19,7 +19,7 @@ import { hackathonImageSrc } from '@/components/hackathon-card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { HACKATHON_STATUS_LABELS } from '@/config/hackathon-constants'
+import { HACKATHON_APPROVAL_LABELS, HACKATHON_STATUS_LABELS } from '@/config/hackathon-constants'
 import { useAuth } from '@/contexts/auth-context'
 import {
   ArrowLeft,
@@ -49,6 +49,9 @@ export default function HackathonDetailPage() {
   const canSeeJudges = isAdmin || isSponsor
   const canSeeSubmissions = isAdmin || isSponsor
   const { data: hackathon, isLoading, isError, error } = useHackathon(id || null)
+  const isOwnSponsorHackathon = Boolean(
+    isSponsor && hackathon && user?.id === hackathon.sponsorId
+  )
   const { data: submissions = [], isLoading: submissionsLoading } = useSubmissionsByHackathon(
     canSeeSubmissions && id ? id : null
   )
@@ -140,6 +143,13 @@ export default function HackathonDetailPage() {
   const hasResults = Array.isArray(winners) && winners.length > 0
   const positionLabels: Record<number, string> = { 1: '1st', 2: '2nd', 3: '3rd' }
 
+  const approval = hackathon.approvalStatus
+  const canSponsorEdit =
+    isOwnSponsorHackathon &&
+    approval &&
+    ['pending_review', 'changes_requested', 'rejected'].includes(approval)
+  const canParticipateFlow = isParticipant && hackathon.approvalStatus === 'approved'
+
   const imageSrc = hackathonImageSrc(hackathon.image)
 
   return (
@@ -157,7 +167,15 @@ export default function HackathonDetailPage() {
               </Link>
             </Button>
           )}
-          {isParticipant && (
+          {canSponsorEdit && (
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`/hackathons/${id}/edit`}>
+                <Pencil className="mr-2 size-4" />
+                Edit submission
+              </Link>
+            </Button>
+          )}
+          {canParticipateFlow && (
             <>
               <Button variant="default" size="sm" asChild>
                 <Link href={`/hackathons/${id}/apply`}>
@@ -197,6 +215,23 @@ export default function HackathonDetailPage() {
           </Button>
         </div>
       </PageHeader>
+
+      {approval && approval !== 'approved' ? (
+        <div className="mt-6 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
+          <p className="font-medium text-amber-950 dark:text-amber-100">
+            {HACKATHON_APPROVAL_LABELS[approval] ?? approval}
+          </p>
+          <p className="mt-1 text-muted-foreground">
+            This challenge is not visible to participants until an admin approves it.
+          </p>
+          {hackathon.adminFeedback ? (
+            <p className="mt-2 whitespace-pre-wrap border-t border-amber-500/20 pt-2 text-muted-foreground">
+              <span className="font-medium text-foreground">Admin feedback: </span>
+              {hackathon.adminFeedback}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:items-start">
         {imageSrc && (

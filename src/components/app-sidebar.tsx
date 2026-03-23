@@ -13,7 +13,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
-import { getSidebarItemsForRole } from '@/config/sidebar-nav';
+import { getSidebarItemsForRole, ONBOARDING_ONLY_NAV } from '@/config/sidebar-nav';
 import { useAuth } from '@/contexts/auth-context';
 import { canAccessPath } from '@/config/sidebar-nav';
 import { ChevronDown } from 'lucide-react';
@@ -21,11 +21,17 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from "@/lib/utils"
+import { isRole, type Role } from '@/types/roles'
 
 export function AppSidebar() {
   const pathname = usePathname();
   const { user } = useAuth();
   const sidebarItems = getSidebarItemsForRole(user?.role);
+  const needsOnboarding = user != null && user.isOnboarded !== true;
+  const visibleItems =
+    needsOnboarding && user?.role && isRole(user.role)
+      ? ONBOARDING_ONLY_NAV.filter((item) => item.roles.includes(user.role as Role))
+      : sidebarItems;
   const [usersOpen, setUsersOpen] = useState(() => pathname.startsWith('/users'));
 
   const isActive = (path: string) =>
@@ -51,7 +57,7 @@ export function AppSidebar() {
       <SidebarContent className="bg-cs-card">
         <SidebarGroup>
           <SidebarMenu>
-            {sidebarItems.map((item) => (
+            {visibleItems.map((item) => (
               <SidebarMenuItem key={item.label}>
                 {item.children ? (
                   <>

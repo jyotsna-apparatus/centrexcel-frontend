@@ -7,10 +7,11 @@ import {
   Gavel,
   Building2,
   UsersRound,
-  Users,
   Settings,
   CreditCard,
   UserCheck,
+  UserCircle,
+  ClipboardCheck,
 } from 'lucide-react';
 import type { Role } from '@/types/roles';
 import { ROLES, isRole } from '@/types/roles';
@@ -49,15 +50,15 @@ export const SIDEBAR_NAV_CONFIG: SidebarNavItem[] = [
     roles: [ROLES.ADMIN, ROLES.SPONSOR, ROLES.PARTICIPANT, ROLES.JUDGE],
   },
   {
+    label: 'Approvals',
+    href: '/hackathons/approvals',
+    icon: ClipboardCheck,
+    roles: [ROLES.ADMIN],
+  },
+  {
     label: 'My participations',
     href: '/participations',
     icon: UserCheck,
-    roles: [ROLES.PARTICIPANT],
-  },
-  {
-    label: 'Team',
-    href: '/users/teams',
-    icon: Users,
     roles: [ROLES.PARTICIPANT],
   },
   {
@@ -92,13 +93,22 @@ export const SIDEBAR_NAV_CONFIG: SidebarNavItem[] = [
       { label: 'Participants', href: '/users/participants' },
       { label: 'Judges', href: '/users/judges' },
       { label: 'Sponsors', href: '/users/sponsors' },
-      { label: 'Teams', href: '/users/teams' },
     ],
   },
   {
     label: 'Settings',
     href: '/settings',
     icon: Settings,
+    roles: [ROLES.ADMIN, ROLES.SPONSOR, ROLES.PARTICIPANT, ROLES.JUDGE],
+  },
+];
+
+/** Shown while logged in but profile onboarding is incomplete (all other routes redirect to /onboarding). */
+export const ONBOARDING_ONLY_NAV: SidebarNavItem[] = [
+  {
+    label: 'Complete profile',
+    href: '/onboarding',
+    icon: UserCircle,
     roles: [ROLES.ADMIN, ROLES.SPONSOR, ROLES.PARTICIPANT, ROLES.JUDGE],
   },
 ];

@@ -82,7 +82,7 @@ export default function ParticipantDashboard() {
           title="My Teams"
           value={myTeams.length}
           icon={<Users className="size-6" />}
-          href="/users/teams"
+          href="/participations"
         />
         <StatCard
           title="My Submissions"
@@ -103,9 +103,9 @@ export default function ParticipantDashboard() {
             </Link>
           </Button>
           <Button variant="outline" className="justify-start" asChild>
-            <Link href="/users/teams">
+            <Link href="/participations">
               <Users className="mr-2 size-4" />
-              My Teams
+              My participations
             </Link>
           </Button>
           <Button variant="outline" className="justify-start" asChild>
@@ -124,7 +124,7 @@ export default function ParticipantDashboard() {
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold">My Teams</h2>
             <Button variant="ghost" size="sm" asChild>
-              <Link href="/users/teams">
+              <Link href="/participations">
                 View all
                 <ArrowRight className="ml-2 size-4" />
               </Link>
@@ -133,10 +133,9 @@ export default function ParticipantDashboard() {
           {myTeams.length > 0 ? (
             <div className="space-y-3">
               {myTeams.slice(0, 5).map((team) => (
-                <Link
+                <div
                   key={team.id}
-                  href={`/users/teams/${team.id}`}
-                  className="flex items-center justify-between rounded-md border border-cs-border bg-cs-card/50 p-3 transition-colors hover:bg-accent/50"
+                  className="flex items-center justify-between rounded-md border border-cs-border bg-cs-card/50 p-3"
                 >
                   <div className="flex items-center gap-3">
                     <div className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -156,7 +155,7 @@ export default function ParticipantDashboard() {
                       {team.members?.length ?? 0} members
                     </p>
                   </div>
-                </Link>
+                </div>
               ))}
             </div>
           ) : (

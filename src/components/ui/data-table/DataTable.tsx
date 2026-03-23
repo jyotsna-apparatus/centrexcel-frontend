@@ -9,9 +9,12 @@ import {
   getSortedRowModel,
   useReactTable,
   type ColumnDef,
+  type Header,
   type PaginationState,
   type SortingState,
   type RowData,
+  type Table,
+  type Updater,
 } from "@tanstack/react-table"
 import { ChevronDown, ChevronUp, ChevronsUpDown, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -73,8 +76,11 @@ export function DataTable<TData extends RowData>({
   const paginationState =
     controlledPaginationState ?? uncontrolledPagination
   const setPaginationState = React.useCallback(
-    (updater: (prev: PaginationState) => PaginationState) => {
-      const next = updater(paginationState)
+    (updaterOrValue: Updater<PaginationState>) => {
+      const next =
+        typeof updaterOrValue === 'function'
+          ? (updaterOrValue as (prev: PaginationState) => PaginationState)(paginationState)
+          : updaterOrValue
       onPaginationChange?.(next)
       if (!controlledPaginationState) setUncontrolledPagination(next)
     },
@@ -169,7 +175,7 @@ export function DataTable<TData extends RowData>({
 
       {/* Pagination */}
       {pagination && rows.length > 0 && (
-        <DataTablePagination
+        <DataTablePagination<TData>
           table={table}
           totalRows={totalRows}
           pageSizeOptions={pageSizeOptions}
@@ -259,7 +265,7 @@ function TableDesktop<TData extends RowData>({
                 key={header.id}
                 className=" h-12 px-4 text-left font-medium !bg-gradient-to-b from-cs-primary to-cs-secondary !text-white"
               >
-                <SortableHeader header={header} />
+                <SortableHeader<TData> header={header} />
               </th>
             ))}
           </tr>
@@ -283,7 +289,7 @@ function TableDesktop<TData extends RowData>({
   )
 }
 
-function SortableHeader({ header }: { header: { column: { getCanSort: () => boolean; getToggleSortingHandler: () => ((e: unknown) => void) | undefined; getIsSorted: () => false | "asc" | "desc" } } }) {
+function SortableHeader<TData extends RowData>({ header }: { header: Header<TData, unknown> }) {
   const canSort = header.column.getCanSort()
   const sorted = header.column.getIsSorted()
   const toggle = header.column.getToggleSortingHandler()
@@ -354,14 +360,14 @@ function TableCards<TData extends RowData>({
   )
 }
 
-function DataTablePagination({
+function DataTablePagination<TData extends RowData>({
   table,
   totalRows,
   pageSizeOptions,
   canPrev,
   canNext,
 }: {
-  table: ReturnType<typeof useReactTable<RowData>>
+  table: Table<TData>
   totalRows: number
   pageSizeOptions: number[]
   canPrev: boolean

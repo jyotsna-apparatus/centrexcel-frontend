@@ -19,7 +19,7 @@ const USERNAME_DEBOUNCE_MS = 500
 
 const ROLES: { value: RegisterCredentials['role']; label: string; icon: typeof Gift }[] = [
   { value: 'sponsor', label: 'Sponsor', icon: Gift },
-  { value: 'judge', label: 'Judge', icon: Gavel },
+  // { value: 'judge', label: 'Judge', icon: Gavel },
   { value: 'participant', label: 'Participant', icon: User },
 ]
 
@@ -169,7 +169,7 @@ const SignUpPage = () => {
           </div>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4 w-full">
             <div className="flex flex-col gap-2 w-full">
-              <div className="grid grid-cols-3 gap-2 w-full">
+              <div className="grid grid-cols-2 gap-2 w-full">
                 {ROLES.map(({ value, label, icon: Icon }) => (
                   <button
                     key={value}

@@ -30,3 +30,10 @@ export const HACKATHON_STATUS_LABELS: Record<string, string> = {
   closed: 'Closed',
   cancelled: 'Cancelled',
 }
+
+export const HACKATHON_APPROVAL_LABELS: Record<string, string> = {
+  pending_review: 'Pending review',
+  approved: 'Approved',
+  rejected: 'Rejected',
+  changes_requested: 'Changes requested',
+}

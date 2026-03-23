@@ -13,6 +13,8 @@ export type UseHackathonsParams = {
   status?: string
   sponsorId?: string
   forJudge?: 'me'
+  /** Admin-only */
+  approvalStatus?: string
 }
 
 /** Hackathons assigned to the current user (judge). */
@@ -40,9 +42,17 @@ export function useFeaturedHackathons(limit: number = FEATURED_LIMIT) {
   })
 }
 
-export function useHackathons({ page, pageSize, search, status, sponsorId, forJudge }: UseHackathonsParams) {
+export function useHackathons({
+  page,
+  pageSize,
+  search,
+  status,
+  sponsorId,
+  forJudge,
+  approvalStatus,
+}: UseHackathonsParams) {
   return useQuery({
-    queryKey: ['hackathons', page, pageSize, search, status, sponsorId, forJudge],
+    queryKey: ['hackathons', page, pageSize, search, status, sponsorId, forJudge, approvalStatus],
     queryFn: () =>
       getHackathons({
         page: page + 1,
@@ -51,6 +61,7 @@ export function useHackathons({ page, pageSize, search, status, sponsorId, forJu
         status,
         sponsorId,
         forJudge,
+        approvalStatus,
       }),
     refetchInterval: REFETCH_INTERVAL_MS,
     refetchOnMount: 'always',

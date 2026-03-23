@@ -108,9 +108,9 @@ export default function SponsorDashboard() {
             </Link>
           </Button>
           <Button variant="outline" className="justify-start" asChild>
-            <Link href="/users/teams">
-              <Users className="mr-2 size-4" />
-              View Teams
+            <Link href="/hackathons/new">
+              <Trophy className="mr-2 size-4" />
+              Submit challenge
             </Link>
           </Button>
         </div>
@@ -135,6 +135,8 @@ export default function SponsorDashboard() {
                 hackathon={hackathon}
                 variant="list"
                 isAdmin={false}
+                showApprovalBadge
+                isSponsor
                 isParticipant={false}
               />
             ))}

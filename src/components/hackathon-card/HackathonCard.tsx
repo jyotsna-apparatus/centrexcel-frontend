@@ -5,7 +5,10 @@ import { Button } from "@/components/ui/button";
 import type { HackathonListItem } from "@/lib/auth-api";
 import { Calendar, Users, FileUp, Eye, Pencil, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { HACKATHON_STATUS_LABELS } from "@/config/hackathon-constants";
+import {
+  HACKATHON_STATUS_LABELS,
+  HACKATHON_APPROVAL_LABELS,
+} from "@/config/hackathon-constants";
 
 /** Build URL for hackathon banner image (proxied via /api). */
 export function hackathonImageSrc(imagePath: string | null | undefined): string | null {
@@ -25,6 +28,29 @@ export function formatHackathonDeadline(iso: string | null | undefined): string 
   } catch {
     return "—";
   }
+}
+
+function ApprovalBadge({ status }: { status: string }) {
+  if (!status || status === "approved") return null;
+  const label = HACKATHON_APPROVAL_LABELS[status] ?? status;
+  const className =
+    status === "pending_review"
+      ? "bg-sky-500/15 text-sky-800 dark:text-sky-300"
+      : status === "changes_requested"
+        ? "bg-amber-500/15 text-amber-800 dark:text-amber-300"
+        : status === "rejected"
+          ? "bg-red-500/15 text-red-800 dark:text-red-300"
+          : "bg-muted text-muted-foreground";
+  return (
+    <span
+      className={cn(
+        "inline-flex shrink-0 rounded-full px-2.5 py-1 text-xs font-medium whitespace-nowrap",
+        className
+      )}
+    >
+      {label}
+    </span>
+  );
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -53,6 +79,10 @@ type HackathonCardProps = {
   hackathon: HackathonListItem;
   variant: "featured" | "list";
   isAdmin?: boolean;
+  /** When true, show approval workflow badge if not approved */
+  showApprovalBadge?: boolean;
+  /** Sponsor can edit pending / changes / rejected own challenges */
+  isSponsor?: boolean;
   isParticipant?: boolean;
   /** When set, user is in a team for this hackathon—show "Submit with team" instead of "Solo". */
   userTeamForHackathon?: { id: string } | null;
@@ -66,6 +96,8 @@ export function HackathonCard({
   hackathon,
   variant,
   isAdmin = false,
+  showApprovalBadge = false,
+  isSponsor = false,
   isParticipant = false,
   userTeamForHackathon = null,
   className,
@@ -160,7 +192,12 @@ export function HackathonCard({
           <h3 className="font-semibold text-cs-heading line-clamp-2">
             {hackathon.title}
           </h3>
-          <StatusBadge status={hackathon.status} />
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+            {showApprovalBadge && hackathon.approvalStatus ? (
+              <ApprovalBadge status={hackathon.approvalStatus} />
+            ) : null}
+            <StatusBadge status={hackathon.status} />
+          </div>
         </div>
         <p className="mb-4 line-clamp-3 flex-1 text-sm text-muted-foreground">
           {hackathon.shortDescription || "—"}
@@ -195,7 +232,20 @@ export function HackathonCard({
             </Link>
           </Button>
         )}
+        {isSponsor &&
+          hackathon.sponsorId &&
+          ["pending_review", "changes_requested", "rejected"].includes(
+            hackathon.approvalStatus ?? ""
+          ) && (
+            <Button variant="outline" size="sm" className="flex-1 min-w-0" asChild>
+              <Link href={`/hackathons/${hackathon.id}/edit`}>
+                <Pencil className="mr-1.5 size-4 shrink-0" />
+                Edit
+              </Link>
+            </Button>
+          )}
         {isParticipant &&
+          hackathon.approvalStatus === "approved" &&
           hackathon.status !== "submission_closed" &&
           hackathon.status !== "closed" &&
           hackathon.status !== "cancelled" && (

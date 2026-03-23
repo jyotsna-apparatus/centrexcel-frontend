@@ -14,6 +14,7 @@ import { deleteUser, createFavorite, deleteFavorite, getFavorites, type Favorite
 import { Eye, Pencil, Trash2, Star } from 'lucide-react'
 import { toast } from 'sonner'
 import { Select } from '@/components/ui/select'
+import { UserTableProfileCell } from '@/components/admin/UserTableProfileCell'
 
 export default function UsersSponsorsPage() {
   const queryClient = useQueryClient()
@@ -64,13 +65,14 @@ export default function UsersSponsorsPage() {
   })
 
   const favoriteMutation = useMutation({
-    mutationFn: ({ favoriteId, isFavorite }: { favoriteId: string; isFavorite: boolean }) => {
+    mutationFn: async ({ favoriteId, isFavorite }: { favoriteId: string; isFavorite: boolean }) => {
       if (isFavorite) {
         const favorite = favorites.find((f: Favorite) => f.favoriteId === favoriteId)
         if (!favorite) throw new Error('Favorite not found')
-        return deleteFavorite(favorite.id)
+        await deleteFavorite(favorite.id)
+        return
       }
-      return createFavorite('sponsor', favoriteId)
+      await createFavorite('sponsor', favoriteId)
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['favorites'] })
@@ -120,14 +122,9 @@ export default function UsersSponsorsPage() {
   const columns = useMemo<ColumnDef<UserListItem, unknown>[]>(
     () => [
       {
-        accessorKey: 'username',
-        header: 'Username',
-        cell: (info) => (info.getValue() as string) ?? '—',
-      },
-      {
-        accessorKey: 'email',
-        header: 'Email',
-        cell: (info) => (info.getValue() as string) ?? '—',
+        id: 'user',
+        header: 'User',
+        cell: (info) => <UserTableProfileCell user={info.row.original} />,
       },
       {
         accessorKey: 'role',
@@ -258,7 +255,7 @@ export default function UsersSponsorsPage() {
         dynamicSearchConfig={{
           searchValue: search,
           onSearch: handleSearch,
-          placeholder: 'Search by email or username...',
+          placeholder: 'Search by name, email, or username...',
           debounceMs: 300,
         }}
         pagination

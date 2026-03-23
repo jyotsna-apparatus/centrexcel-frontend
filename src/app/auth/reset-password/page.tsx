@@ -13,7 +13,7 @@ import { useMutation } from '@tanstack/react-query'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 const RESET_TOKEN_KEY = 'auth_reset_token'
@@ -243,4 +243,16 @@ const ResetPasswordPage = () => {
   )
 }
 
-export default ResetPasswordPage
+export default function ResetPasswordPageWrapper() {
+  return (
+    <Suspense
+      fallback={
+        <div className="parent h-dvh flex items-center justify-center">
+          <p className="p1 text-cs-text">Loading…</p>
+        </div>
+      }
+    >
+      <ResetPasswordPage />
+    </Suspense>
+  )
+}

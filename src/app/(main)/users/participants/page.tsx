@@ -13,6 +13,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { deleteUser } from '@/lib/auth-api'
 import { Eye, Pencil, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { UserTableProfileCell } from '@/components/admin/UserTableProfileCell'
 
 export default function UsersParticipantsPage() {
   const queryClient = useQueryClient()
@@ -66,14 +67,9 @@ export default function UsersParticipantsPage() {
   const columns = useMemo<ColumnDef<UserListItem, unknown>[]>(
     () => [
       {
-        accessorKey: 'username',
-        header: 'Username',
-        cell: (info) => (info.getValue() as string) ?? '—',
-      },
-      {
-        accessorKey: 'email',
-        header: 'Email',
-        cell: (info) => (info.getValue() as string) ?? '—',
+        id: 'user',
+        header: 'User',
+        cell: (info) => <UserTableProfileCell user={info.row.original} />,
       },
       {
         accessorKey: 'role',
@@ -177,7 +173,7 @@ export default function UsersParticipantsPage() {
         dynamicSearchConfig={{
           searchValue: search,
           onSearch: handleSearch,
-          placeholder: 'Search by email or username...',
+          placeholder: 'Search by name, email, or username...',
           debounceMs: 300,
         }}
         pagination

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useMutation, useQuery } from '@tanstack/react-query'
@@ -22,6 +22,7 @@ import { SearchableSelect } from '@/components/ui/searchable-select'
 import { SearchableMultiSelect } from '@/components/ui/searchable-multi-select'
 import { ArrowLeft, IndianRupee } from 'lucide-react'
 import { toast } from 'sonner'
+import { useAuth } from '@/contexts/auth-context'
 
 function toOptions(
   users: UserListItem[],
@@ -40,6 +41,10 @@ function sortWithFavoritesFirst<T extends { isFavorite?: boolean }>(options: T[]
 
 export default function NewHackathonPage() {
   const router = useRouter()
+  const { user } = useAuth()
+  const isSponsor = user?.role === 'sponsor'
+  const isAdmin = user?.role === 'admin'
+
   const [title, setTitle] = useState('')
   const [shortDescription, setShortDescription] = useState('')
   const [submissionDeadline, setSubmissionDeadline] = useState('')
@@ -52,9 +57,23 @@ export default function NewHackathonPage() {
   const [image, setImage] = useState<File | null>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
+  useEffect(() => {
+    if (!user) return
+    if (user.role !== 'admin' && user.role !== 'sponsor') {
+      router.replace('/hackathons')
+    }
+  }, [user, router])
+
+  useEffect(() => {
+    if (user?.role === 'sponsor' && user.id) {
+      setSponsorId(user.id)
+    }
+  }, [user])
+
   const { data: sponsorsData } = useQuery({
     queryKey: ['users', 'sponsor', 1, 100],
     queryFn: () => getUsers({ page: 1, limit: 100, role: 'sponsor' }),
+    enabled: isAdmin,
   })
   const { data: judgesData } = useQuery({
     queryKey: ['users', 'judge', 1, 100],
@@ -63,6 +82,7 @@ export default function NewHackathonPage() {
   const { data: sponsorFavoritesData } = useQuery({
     queryKey: ['favorites', 'sponsor'],
     queryFn: () => getFavorites('sponsor'),
+    enabled: isAdmin,
   })
   const { data: judgeFavoritesData } = useQuery({
     queryKey: ['favorites', 'judge'],
@@ -92,7 +112,11 @@ export default function NewHackathonPage() {
   const mutation = useMutation({
     mutationFn: (form: CreateHackathonFormData) => createHackathon(form),
     onSuccess: () => {
-      toast.success('Hackathon created successfully.')
+      toast.success(
+        isSponsor
+          ? 'Challenge submitted. An admin will review it before it appears publicly.'
+          : 'Hackathon created successfully.'
+      )
       router.push('/hackathons')
     },
     onError: (err: Error) => {
@@ -130,7 +154,7 @@ export default function NewHackathonPage() {
       next.instructions = `Max ${HACKATHON_CONSTANTS.TEXT_LIMITS.INSTRUCTIONS} characters`
     }
 
-    if (!sponsorId) next.sponsorId = 'Please select a sponsor'
+    if (!isSponsor && !sponsorId) next.sponsorId = 'Please select a sponsor'
 
     if (judgeIds.length < HACKATHON_CONSTANTS.JUDGE_COUNT.MIN) {
       next.judgeIds = `Select at least ${HACKATHON_CONSTANTS.JUDGE_COUNT.MIN} judge(s)`
@@ -159,7 +183,7 @@ export default function NewHackathonPage() {
       submissionDeadline: new Date(submissionDeadline).toISOString(),
       scoringDeadline: new Date(scoringDeadline).toISOString(),
       instructions: instructions.trim(),
-      sponsorId,
+      ...(isSponsor ? {} : { sponsorId }),
       judgeIds,
       isPaid,
       priceOfEntry: isPaid && priceOfEntry ? Number(priceOfEntry) : null,
@@ -168,9 +192,20 @@ export default function NewHackathonPage() {
     mutation.mutate(form)
   }
 
+  if (!user || (!isAdmin && !isSponsor)) {
+    return null
+  }
+
   return (
     <div>
-      <PageHeader title="Create hackathon" description="Add a new hackathon event.">
+      <PageHeader
+        title={isSponsor ? 'Submit a challenge' : 'Create hackathon'}
+        description={
+          isSponsor
+            ? 'You are the sponsor. After you submit, an admin must approve this challenge before it appears in the public list.'
+            : 'Add a new hackathon event.'
+        }
+      >
         <Button variant="outline"  asChild>
           <Link href="/hackathons">
             <ArrowLeft className="mr-2 size-4" />
@@ -180,6 +215,11 @@ export default function NewHackathonPage() {
       </PageHeader>
 
       <form onSubmit={handleSubmit} className="mx-auto max-w-2xl space-y-6">
+        {isSponsor ? (
+          <div className="rounded-lg border border-cs-border bg-muted/40 p-4 text-sm text-muted-foreground">
+            Sponsor is set to your account. You cannot change the sponsor for your own submission.
+          </div>
+        ) : null}
         <div className="space-y-2">
           <label className="text-sm font-medium" htmlFor="title">
             Title
@@ -253,20 +293,29 @@ export default function NewHackathonPage() {
           {errors.instructions && <p className="text-sm text-destructive">{errors.instructions}</p>}
         </div>
 
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Sponsor</label>
-          <SearchableSelect
-            options={sponsorOptions}
-            value={sponsorId}
-            onChange={setSponsorId}
-            placeholder="Select sponsor"
-            searchPlaceholder="Search sponsors..."
-            emptyText="No sponsor found."
-            className={errors.sponsorId ? 'border-destructive' : ''}
-            aria-invalid={!!errors.sponsorId}
-          />
-          {errors.sponsorId && <p className="text-sm text-destructive">{errors.sponsorId}</p>}
-        </div>
+        {isAdmin ? (
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Sponsor</label>
+            <SearchableSelect
+              options={sponsorOptions}
+              value={sponsorId}
+              onChange={setSponsorId}
+              placeholder="Select sponsor"
+              searchPlaceholder="Search sponsors..."
+              emptyText="No sponsor found."
+              className={errors.sponsorId ? 'border-destructive' : ''}
+              aria-invalid={!!errors.sponsorId}
+            />
+            {errors.sponsorId && <p className="text-sm text-destructive">{errors.sponsorId}</p>}
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Sponsor</label>
+            <p className="rounded-md border border-cs-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+              {user?.username ?? user?.email ?? 'Your account'}
+            </p>
+          </div>
+        )}
 
         <div className="space-y-2">
           <label className="text-sm font-medium">Judges (1–5)</label>
@@ -350,7 +399,11 @@ export default function NewHackathonPage() {
 
         <div className="flex gap-3 pb-[100px]">
           <Button type="submit" disabled={mutation.isPending}>
-            {mutation.isPending ? 'Creating...' : 'Create hackathon'}
+            {mutation.isPending
+              ? 'Submitting...'
+              : isSponsor
+                ? 'Submit for approval'
+                : 'Create hackathon'}
           </Button>
           <Button type="button" variant="outline" asChild>
             <Link href="/hackathons">Cancel</Link>

@@ -3,17 +3,21 @@
 import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { getUsers, getTeams, getHackathons } from '@/lib/auth-api'
+import { getUsers, getHackathons } from '@/lib/auth-api'
 import {
   UsersRound,
   Trophy,
-  Users,
   Gavel,
   Building2,
   UserCheck,
   ArrowRight,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { hackathonImageSrc } from '@/components/hackathon-card/HackathonCard'
+import { userTablePrimaryLine, userListInitials } from '@/lib/user-display'
+
+const PROFILE_PLACEHOLDER = '/profile-placeholder.svg'
 
 type StatCardProps = {
   title: string
@@ -72,11 +76,6 @@ export default function AdminDashboard() {
     queryFn: () => getUsers({ page: 1, limit: 1, role: 'sponsor' }),
   })
 
-  const { data: teamsData } = useQuery({
-    queryKey: ['dashboard', 'teams'],
-    queryFn: () => getTeams({ page: 1, limit: 1 }),
-  })
-
   const { data: hackathonsData } = useQuery({
     queryKey: ['dashboard', 'hackathons'],
     queryFn: () => getHackathons({ page: 1, limit: 1 }),
@@ -85,7 +84,6 @@ export default function AdminDashboard() {
   const totalParticipants = participantsData?.pagination?.total ?? 0
   const totalJudges = judgesData?.pagination?.total ?? 0
   const totalSponsors = sponsorsData?.pagination?.total ?? 0
-  const totalTeams = teamsData?.pagination?.total ?? 0
   const totalHackathons = hackathonsData?.pagination?.total ?? 0
   const totalUsers = totalParticipants + totalJudges + totalSponsors
 
@@ -95,13 +93,7 @@ export default function AdminDashboard() {
     queryFn: () => getUsers({ page: 1, limit: 5, role: 'participant' }),
   })
 
-  const { data: recentTeams } = useQuery({
-    queryKey: ['dashboard', 'recent-teams'],
-    queryFn: () => getTeams({ page: 1, limit: 5 }),
-  })
-
   const recentParticipantsList = recentParticipants?.data?.slice(0, 5) ?? []
-  const recentTeamsList = recentTeams?.data?.slice(0, 5) ?? []
 
   return (
     <div className="space-y-8">
@@ -113,7 +105,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Hackathons"
           value={totalHackathons}
@@ -123,10 +115,10 @@ export default function AdminDashboard() {
         />
         <StatCard
           title="Total Users"
-          value={totalUsers}
+          value={totalSponsors}
           icon={<UsersRound className="size-6" />}
           href="/users/participants"
-          trend={`${totalParticipants} participants, ${totalJudges} judges, ${totalSponsors} sponsors`}
+          trend={`Active sponsors`}
         />
         <StatCard
           title="Participants"
@@ -134,13 +126,6 @@ export default function AdminDashboard() {
           icon={<UserCheck className="size-6" />}
           href="/users/participants"
           trend="Active users"
-        />
-        <StatCard
-          title="Teams"
-          value={totalTeams}
-          icon={<Users className="size-6" />}
-          href="/users/teams"
-          trend="Active teams"
         />
         <StatCard
           title="Judges"
@@ -204,14 +189,20 @@ export default function AdminDashboard() {
                   className="flex items-center justify-between rounded-md border border-cs-border bg-cs-card/50 p-3 transition-colors hover:bg-accent/50"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-                      <UserCheck className="size-5" />
-                    </div>
-                    <div>
-                      <p className="font-medium">
-                        {participant.username || participant.email}
+                    <Avatar className="size-10 shrink-0 border border-cs-border">
+                      <AvatarImage
+                        src={hackathonImageSrc(participant.profilePic ?? null) ?? PROFILE_PLACEHOLDER}
+                        alt=""
+                      />
+                      <AvatarFallback className="text-xs">
+                        {userListInitials(participant)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">
+                        {userTablePrimaryLine(participant)}
                       </p>
-                      <p className="text-muted-foreground text-sm">{participant.email}</p>
+                      <p className="text-muted-foreground truncate text-sm">{participant.email}</p>
                     </div>
                   </div>
                   <div className="text-muted-foreground text-xs">
@@ -224,56 +215,6 @@ export default function AdminDashboard() {
             </div>
           ) : (
             <p className="text-muted-foreground text-center py-8 text-sm">No participants yet</p>
-          )}
-        </div>
-
-        {/* Recent Teams */}
-        <div className="glass cs-card rounded-lg border border-cs-border p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Recent Teams</h2>
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/users/teams">
-                View all
-                <ArrowRight className="ml-2 size-4" />
-              </Link>
-            </Button>
-          </div>
-          {recentTeamsList.length > 0 ? (
-            <div className="space-y-3">
-              {recentTeamsList.map((team) => (
-                <Link
-                  key={team.id}
-                  href={`/users/teams/${team.id}`}
-                  className="flex items-center justify-between rounded-md border border-cs-border bg-cs-card/50 p-3 transition-colors hover:bg-accent/50"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-                      <Users className="size-5" />
-                    </div>
-                    <div>
-                      <p className="font-medium">{team.name}</p>
-                      <p className="text-muted-foreground text-sm">
-                        {team.participations?.length
-                          ? `${team.participations.length} hackathon(s)`
-                          : 'No hackathons'}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-muted-foreground text-xs">
-                      {team.members?.length ?? 0} members
-                    </p>
-                    <p className="text-muted-foreground text-xs">
-                      {team.createdAt
-                        ? new Date(team.createdAt).toLocaleDateString()
-                        : '—'}
-                    </p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <p className="text-muted-foreground text-center py-8 text-sm">No teams yet</p>
           )}
         </div>
       </div>

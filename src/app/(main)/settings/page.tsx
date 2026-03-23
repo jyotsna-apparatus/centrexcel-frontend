@@ -1,10 +1,13 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/ui/password-input'
+import { hackathonImageSrc } from '@/components/hackathon-card/HackathonCard'
 import {
   updateProfile,
+  updateProfilePicture,
   requestEmailChange,
   confirmEmailChange,
   requestPasswordChangeOtp,
@@ -15,8 +18,13 @@ import { validatePassword, validateUsername } from '@/lib/validate'
 import { validateEmail } from '@/lib/validate'
 import { cn } from '@/lib/utils'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
+
+const PROFILE_ACCEPT = 'image/png,image/webp,image/jpeg,image/jpg'
+const MAX_BIO_LEN = 1000
+const MAX_PROFILE_FILE = 2 * 1024 * 1024
 
 const OTP_LENGTH = 6
 
@@ -28,6 +36,9 @@ export default function SettingsPage() {
   const [name, setName] = useState('')
   const [username, setUsername] = useState('')
   const [usernameError, setUsernameError] = useState<string | null>(null)
+  const [profileBio, setProfileBio] = useState('')
+  const [profileBaseline, setProfileBaseline] = useState({ name: '', username: '', profileBio: '' })
+  const [profileSaveDialogOpen, setProfileSaveDialogOpen] = useState(false)
 
   // Email change
   const [newEmail, setNewEmail] = useState('')
@@ -46,11 +57,26 @@ export default function SettingsPage() {
   const [passwordResendCooldown, setPasswordResendCooldown] = useState(0)
 
   useEffect(() => {
-    if (user) {
-      setName(user.name ?? '')
-      setUsername(user.username ?? '')
-    }
+    if (!user) return
+    const n = user.name ?? ''
+    const u = user.username ?? ''
+    const b = user.profileBio ?? ''
+    setName(n)
+    setUsername(u)
+    setProfileBio(b)
+    setProfileBaseline({ name: n, username: u, profileBio: b })
   }, [user])
+
+  const isProfileDirty = useMemo(() => {
+    const bn = profileBaseline.name.trim()
+    const bu = profileBaseline.username.trim()
+    const bb = profileBaseline.profileBio.trim()
+    return (
+      name.trim() !== bn ||
+      username.trim() !== bu ||
+      profileBio.trim() !== bb
+    )
+  }, [name, username, profileBio, profileBaseline])
 
   useEffect(() => {
     if (emailResendCooldown <= 0) return
@@ -105,10 +131,20 @@ export default function SettingsPage() {
   }, [])
 
   const profileMutation = useMutation({
-    mutationFn: (body: { name?: string | null; username?: string | null }) => updateProfile(body),
+    mutationFn: (body: { name?: string | null; username?: string | null; profileBio?: string | null }) =>
+      updateProfile(body),
     onSuccess: async () => {
       await loadUser()
       toast.success('Profile updated')
+    },
+    onError: (e: Error) => toast.error(e.message),
+  })
+
+  const profilePictureMutation = useMutation({
+    mutationFn: (f: File) => updateProfilePicture(f),
+    onSuccess: async () => {
+      await loadUser()
+      toast.success('Profile picture updated')
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -158,8 +194,9 @@ export default function SettingsPage() {
     onError: (e: Error) => toast.error(e.message),
   })
 
-  const onSaveProfile = (e: React.FormEvent) => {
+  const onRequestSaveProfile = (e: React.FormEvent) => {
     e.preventDefault()
+    if (!isProfileDirty) return
     setUsernameError(null)
     if (username.trim()) {
       const u = validateUsername(username.trim())
@@ -168,10 +205,55 @@ export default function SettingsPage() {
         return
       }
     }
-    profileMutation.mutate({
+    setProfileSaveDialogOpen(true)
+  }
+
+  const emailChangeDisabled =
+    user == null ||
+    !newEmail.trim() ||
+    newEmail.trim().toLowerCase() === user.email.toLowerCase()
+
+  const executeProfileSave = async () => {
+    setUsernameError(null)
+    if (username.trim()) {
+      const u = validateUsername(username.trim())
+      if (!u.valid) {
+        setUsernameError(u.message ?? 'Invalid username')
+        throw new Error(u.message ?? 'Invalid username')
+      }
+    }
+    await profileMutation.mutateAsync({
       name: name.trim() || null,
       username: username.trim() || null,
+      profileBio: profileBio.trim(),
     })
+  }
+
+  const onPickProfilePicture = (f: File | null) => {
+    if (!f) return
+    if (!PROFILE_ACCEPT.split(',').some((t) => f.type === t.trim())) {
+      toast.error('Use PNG, WebP, or JPEG only')
+      return
+    }
+    if (f.size > MAX_PROFILE_FILE) {
+      toast.error('Image must be 2MB or smaller')
+      return
+    }
+    const img = new window.Image()
+    const objectUrl = URL.createObjectURL(f)
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl)
+      if (img.naturalWidth > 2000 || img.naturalHeight > 2000) {
+        toast.error('Image must be at most 2000×2000 pixels')
+        return
+      }
+      profilePictureMutation.mutate(f)
+    }
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl)
+      toast.error('Could not read that image')
+    }
+    img.src = objectUrl
   }
 
   const onRequestEmailChange = (e: React.FormEvent) => {
@@ -232,7 +314,37 @@ export default function SettingsPage() {
       {/* Profile: name & username */}
       <section className="rounded-lg border border-cs-border bg-card p-6">
         <h2 className="h4 text-cs-heading mb-4">Profile</h2>
-        <form onSubmit={onSaveProfile} className="space-y-4">
+        <form onSubmit={onRequestSaveProfile} className="space-y-4">
+          {user.isOnboarded === true && (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+              <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-full border border-cs-border bg-muted">
+                {hackathonImageSrc(user.profilePic) ? (
+                  <Image
+                    src={hackathonImageSrc(user.profilePic)!}
+                    alt=""
+                    fill
+                    className="object-cover"
+                    unoptimized
+                  />
+                ) : (
+                  <span className="flex h-full w-full items-center justify-center text-xs text-cs-text">
+                    No photo
+                  </span>
+                )}
+              </div>
+              <div className="min-w-0 flex-1 space-y-2">
+                <label className="text-sm font-medium text-cs-text block">Profile picture</label>
+                <p className="text-xs text-cs-text">PNG, WebP, or JPEG — max 2000×2000px, 2MB</p>
+                <Input
+                  type="file"
+                  accept={PROFILE_ACCEPT}
+                  className="cursor-pointer max-w-md"
+                  disabled={profilePictureMutation.isPending}
+                  onChange={(e) => onPickProfilePicture(e.target.files?.[0] ?? null)}
+                />
+              </div>
+            </div>
+          )}
           <div>
             <label className="text-sm font-medium text-cs-text mb-1.5 block">Name</label>
             <Input
@@ -259,11 +371,37 @@ export default function SettingsPage() {
             />
             {usernameError && <p className="text-sm text-destructive mt-1">{usernameError}</p>}
           </div>
-          <Button type="submit" disabled={profileMutation.isPending}>
+          <div>
+            <label className="text-sm font-medium text-cs-text mb-1.5 block">Bio</label>
+            <textarea
+              value={profileBio}
+              onChange={(e) => setProfileBio(e.target.value.slice(0, MAX_BIO_LEN))}
+              maxLength={MAX_BIO_LEN}
+              rows={4}
+              placeholder="Short bio (visible on your profile)"
+              className={cn(
+                'placeholder:text-muted-foreground w-full min-h-[100px] rounded-md border border-cs-border bg-transparent px-3 py-2 text-base shadow-xs outline-none resize-y md:text-sm',
+                'focus-visible:border-cs-primary focus-visible:ring-ring/50 focus-visible:ring-[1px]'
+              )}
+            />
+            <p className="text-xs text-cs-text mt-1">{profileBio.length} / {MAX_BIO_LEN}</p>
+          </div>
+          <Button type="submit" disabled={!isProfileDirty || profileMutation.isPending}>
             {profileMutation.isPending ? 'Saving…' : 'Save profile'}
           </Button>
         </form>
       </section>
+
+      <ConfirmDialog
+        open={profileSaveDialogOpen}
+        onOpenChange={setProfileSaveDialogOpen}
+        title="Save profile changes?"
+        description="Your updates to name, username, and bio will be saved to your account."
+        confirmLabel="Save"
+        cancelLabel="Cancel"
+        onConfirm={executeProfileSave}
+        loading={profileMutation.isPending}
+      />
 
       {/* Email change with OTP */}
       <section className="rounded-lg border border-cs-border bg-card p-6">
@@ -282,7 +420,7 @@ export default function SettingsPage() {
                 required
               />
             </div>
-            <Button type="submit" disabled={requestEmailMutation.isPending}>
+            <Button type="submit" disabled={emailChangeDisabled || requestEmailMutation.isPending}>
               {requestEmailMutation.isPending ? 'Sending code…' : 'Send verification code'}
             </Button>
           </form>

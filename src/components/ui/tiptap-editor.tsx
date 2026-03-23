@@ -135,7 +135,9 @@ export function TiptapEditor({
     },
     editorProps: {
       attributes: {
-        'aria-invalid': ariaInvalid,
+        ...(ariaInvalid !== undefined
+          ? { 'aria-invalid': ariaInvalid ? 'true' : 'false' }
+          : {}),
         class:
           'min-h-[120px] w-full rounded-b-md border-0 bg-transparent px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-0 prose prose-sm max-w-none text-cs-text prose-headings:text-cs-heading prose-p:text-cs-text prose-li:text-cs-text prose-blockquote:text-cs-text prose-code:text-cs-text',
       },
@@ -144,7 +146,7 @@ export function TiptapEditor({
 
   React.useEffect(() => {
     if (editor && value !== undefined && editor.getHTML() !== (value || '<p></p>')) {
-      editor.commands.setContent(value || '', false)
+      editor.commands.setContent(value || '', { emitUpdate: false })
     }
   }, [value, editor])
 
@@ -153,6 +155,17 @@ export function TiptapEditor({
       editor.setEditable(!disabled)
     }
   }, [editor, disabled])
+
+  if (!editor) {
+    return (
+      <div
+        className={cn(
+          'min-h-[120px] rounded-md border border-cs-border bg-transparent',
+          className
+        )}
+      />
+    )
+  }
 
   return (
     <div

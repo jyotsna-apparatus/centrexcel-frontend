@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { createTeam, joinTeam, createParticipation } from '@/lib/auth-api'
+import { createTeam, joinTeam, createParticipation, type CreateTeamResponse } from '@/lib/auth-api'
 import { useHackathon } from '@/hooks/use-hackathons'
 import { useTeams } from '@/hooks/use-teams'
 import PageHeader from '@/components/pageHeader/PageHeader'
@@ -61,7 +61,7 @@ export default function HackathonApplyPage() {
 
   const createMutation = useMutation({
     mutationFn: (name: string) => createTeam({ name, hackathonId: id }),
-    onSuccess: (data) => {
+    onSuccess: (data: CreateTeamResponse) => {
       toast.success('Team created successfully.')
       queryClient.invalidateQueries({ queryKey: ['teams'] })
       queryClient.invalidateQueries({ queryKey: ['participations'] })
@@ -69,8 +69,8 @@ export default function HackathonApplyPage() {
       setTeamModalOpen(false)
       setTeamModalStep('choose')
       setTeamName('')
-      const teamId = (data as { data?: { id?: string } })?.data?.id
-      router.push(teamId ? `/users/teams/${teamId}` : '/users/teams')
+      const teamId = data.data?.id
+      router.push(teamId ? `/hackathons/${id}/submit?teamId=${teamId}` : '/participations')
     },
     onError: (err: Error) => {
       toast.error(err.message ?? 'Failed to create team')
@@ -87,7 +87,7 @@ export default function HackathonApplyPage() {
       setTeamModalOpen(false)
       setTeamModalStep('choose')
       setInviteCode('')
-      router.push(`/users/teams/${data.id}`)
+      router.push(`/hackathons/${id}/submit?teamId=${data.id}`)
     },
     onError: (err: Error) => {
       toast.error(err.message ?? 'Failed to join team')
@@ -272,7 +272,7 @@ export default function HackathonApplyPage() {
               </Button>
               {firstTeam && (
                 <Button variant="default" className="mt-3 w-full" asChild>
-                  <Link href={`/users/teams/${firstTeam.id}`}>View your team</Link>
+                  <Link href="/participations">View participations</Link>
                 </Button>
               )}
             </>

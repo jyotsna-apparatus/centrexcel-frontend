@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/ui/password-input'
 import { RedirectIfAuthenticated } from '@/components/redirect-if-authenticated'
 import { setTokens } from '@/lib/auth'
-import { login } from '@/lib/auth-api'
+import { login, type LoginResponse } from '@/lib/auth-api'
 import { validateEmail } from '@/lib/validate'
 import { useMutation } from '@tanstack/react-query'
 import Image from 'next/image'
@@ -29,9 +29,15 @@ const LoginPage = () => {
   const loginMutation = useMutation({
     mutationFn: login,
     onSuccess: (data) => {
-      setTokens(data.data.accessToken, data.data.refreshToken)
-      toast.success(data.message ?? 'Login successful')
-      router.push('/dashboard')
+      if ('needsEmailVerification' in data && data.needsEmailVerification) {
+        toast.success(data.message ?? 'Check your email for the verification code.')
+        router.push(`/auth/verify-otp?email=${encodeURIComponent(data.email)}`)
+        return
+      }
+      const ok = data as LoginResponse
+      setTokens(ok.data.accessToken, ok.data.refreshToken)
+      toast.success('Login successful')
+      router.push(ok.data.user.isOnboarded === true ? '/dashboard' : '/onboarding')
     },
     onError: (error: Error) => {
       toast.error(error.message ?? 'Login failed')
