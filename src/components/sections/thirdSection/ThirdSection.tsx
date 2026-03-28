@@ -16,7 +16,7 @@ export default function ThirdSection() {
     },
     {
       title: 'Community & network',
-      description: 'Join a global community of builders. Find co-founders, collaborators, and friends—and leave with a network that lasts long after the hackathon.',
+      description: 'Join a global community of builders. Find co-founders, collaborators, and friends—and leave with a network that lasts long after the challenge.',
       image: '/third/square1.webp',
     },
     {
@@ -34,7 +34,7 @@ export default function ThirdSection() {
           Build with people who get it
         </h2>
         <p className="p1 text-center max-w-xl mb-14 text-(--cs-text)/90">
-          We’re not just another hackathon. We focus on what actually helps you ship: mentorship, real problems, and a community that sticks around.
+          We’re not just another challenge. We focus on what actually helps you ship: mentorship, real problems, and a community that sticks around.
         </p>
 
         <div className=" grid grid-cols-10  w-full gap-8">

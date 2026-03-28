@@ -68,7 +68,7 @@ export default function HackathonApprovalsPage() {
     <div>
       <PageHeader
         title="Challenge approvals"
-        description="Review sponsor-submitted hackathons: approve, request changes, or reject."
+        description="Review sponsor-submitted challenges: approve, request changes, or reject."
       >
         <Button variant="outline" size="sm" asChild>
           <Link href="/hackathons">
@@ -198,14 +198,14 @@ export default function HackathonApprovalsPage() {
                     onClick={async () => {
                       if (
                         !window.confirm(
-                          'Delete this hackathon permanently? This cannot be undone.'
+                          'Delete this challenge permanently? This cannot be undone.'
                         )
                       ) {
                         return
                       }
                       try {
                         await deleteHackathon(h.id)
-                        toast.success('Hackathon deleted.')
+                        toast.success('Challenge deleted.')
                         invalidate()
                       } catch (err) {
                         toast.error(err instanceof Error ? err.message : 'Delete failed')

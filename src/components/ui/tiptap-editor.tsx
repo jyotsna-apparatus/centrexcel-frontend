@@ -21,6 +21,8 @@ export interface TiptapEditorProps {
   onChange?: (html: string) => void
   placeholder?: string
   className?: string
+  /** Override min-height of the editable area (Tailwind classes), e.g. min-h-[100px] */
+  editorContentClassName?: string
   maxLength?: number
   'aria-invalid'?: boolean
   disabled?: boolean
@@ -120,6 +122,7 @@ export function TiptapEditor({
   onChange,
   placeholder = 'Write something...',
   className,
+  editorContentClassName,
   maxLength,
   'aria-invalid': ariaInvalid,
   disabled,
@@ -138,8 +141,10 @@ export function TiptapEditor({
         ...(ariaInvalid !== undefined
           ? { 'aria-invalid': ariaInvalid ? 'true' : 'false' }
           : {}),
-        class:
+        class: cn(
           'min-h-[120px] w-full rounded-b-md border-0 bg-transparent px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-0 prose prose-sm max-w-none text-cs-text prose-headings:text-cs-heading prose-p:text-cs-text prose-li:text-cs-text prose-blockquote:text-cs-text prose-code:text-cs-text',
+          editorContentClassName
+        ),
       },
     },
   })

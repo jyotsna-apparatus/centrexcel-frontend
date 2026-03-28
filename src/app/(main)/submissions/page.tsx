@@ -55,7 +55,7 @@ export default function SubmissionsPage() {
       },
       {
         id: 'hackathon',
-        header: 'Hackathon',
+        header: 'Challenge',
         cell: (info) => {
           const row = info.row.original
           return row.hackathon?.title ?? '—'

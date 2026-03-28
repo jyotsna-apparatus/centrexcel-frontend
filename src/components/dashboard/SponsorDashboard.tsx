@@ -74,7 +74,7 @@ export default function SponsorDashboard() {
       {/* Statistics Cards */}
       <div className="grid gap-4 md:grid-cols-4">
         <StatCard
-          title="My Hackathons"
+          title="My Challenges"
           value={myHackathons.length}
           icon={<Trophy className="size-6" />}
           href="/hackathons"
@@ -104,7 +104,7 @@ export default function SponsorDashboard() {
           <Button variant="outline" className="justify-start" asChild>
             <Link href="/hackathons">
               <Trophy className="mr-2 size-4" />
-              My Hackathons
+              My Challenges
             </Link>
           </Button>
           <Button variant="outline" className="justify-start" asChild>
@@ -116,10 +116,10 @@ export default function SponsorDashboard() {
         </div>
       </div>
 
-      {/* My Hackathons */}
+      {/* My Challenges */}
       <div className="glass cs-card rounded-lg border border-cs-border p-6">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">My Hackathons</h2>
+          <h2 className="text-lg font-semibold">My Challenges</h2>
           <Button variant="ghost" size="sm" asChild>
             <Link href="/hackathons">
               View all

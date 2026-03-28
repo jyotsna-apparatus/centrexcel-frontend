@@ -6,20 +6,33 @@ import Link from 'next/link'
 import { useHackathon } from '@/hooks/use-hackathons'
 import { useHackathonWinners } from '@/hooks/use-winners'
 import { useTeams } from '@/hooks/use-teams'
-import { useSubmissionsByHackathon } from '@/hooks/use-submissions'
-import { useQuery } from '@tanstack/react-query'
+import { useHackathonSubmissionThreads, useSubmissionsByHackathon } from '@/hooks/use-submissions'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   getParticipationForHackathon,
   getHackathonParticipations,
   downloadSubmission,
+  downloadThreadEntry,
   downloadHackathonEntries,
+  updateScore,
 } from '@/lib/auth-api'
 import PageHeader from '@/components/pageHeader/PageHeader'
 import { hackathonImageSrc } from '@/components/hackathon-card'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { HACKATHON_APPROVAL_LABELS, HACKATHON_STATUS_LABELS } from '@/config/hackathon-constants'
+import {
+  HACKATHON_APPROVAL_LABELS,
+  HACKATHON_STATUS_LABELS,
+  SUBMISSION_MODE,
+  SUBMISSION_MODE_LABELS,
+} from '@/config/hackathon-constants'
+import {
+  getCurrentDailyDayNumber,
+  getInstructionForDay,
+} from '@/lib/hackathon-deadlines'
 import { useAuth } from '@/contexts/auth-context'
 import {
   ArrowLeft,
@@ -32,6 +45,7 @@ import {
   Pencil,
   Download,
   FileUp,
+  MessageSquare,
   UserCheck,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -39,6 +53,7 @@ import { toast } from 'sonner'
 export default function HackathonDetailPage() {
   const params = useParams()
   const router = useRouter()
+  const queryClient = useQueryClient()
   const id = typeof params.id === 'string' ? params.id : ''
   const [tabValue, setTabValue] = useState('details')
 
@@ -46,9 +61,15 @@ export default function HackathonDetailPage() {
   const isParticipant = user?.role === 'participant'
   const isAdmin = user?.role === 'admin'
   const isSponsor = user?.role === 'sponsor'
+  const isJudge = user?.role === 'judge'
   const canSeeJudges = isAdmin || isSponsor
   const canSeeSubmissions = isAdmin || isSponsor
   const { data: hackathon, isLoading, isError, error } = useHackathon(id || null)
+  const isJudgeAssignedToHackathon =
+    isJudge && hackathon?.judges ? hackathon.judges.some((j) => j.judgeId === user?.id) : false
+  const isDailyChallenge = hackathon?.submissionMode === SUBMISSION_MODE.DAILY_UPDATE
+  const canSeeDailyUpdates =
+    isDailyChallenge && (isAdmin || isSponsor || isJudgeAssignedToHackathon)
   const isOwnSponsorHackathon = Boolean(
     isSponsor && hackathon && user?.id === hackathon.sponsorId
   )
@@ -57,6 +78,14 @@ export default function HackathonDetailPage() {
   )
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
   const [downloadingAll, setDownloadingAll] = useState(false)
+  const [downloadingThreadEntryId, setDownloadingThreadEntryId] = useState<string | null>(null)
+  const [scoreEditorOpen, setScoreEditorOpen] = useState(false)
+  const [scoreEditorSubmissionId, setScoreEditorSubmissionId] = useState<string | null>(null)
+  const [adminScoreDrafts, setAdminScoreDrafts] = useState<Record<string, { score: string; feedback: string }>>({})
+  const [savingScoreId, setSavingScoreId] = useState<string | null>(null)
+
+  const selectedSubmissionForScoreEditor =
+    submissions.find((submission) => submission.id === scoreEditorSubmissionId) ?? null
 
   const handleDownloadOne = useCallback(
     async (sub: { id: string; title: string }) => {
@@ -93,6 +122,9 @@ export default function HackathonDetailPage() {
     }
   }, [id, downloadingAll])
   const { data: winners = [], isLoading: winnersLoading } = useHackathonWinners(id || null)
+  const { data: submissionThreads = [], isLoading: threadLoading } = useHackathonSubmissionThreads(
+    canSeeDailyUpdates && id ? id : null
+  )
   const { data: teamsData } = useTeams({
     page: 0,
     pageSize: 5,
@@ -113,16 +145,88 @@ export default function HackathonDetailPage() {
     enabled: !!id && isAdmin,
   })
   const hasSoloParticipation = participation && !participation.teamId
+  const hasAnyParticipation = Boolean(participation)
   const canSubmitSolo = hasSoloParticipation && !participation?.hasSubmitted
 
+  const teamInviteCode = firstTeam?.inviteCode ?? null
+  const handleCopyInviteCode = async (code: string) => {
+    try {
+      await navigator.clipboard.writeText(code)
+      toast.success('Invite code copied.')
+    } catch {
+      toast.error('Failed to copy invite code')
+    }
+  }
+
+  const updateScoreMutation = useMutation({
+    mutationFn: (payload: { scoreId: string; score: number; feedback: string | null }) =>
+      updateScore(payload),
+    onSuccess: () => {
+      toast.success('Score updated.')
+      queryClient.invalidateQueries({ queryKey: ['submissions-hackathon', id] })
+    },
+    onError: (err: Error) => {
+      toast.error(err.message ?? 'Failed to update score')
+    },
+    onSettled: () => {
+      setSavingScoreId(null)
+    },
+  })
+
+  const openScoreEditor = (submission: (typeof submissions)[number]) => {
+    const nextDrafts: Record<string, { score: string; feedback: string }> = {}
+    for (const scoreItem of submission.scores ?? []) {
+      nextDrafts[scoreItem.id] = {
+        score: String(scoreItem.score),
+        feedback: scoreItem.feedback ?? '',
+      }
+    }
+    setAdminScoreDrafts(nextDrafts)
+    setScoreEditorSubmissionId(submission.id)
+    setScoreEditorOpen(true)
+  }
+
+  const handleAdminScoreDraftChange = (
+    scoreId: string,
+    patch: Partial<{ score: string; feedback: string }>
+  ) => {
+    setAdminScoreDrafts((prev) => {
+      const existing = prev[scoreId] ?? { score: '', feedback: '' }
+      return {
+        ...prev,
+        [scoreId]: {
+          ...existing,
+          ...patch,
+        },
+      }
+    })
+  }
+
+  const handleAdminScoreSave = (scoreId: string) => {
+    const draft = adminScoreDrafts[scoreId]
+    if (!draft) return
+    const parsedScore = Number.parseInt(draft.score, 10)
+    if (Number.isNaN(parsedScore) || parsedScore < 0 || parsedScore > 100) {
+      toast.error('Score must be between 0 and 100')
+      return
+    }
+
+    setSavingScoreId(scoreId)
+    updateScoreMutation.mutate({
+      scoreId,
+      score: parsedScore,
+      feedback: draft.feedback.trim() ? draft.feedback.trim() : null,
+    })
+  }
+
   if (isError && error) {
-    toast.error(error instanceof Error ? error.message : 'Failed to load hackathon')
+    toast.error(error instanceof Error ? error.message : 'Failed to load challenge')
   }
 
   if (isLoading || !id) {
     return (
       <div>
-        <PageHeader title="Hackathon" description="Loading..." />
+        <PageHeader title="Challenge" description="Loading..." />
         <Skeleton className="h-64 w-full rounded-lg" />
       </div>
     )
@@ -131,7 +235,7 @@ export default function HackathonDetailPage() {
   if (!hackathon) {
     return (
       <div>
-        <PageHeader title="Hackathon" description="Not found." />
+        <PageHeader title="Challenge" description="Not found." />
         <Button variant="outline" onClick={() => router.back()}>
           Go back
         </Button>
@@ -151,6 +255,15 @@ export default function HackathonDetailPage() {
   const canParticipateFlow = isParticipant && hackathon.approvalStatus === 'approved'
 
   const imageSrc = hackathonImageSrc(hackathon.image)
+  const isDailyChallengeResolved = hackathon.submissionMode === SUBMISSION_MODE.DAILY_UPDATE
+  const applyDeadlinePassed = new Date(hackathon.applyDeadline).getTime() < Date.now()
+  const currentDailyDay = isDailyChallengeResolved
+    ? getCurrentDailyDayNumber(hackathon.applyDeadline, hackathon.finalSubmissionDeadline)
+    : null
+  const currentDailyInstruction =
+    currentDailyDay != null
+      ? getInstructionForDay(hackathon.dailyInstructions, currentDailyDay)
+      : null
 
   return (
     <div>
@@ -177,12 +290,25 @@ export default function HackathonDetailPage() {
           )}
           {canParticipateFlow && (
             <>
-              <Button variant="default" size="sm" asChild>
-                <Link href={`/hackathons/${id}/apply`}>
-                  <UserPlus className="mr-2 size-4" />
-                  Participate
-                </Link>
-              </Button>
+              {hasAnyParticipation ? (
+                <Button variant="default" size="sm" asChild>
+                  <Link href="/participations">
+                    <UserCheck className="mr-2 size-4" />
+                    View participation
+                  </Link>
+                </Button>
+              ) : applyDeadlinePassed ? (
+                <span className="text-muted-foreground max-w-[220px] text-right text-xs sm:text-sm">
+                  Applications closed (apply deadline passed).
+                </span>
+              ) : (
+                <Button variant="default" size="sm" asChild>
+                  <Link href={`/hackathons/${id}/apply`}>
+                    <UserPlus className="mr-2 size-4" />
+                    Participate
+                  </Link>
+                </Button>
+              )}
               {hasTeamForHackathon && firstTeam ? (
                 <Button variant="secondary" size="sm" asChild>
                   <Link href={`/hackathons/${id}/submit?teamId=${firstTeam.id}`}>
@@ -233,6 +359,15 @@ export default function HackathonDetailPage() {
         </div>
       ) : null}
 
+      {canParticipateFlow && !hasAnyParticipation && applyDeadlinePassed ? (
+        <div className="mt-6 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm">
+          <p className="font-medium text-destructive">You can no longer join this challenge.</p>
+          <p className="mt-1 text-muted-foreground">
+            The apply deadline was {new Date(hackathon.applyDeadline).toLocaleString()}.
+          </p>
+        </div>
+      ) : null}
+
       <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:items-start">
         {imageSrc && (
           <div className="w-full shrink-0 overflow-hidden rounded-lg border border-cs-border bg-muted lg:max-w-[500px]">
@@ -254,6 +389,9 @@ export default function HackathonDetailPage() {
               {canSeeSubmissions && (
                 <TabsTrigger value="submissions">Submissions</TabsTrigger>
               )}
+              {canSeeDailyUpdates && (
+                <TabsTrigger value="daily-updates">Daily Updates</TabsTrigger>
+              )}
               {isAdmin && (
                 <TabsTrigger value="participations">Participations</TabsTrigger>
               )}
@@ -268,11 +406,22 @@ export default function HackathonDetailPage() {
                 <span className="text-muted-foreground">Status</span>
                 <span>{statusLabel}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <Calendar className="size-4 text-muted-foreground" />
-                <span>Submission deadline: {new Date(hackathon.submissionDeadline).toLocaleString()}</span>
+              <div className="flex items-center gap-2 sm:col-span-2">
+                <span className="text-muted-foreground">Submission type</span>
+                <span>{SUBMISSION_MODE_LABELS[hackathon.submissionMode] ?? hackathon.submissionMode}</span>
               </div>
               <div className="flex items-center gap-2">
+                <Calendar className="size-4 text-muted-foreground" />
+                <span>Apply deadline: {new Date(hackathon.applyDeadline).toLocaleString()}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Calendar className="size-4 text-muted-foreground" />
+                <span>
+                  Final submission deadline:{' '}
+                  {new Date(hackathon.finalSubmissionDeadline).toLocaleString()}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 sm:col-span-2">
                 <Calendar className="size-4 text-muted-foreground" />
                 <span>Scoring deadline: {new Date(hackathon.scoringDeadline).toLocaleString()}</span>
               </div>
@@ -289,6 +438,35 @@ export default function HackathonDetailPage() {
                 </div>
               )}
             </dl>
+
+            {isParticipant &&
+            isDailyChallengeResolved &&
+            currentDailyDay != null &&
+            currentDailyInstruction ? (
+              <div className="mt-4 rounded-lg border border-cs-primary/25 bg-cs-primary/5 p-3">
+                <p className="text-sm font-medium text-cs-heading">Today&apos;s focus (day {currentDailyDay})</p>
+                <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">
+                  {currentDailyInstruction}
+                </p>
+              </div>
+            ) : null}
+
+            {isParticipant && teamInviteCode ? (
+              <div className="mt-4 rounded-lg border border-cs-border bg-muted/20 p-3">
+                <p className="text-sm font-medium text-cs-heading">Team invite code</p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-sm text-cs-text">{teamInviteCode}</span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleCopyInviteCode(teamInviteCode)}
+                  >
+                    Copy
+                  </Button>
+                </div>
+              </div>
+            ) : null}
           </div>
 
           {canSeeJudges && hackathon.judges && hackathon.judges.length > 0 && (
@@ -357,17 +535,95 @@ export default function HackathonDetailPage() {
                       <p className="text-sm text-muted-foreground">
                         {sub.teamId ? (sub.team?.name ? `Team: ${sub.team.name}` : 'Team') : 'Solo'}
                         {sub.averageScore != null && <> · Avg score: {Number(sub.averageScore)}</>}
+                        {(sub.scores?.length ?? 0) > 0 && <> · Scored by {sub.scores?.length ?? 0} judge(s)</>}
                       </p>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDownloadOne(sub)}
-                      disabled={downloadingId === sub.id}
-                    >
-                      <Download className="mr-2 size-4" />
-                      {downloadingId === sub.id ? 'Downloading…' : 'Download'}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      {isAdmin && (sub.scores?.length ?? 0) > 0 && (
+                        <Button variant="outline" size="sm" onClick={() => openScoreEditor(sub)}>
+                          Edit scores
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDownloadOne(sub)}
+                        disabled={downloadingId === sub.id}
+                      >
+                        <Download className="mr-2 size-4" />
+                        {downloadingId === sub.id ? 'Downloading…' : 'Download'}
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        )}
+
+        {canSeeDailyUpdates && (
+          <TabsContent value="daily-updates" className="space-y-4">
+            <h3 className="flex items-center gap-2 font-medium text-cs-heading">
+              <MessageSquare className="size-5" />
+              Daily update threads
+            </h3>
+            {threadLoading ? (
+              <Skeleton className="h-48 w-full rounded-lg" />
+            ) : submissionThreads.length === 0 ? (
+              <div className="rounded-lg border border-cs-border bg-card p-8 text-center">
+                <MessageSquare className="mx-auto size-12 text-muted-foreground" />
+                <p className="mt-4 text-muted-foreground">No daily updates yet.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {submissionThreads.map((thread) => (
+                  <div key={thread.id} className="rounded-lg border border-cs-border bg-card p-4">
+                    <p className="font-medium text-cs-heading">
+                      {thread.team ? `Team: ${thread.team.name}` : `Solo: ${thread.user?.username ?? thread.user?.email ?? 'Participant'}`}
+                    </p>
+                    {thread.entries.length === 0 ? (
+                      <p className="mt-2 text-sm text-muted-foreground">No updates in this thread.</p>
+                    ) : (
+                      <ul className="mt-3 space-y-2">
+                        {thread.entries.map((entry) => (
+                          <li
+                            key={entry.id}
+                            className="flex flex-col gap-2 rounded-md border border-cs-border bg-muted/30 p-3 sm:flex-row sm:items-start sm:justify-between"
+                          >
+                            <div>
+                              <p className="text-sm font-medium text-cs-heading">
+                                {new Date(entry.createdAt).toLocaleString()}
+                              </p>
+                              <p className="mt-1 whitespace-pre-wrap text-sm text-cs-text">
+                                {entry.feedbackMessage}
+                              </p>
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                by {entry.submittedByUser?.username ?? entry.submittedByUser?.email ?? 'Participant'}
+                              </p>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={downloadingThreadEntryId === entry.id}
+                              onClick={async () => {
+                                setDownloadingThreadEntryId(entry.id)
+                                try {
+                                  await downloadThreadEntry(entry.id, `thread-entry-${entry.id}.zip`)
+                                  toast.success('Download started.')
+                                } catch (err) {
+                                  toast.error(err instanceof Error ? err.message : 'Download failed')
+                                } finally {
+                                  setDownloadingThreadEntryId(null)
+                                }
+                              }}
+                            >
+                              <Download className="mr-2 size-4" />
+                              {downloadingThreadEntryId === entry.id ? 'Downloading…' : 'Download'}
+                            </Button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                 ))}
               </div>
@@ -495,6 +751,74 @@ export default function HackathonDetailPage() {
           </Tabs>
         </div>
       </div>
+      <Sheet open={scoreEditorOpen} onOpenChange={setScoreEditorOpen}>
+        <SheetContent side="right" className="sm:max-w-lg">
+          <SheetHeader>
+            <SheetTitle>
+              Edit judge scores
+              {selectedSubmissionForScoreEditor ? ` — ${selectedSubmissionForScoreEditor.title}` : ''}
+            </SheetTitle>
+          </SheetHeader>
+          <div className="mt-4 space-y-4 overflow-y-auto pr-1">
+            {!selectedSubmissionForScoreEditor ? (
+              <p className="text-sm text-muted-foreground">No submission selected.</p>
+            ) : (selectedSubmissionForScoreEditor.scores?.length ?? 0) === 0 ? (
+              <p className="text-sm text-muted-foreground">No judge scores found for this submission.</p>
+            ) : (
+              selectedSubmissionForScoreEditor.scores?.map((scoreItem) => {
+                const draft = adminScoreDrafts[scoreItem.id] ?? {
+                  score: String(scoreItem.score),
+                  feedback: scoreItem.feedback ?? '',
+                }
+                const isSaving = savingScoreId === scoreItem.id && updateScoreMutation.isPending
+                return (
+                  <div key={scoreItem.id} className="rounded-md border border-cs-border bg-card p-3">
+                    <p className="text-sm font-medium text-cs-heading">
+                      {scoreItem.judge?.username ?? scoreItem.judge?.email ?? 'Judge'}
+                    </p>
+                    <div className="mt-3 space-y-3">
+                      <div>
+                        <label className="mb-1.5 block text-sm font-medium text-cs-heading">Score (0-100)</label>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={100}
+                          value={draft.score}
+                          onChange={(e) =>
+                            handleAdminScoreDraftChange(scoreItem.id, { score: e.target.value })
+                          }
+                          disabled={isSaving}
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1.5 block text-sm font-medium text-cs-heading">Feedback</label>
+                        <textarea
+                          value={draft.feedback}
+                          onChange={(e) =>
+                            handleAdminScoreDraftChange(scoreItem.id, { feedback: e.target.value })
+                          }
+                          disabled={isSaving}
+                          rows={3}
+                          className="border-cs-border placeholder:text-muted-foreground w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus:ring-2 focus:ring-cs-primary/20"
+                          placeholder="Optional feedback"
+                        />
+                      </div>
+                      <Button type="button" size="sm" onClick={() => handleAdminScoreSave(scoreItem.id)} disabled={isSaving}>
+                        {isSaving ? 'Saving…' : 'Save score'}
+                      </Button>
+                    </div>
+                  </div>
+                )
+              })
+            )}
+          </div>
+          <SheetFooter>
+            <Button type="button" variant="outline" onClick={() => setScoreEditorOpen(false)}>
+              Close
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

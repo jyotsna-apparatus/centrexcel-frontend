@@ -162,9 +162,9 @@ export default function HackathonApplyPage() {
   if (!id) {
     return (
       <div>
-        <PageHeader title="Apply" description="Invalid hackathon." />
+        <PageHeader title="Apply" description="Invalid challenge." />
         <Button variant="outline" asChild>
-          <Link href="/hackathons">Back to hackathons</Link>
+          <Link href="/hackathons">Back to challenges</Link>
         </Button>
       </div>
     )
@@ -179,6 +179,8 @@ export default function HackathonApplyPage() {
     )
   }
 
+  const applyDeadlinePassed = new Date(hackathon.applyDeadline).getTime() < Date.now()
+
   return (
     <div>
       <PageHeader
@@ -188,7 +190,7 @@ export default function HackathonApplyPage() {
         <Button variant="outline" size="sm" asChild>
           <Link href={`/hackathons/${id}`}>
             <ArrowLeft className="mr-2 size-4" />
-            Back to hackathon
+            Back to challenge
           </Link>
         </Button>
       </PageHeader>
@@ -199,7 +201,23 @@ export default function HackathonApplyPage() {
           <li><strong>Solo:</strong> Enter alone and submit one project under your name.</li>
           <li><strong>Team:</strong> Create a new team or join one with an invite code, then submit one project for the team.</li>
         </ul>
+        <p className="mt-3 text-xs">
+          Apply deadline:{' '}
+          <span className="font-medium text-foreground">
+            {new Date(hackathon.applyDeadline).toLocaleString()}
+          </span>
+        </p>
       </div>
+
+      {applyDeadlinePassed ? (
+        <div className="mb-6 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm">
+          <p className="font-medium text-destructive">Applications are closed</p>
+          <p className="mt-1 text-muted-foreground">
+            The deadline to join this challenge has passed. You can still view the challenge details from
+            the list.
+          </p>
+        </div>
+      ) : null}
 
       {hackathon.isPaid && hackathon.priceOfEntry != null && Number(hackathon.priceOfEntry) > 0 && (
         <div className="mb-6 rounded-lg border border-cs-border bg-card p-6">
@@ -208,7 +226,7 @@ export default function HackathonApplyPage() {
             Entry fee
           </h3>
           <p className="mb-4 text-sm text-muted-foreground">
-            This hackathon has an entry fee of ₹{Number(hackathon.priceOfEntry).toFixed(2)}. Pay to complete your registration.
+            This challenge has an entry fee of ₹{Number(hackathon.priceOfEntry).toFixed(2)}. Pay to complete your registration.
           </p>
           <Button asChild>
             <Link
@@ -235,7 +253,7 @@ export default function HackathonApplyPage() {
                 Solo (not available)
               </Button>
               <p className="mt-2 text-xs text-muted-foreground">
-                You’re already in a team. Withdraw from My participations to switch.
+                You’re already in a team for this hackathon.
               </p>
               {firstTeam && (
                 <Button variant="default" className="mt-3 w-full" asChild>
@@ -249,7 +267,7 @@ export default function HackathonApplyPage() {
             <Button
               variant="secondary"
               className="w-full"
-              disabled={participateSoloMutation.isPending}
+              disabled={applyDeadlinePassed || participateSoloMutation.isPending}
               onClick={() => setSoloModalOpen(true)}
             >
               {participateSoloMutation.isPending ? 'Enrolling…' : 'Enter as solo'}
@@ -277,7 +295,12 @@ export default function HackathonApplyPage() {
               )}
             </>
           ) : (
-            <Button variant="secondary" className="w-full" onClick={openTeamModal}>
+            <Button
+              variant="secondary"
+              className="w-full"
+              disabled={applyDeadlinePassed}
+              onClick={openTeamModal}
+            >
               Enter as team
             </Button>
           )}
@@ -324,11 +347,11 @@ export default function HackathonApplyPage() {
               {teamModalStep === 'choose' &&
                 'Create a new team, join one with an invite code, or use a team you’re already in.'}
               {teamModalStep === 'create' &&
-                'Choose a name for your team. You can use this team in multiple hackathons.'}
+                'Choose a name for your team. You can use this team in multiple challenges.'}
               {teamModalStep === 'join' &&
                 'Enter the invite code shared by your team lead.'}
               {teamModalStep === 'existing' &&
-                'Select a team to register for this hackathon.'}
+                'Select a team to register for this challenge.'}
             </DialogDescription>
           </DialogHeader>
 

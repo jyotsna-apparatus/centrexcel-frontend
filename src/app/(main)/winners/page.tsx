@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useQuery } from '@tanstack/react-query'
 import { useHackathons } from '@/hooks/use-hackathons'
 import { useHackathonWinners } from '@/hooks/use-winners'
+import { getMyParticipations } from '@/lib/auth-api'
 import PageHeader from '@/components/pageHeader/PageHeader'
 import { Select } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -22,6 +24,7 @@ export default function WinnersPage() {
   const router = useRouter()
   const { user } = useAuth()
   const [selectedHackathonId, setSelectedHackathonId] = useState<string>('')
+  const isParticipant = user?.role === 'participant'
 
   useEffect(() => {
     if (user?.role && !canAccessPath('/winners', user.role)) {
@@ -34,7 +37,28 @@ export default function WinnersPage() {
     pageSize: 100,
   })
 
-  const hackathons = Array.isArray(hackathonsData?.data) ? hackathonsData.data : []
+  const {
+    data: participationsData,
+    isLoading: loadingParticipations,
+    isError: participationsError,
+    error: participationsErr,
+  } = useQuery({
+    queryKey: ['winnings', 'participations'],
+    queryFn: () => getMyParticipations({ page: 1, limit: 500 }),
+    enabled: isParticipant,
+  })
+
+  const participantHackathons = Array.from(
+    new Map(
+      (participationsData?.data ?? []).map((p) => [
+        p.hackathonId,
+        { id: p.hackathon.id, title: p.hackathon.title },
+      ])
+    ).values()
+  )
+  const hackathons = isParticipant
+    ? participantHackathons
+    : (Array.isArray(hackathonsData?.data) ? hackathonsData.data : [])
   const firstId = hackathons[0]?.id ?? ''
 
   useEffect(() => {
@@ -51,9 +75,29 @@ export default function WinnersPage() {
 
   useEffect(() => {
     if (hackathonsError && hackathonsErr) {
-      toast.error(hackathonsErr instanceof Error ? hackathonsErr.message : 'Failed to load hackathons')
+      toast.error(hackathonsErr instanceof Error ? hackathonsErr.message : 'Failed to load challenges')
     }
   }, [hackathonsError, hackathonsErr])
+
+  useEffect(() => {
+    if (participationsError && participationsErr) {
+      toast.error(
+        participationsErr instanceof Error
+          ? participationsErr.message
+          : 'Failed to load participations'
+      )
+    }
+  }, [participationsError, participationsErr])
+
+  useEffect(() => {
+    if (
+      selectedHackathonId &&
+      hackathons.length > 0 &&
+      !hackathons.some((h) => h.id === selectedHackathonId)
+    ) {
+      setSelectedHackathonId(firstId)
+    }
+  }, [selectedHackathonId, hackathons, firstId])
 
   useEffect(() => {
     if (winnersError && winnersErr && selectedHackathonId) {
@@ -65,11 +109,11 @@ export default function WinnersPage() {
     <div>
       <PageHeader
         title="Winnings"
-        description="View hackathon winners and your results."
+        description="View challenge winners and your results."
       />
 
       <div className="mb-6 flex flex-wrap items-center gap-4">
-        <label className="text-sm font-medium text-cs-text">Hackathon</label>
+        <label className="text-sm font-medium text-cs-text">Challenge</label>
         <Select
           value={selectedHackathonId}
           onChange={(e) => setSelectedHackathonId(e.target.value)}
@@ -84,8 +128,12 @@ export default function WinnersPage() {
         </Select>
       </div>
 
-      {loadingHackathons && hackathons.length === 0 ? (
+      {(loadingHackathons || loadingParticipations) && hackathons.length === 0 ? (
         <Skeleton className="h-32 w-full rounded-lg" />
+      ) : isParticipant && hackathons.length === 0 ? (
+        <p className="text-muted-foreground">
+          You can view winnings only for hackathons where you participated.
+        </p>
       ) : !selectedHackathonId ? (
         <p className="text-muted-foreground">Select a hackathon to view winnings.</p>
       ) : loadingWinners ? (

@@ -5,14 +5,14 @@ import Image from 'next/image'
 
 const TESTIMONIALS = [
   {
-    quote: "The mentorship and community here pushed our project from a weekend idea to something we're actually launching. Best hackathon experience we've had.",
+    quote: "The mentorship and community here pushed our project from a weekend idea to something we're actually launching. Best challenge experience we've had.",
     name: 'Alex Chen',
     role: 'Built a fintech prototype',
     logo: '/logo/1.svg',
     logoAlt: 'Company 1',
   },
   {
-    quote: 'Finally a hackathon where judges give real feedback instead of scores and leave. We iterated twice during the event and it showed in the demo.',
+    quote: 'Finally a challenge where judges give real feedback instead of scores and leave. We iterated twice during the event and it showed in the demo.',
     name: 'Jordan Rivera',
     role: 'Won best use of AI',
     logo: '/logo/2.svg',
@@ -21,7 +21,7 @@ const TESTIMONIALS = [
   {
     quote: 'Met my co-founder here. The network and the problems we worked on were the right mix of ambitious and grounded. Highly recommend.',
     name: 'Sam Williams',
-    role: 'Started a startup post-hackathon',
+    role: 'Started a startup post-challenge',
     logo: '/logo/3.svg',
     logoAlt: 'Company 3',
   },

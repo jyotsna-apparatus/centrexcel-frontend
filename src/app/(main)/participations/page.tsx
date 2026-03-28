@@ -2,40 +2,21 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getMyParticipations, withdrawParticipation } from '@/lib/auth-api'
-import type { ParticipationListItem } from '@/lib/auth-api'
+import { useQuery } from '@tanstack/react-query'
+import { getMyParticipations } from '@/lib/auth-api'
 import PageHeader from '@/components/pageHeader/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { UserCheck, FileUp, ExternalLink, LogOut } from 'lucide-react'
+import { UserCheck, FileUp, ExternalLink } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function ParticipationsPage() {
-  const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
   const limit = 10
-  const [withdrawTarget, setWithdrawTarget] = useState<ParticipationListItem | null>(null)
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['participations', page, limit],
     queryFn: () => getMyParticipations({ page, limit }),
-  })
-
-  const withdrawMutation = useMutation({
-    mutationFn: (id: string) => withdrawParticipation(id),
-    onSuccess: (result) => {
-      toast.success(result.message)
-      queryClient.invalidateQueries({ queryKey: ['participations'] })
-      queryClient.invalidateQueries({ queryKey: ['teams'] })
-      queryClient.invalidateQueries({ queryKey: ['hackathons'] })
-      queryClient.invalidateQueries({ queryKey: ['participation', 'hackathon', result.hackathonId] })
-      setWithdrawTarget(null)
-    },
-    onError: (err: Error) => {
-      toast.error(err.message ?? 'Failed to withdraw participation')
-    },
   })
 
   const participations = data?.data ?? []
@@ -53,7 +34,7 @@ export default function ParticipationsPage() {
     <div>
       <PageHeader
         title="My participations"
-        description="Hackathons you’ve enrolled in. Submit your project before the deadline if you haven’t yet."
+        description="Challenges you’ve enrolled in. Submit your project before the deadline if you haven’t yet."
       />
 
       {isLoading ? (
@@ -65,7 +46,7 @@ export default function ParticipationsPage() {
             You haven’t participated in any hackathon yet.
           </p>
           <Button className="mt-4" asChild>
-            <Link href="/hackathons">Browse hackathons</Link>
+            <Link href="/hackathons">Browse challenges</Link>
           </Button>
         </div>
       ) : (
@@ -119,15 +100,6 @@ export default function ParticipationsPage() {
                           Submit project
                         </Link>
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setWithdrawTarget(p)}
-                        disabled={withdrawMutation.isPending}
-                      >
-                        <LogOut className="mr-1.5 size-4" />
-                        Withdraw
-                      </Button>
                     </>
                   )}
                   <Button variant="outline" size="sm" asChild>
@@ -166,26 +138,6 @@ export default function ParticipationsPage() {
         </>
       )}
 
-      <ConfirmDialog
-        open={!!withdrawTarget}
-        onOpenChange={(open) => !open && setWithdrawTarget(null)}
-        title="Withdraw participation?"
-        description={
-          withdrawTarget
-            ? `You will be unenrolled from "${withdrawTarget.hackathon.title}". ${
-                withdrawTarget.teamId
-                  ? 'You will also leave the team. '
-                  : ''
-              }You can participate again (solo or with a different team) before the deadline.`
-            : ''
-        }
-        confirmLabel="Withdraw"
-        variant="destructive"
-        loading={withdrawMutation.isPending}
-        onConfirm={() => {
-          if (withdrawTarget) withdrawMutation.mutate(withdrawTarget.id)
-        }}
-      />
     </div>
   )
 }

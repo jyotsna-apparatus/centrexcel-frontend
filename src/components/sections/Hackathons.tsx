@@ -7,7 +7,7 @@ import { useFeaturedHackathons } from "@/hooks/use-hackathons";
 
 const FEATURED_LIMIT = 3;
 
-const Hackathons = () => {
+const Challenges = () => {
   const { data: list = [], isLoading, isError } = useFeaturedHackathons(FEATURED_LIMIT);
   const hackathons = Array.isArray(list) ? list : [];
 
@@ -15,7 +15,7 @@ const Hackathons = () => {
     <section id="hackathons" className="parent py-[100px]">
       <div className="container px-4 flex flex-col items-center gap-4">
         <h2 className="h2 text-center" data-aos="fade-up" data-aos-delay="0">
-          Featured <span>Hackathons</span>
+          Featured <span>Challenges</span>
         </h2>
         <p
           className="p1 text-center max-w-2xl mb-8"
@@ -56,13 +56,13 @@ const Hackathons = () => {
               data-aos="fade-up"
               data-aos-delay="200"
             >
-              No hackathons yet. Check back soon.
+              No challenges yet. Check back soon.
             </p>
           )}
         </div>
         <div data-aos="fade-up" data-aos-delay="500">
           <Button size="lg" asChild>
-            <Link href="/hackathons">View all hackathons</Link>
+            <Link href="/hackathons">View all challenges</Link>
           </Button>
         </div>
       </div>
@@ -70,4 +70,4 @@ const Hackathons = () => {
   );
 };
 
-export default Hackathons;
+export default Challenges;

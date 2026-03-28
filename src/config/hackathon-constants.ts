@@ -1,5 +1,5 @@
 /**
- * Hackathon module constants — mirror backend validation (HACKATHON_FRONTEND_INTEGRATION.md)
+ * Challenge module constants — mirror backend validation (HACKATHON_FRONTEND_INTEGRATION.md)
  */
 export const HACKATHON_CONSTANTS = {
   TEAM_SIZE: { MIN: 1, MAX: 5 },
@@ -36,4 +36,16 @@ export const HACKATHON_APPROVAL_LABELS: Record<string, string> = {
   approved: 'Approved',
   rejected: 'Rejected',
   changes_requested: 'Changes requested',
+}
+
+export const SUBMISSION_MODE = {
+  DAILY_UPDATE: 'daily_update',
+  SINGLE_SUBMISSION: 'single_submission',
+} as const
+
+export type SubmissionModeValue = (typeof SUBMISSION_MODE)[keyof typeof SUBMISSION_MODE]
+
+export const SUBMISSION_MODE_LABELS: Record<string, string> = {
+  daily_update: 'Daily updates',
+  single_submission: 'Single final submission',
 }

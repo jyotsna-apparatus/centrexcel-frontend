@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
+import { useQuery } from '@tanstack/react-query'
 import { useHackathons } from '@/hooks/use-hackathons'
 import { useTeams } from '@/hooks/use-teams'
+import { getMyParticipations } from '@/lib/auth-api'
 import PageHeader from '@/components/pageHeader/PageHeader'
 import { HackathonCard } from '@/components/hackathon-card'
 import { Button } from '@/components/ui/button'
@@ -70,6 +72,16 @@ export default function HackathonsPage() {
     return map
   }, [myTeams])
 
+  const { data: myParticipationsData } = useQuery({
+    queryKey: ['hackathons-page', 'my-participations'],
+    queryFn: () => getMyParticipations({ page: 1, limit: 500 }),
+    enabled: isParticipant,
+  })
+
+  const participatedHackathonIds = useMemo(() => {
+    return new Set((myParticipationsData?.data ?? []).map((p) => p.hackathonId))
+  }, [myParticipationsData?.data])
+
   const hackathonsRaw = data?.data
   const hackathons = Array.isArray(hackathonsRaw) ? hackathonsRaw : []
   const pagination = data?.pagination
@@ -85,15 +97,15 @@ export default function HackathonsPage() {
 
   useEffect(() => {
     if (isError && error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to load hackathons')
+      toast.error(error instanceof Error ? error.message : 'Failed to load challenges')
     }
   }, [isError, error])
 
   return (
     <div>
       <PageHeader
-        title="Hackathons"
-        description="Browse and manage hackathon events."
+        title="Challenges"
+        description="Browse and manage challenge events."
       >
         <div className="flex flex-wrap items-center gap-2">
           {isAdmin && (
@@ -108,7 +120,7 @@ export default function HackathonsPage() {
             <Button variant="default" asChild>
               <Link href="/hackathons/new">
                 <Plus className="size-4" color="black" />
-                {isSponsor && !isAdmin ? 'Submit challenge' : 'Create hackathon'}
+                {isSponsor && !isAdmin ? 'Submit challenge' : 'Create challenge'}
               </Link>
             </Button>
           )}
@@ -122,7 +134,7 @@ export default function HackathonsPage() {
           value={searchInput}
           onChange={handleSearchChange}
           className="max-w-xs"
-          aria-label="Search hackathons"
+          aria-label="Search challenges"
         />
         <Select
           value={statusFilter}
@@ -168,20 +180,20 @@ export default function HackathonsPage() {
       ) : hackathons.length === 0 ? (
         <div className="rounded-lg border border-cs-border bg-card py-16 text-center">
           <p className="text-muted-foreground mb-4">
-            {isFetching && debouncedSearch ? 'Searching...' : 'No hackathons found.'}
+            {isFetching && debouncedSearch ? 'Searching...' : 'No challenges found.'}
           </p>
           {(isAdmin || isSponsor) && !isFetching && !debouncedSearch && (
             <p className="text-muted-foreground text-sm mb-4">
               {isSponsor && !isAdmin
                 ? 'Submit a challenge for admin approval to list it here once approved.'
-                : 'Create your first hackathon to get started.'}
+                : 'Create your first challenge to get started.'}
             </p>
           )}
           {(isAdmin || isSponsor) && !isFetching && (
             <Button asChild>
               <Link href="/hackathons/new">
                 <Plus className="mr-2 size-4" />
-                {isSponsor && !isAdmin ? 'Submit challenge' : 'Create hackathon'}
+                {isSponsor && !isAdmin ? 'Submit challenge' : 'Create challenge'}
               </Link>
             </Button>
           )}
@@ -198,6 +210,7 @@ export default function HackathonsPage() {
                 showApprovalBadge={isAdmin || isSponsor}
                 isSponsor={isSponsor}
                 isParticipant={isParticipant}
+                hasParticipated={isParticipant ? participatedHackathonIds.has(hackathon.id) : false}
                 userTeamForHackathon={isParticipant ? (teamByHackathonId[hackathon.id] ?? null) : null}
               />
             ))}
@@ -206,7 +219,7 @@ export default function HackathonsPage() {
           <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-cs-border pt-6">
             <p className="text-sm text-muted-foreground">
               {totalCount === 0
-                ? 'No hackathons'
+                ? 'No challenges'
                 : `Showing ${startItem}–${endItem} of ${totalCount}`}
             </p>
             <div className="flex items-center gap-2">

@@ -636,6 +636,21 @@ export async function getUsers(params: {
   return { data: list, pagination }
 }
 
+/** Judge options for hackathon assignment (admin and sponsor). */
+export async function getJudgeOptions(): Promise<UserListItem[]> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(`${baseUrl}/users/options/judges`, {
+    method: 'GET',
+    headers: { accept: 'application/json' },
+  })
+  const json = (await res.json()) as { data?: UserListItem[]; message?: string }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to fetch judges')
+  }
+  return Array.isArray(json.data) ? json.data : []
+}
+
 /** Fetch a single user by id (admin). */
 export async function getUser(id: string): Promise<UserListItem> {
   const baseUrl = getBaseUrl()
@@ -1141,7 +1156,7 @@ export async function deleteTeam(id: string): Promise<void> {
   }
 }
 
-// --- Hackathons API ---
+// --- Challenges API ---
 
 export type HackathonJudge = {
   id: string
@@ -1151,13 +1166,16 @@ export type HackathonJudge = {
   judge: { id: string; email: string; username: string | null }
 }
 
-export type Hackathon = {
+export type Challenge = {
   id: string
   title: string
   shortDescription: string
   image: string | null
-  submissionDeadline: string
+  applyDeadline: string
+  finalSubmissionDeadline: string
   scoringDeadline: string
+  submissionMode: 'daily_update' | 'single_submission'
+  dailyInstructions: unknown | null
   instructions: string
   sponsorId: string
   isPaid: boolean
@@ -1186,7 +1204,7 @@ export type Hackathon = {
   }
 }
 
-export type HackathonListItem = Hackathon
+export type HackathonListItem = Challenge
 
 export type GetHackathonsResponse = {
   data: HackathonListItem[]
@@ -1203,7 +1221,7 @@ export async function getFeaturedHackathons(limit: number = 3): Promise<Hackatho
   })
   const json = (await res.json()) as { success?: boolean; message?: string; data?: HackathonListItem[] }
   if (!res.ok) {
-    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to fetch featured hackathons')
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to fetch featured challenges')
   }
   return Array.isArray(json.data) ? json.data : []
 }
@@ -1241,7 +1259,7 @@ export async function getHackathons(params: {
       | { data?: HackathonListItem[]; pagination?: GetHackathonsResponse['pagination'] }
   }
   if (!res.ok) {
-    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to fetch hackathons')
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to fetch challenges')
   }
 
   const payload = json.data
@@ -1308,6 +1326,30 @@ export type Submission = {
   team?: { id: string; name: string } | null
   user?: { id: string; email: string; username: string | null }
   scores?: JudgeScore[]
+}
+
+export type SubmissionThreadEntry = {
+  id: string
+  threadId: string
+  submittedByUserId: string
+  feedbackMessage: string
+  filePath: string
+  fileSize: number
+  entryDate: string
+  createdAt: string
+  submittedByUser?: { id: string; email: string; username: string | null }
+}
+
+export type SubmissionThread = {
+  id: string
+  hackathonId: string
+  teamId: string | null
+  userId: string | null
+  createdAt: string
+  updatedAt: string
+  team?: { id: string; name: string } | null
+  user?: { id: string; email: string; username: string | null } | null
+  entries: SubmissionThreadEntry[]
 }
 
 export type Winner = {
@@ -1385,30 +1427,34 @@ export async function getSubmissions(params: {
   return { data: list, pagination }
 }
 
-// --- Hackathon single & CRUD ---
+// --- Challenge single & CRUD ---
 
 /** Get a single hackathon by ID */
-export async function getHackathon(id: string): Promise<Hackathon> {
+export async function getHackathon(id: string): Promise<Challenge> {
   const baseUrl = getBaseUrl()
   if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
   const res = await authenticatedFetch(`${baseUrl}/hackathons/${encodeURIComponent(id)}`, {
     method: 'GET',
     headers: { accept: 'application/json' },
   })
-  const json = (await res.json()) as { data?: Hackathon; message?: string }
+  const json = (await res.json()) as { data?: Challenge; message?: string }
   if (!res.ok) {
-    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to fetch hackathon')
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to fetch challenge')
   }
   const hackathon = json?.data
-  if (!hackathon || typeof hackathon.id === 'undefined') throw new Error('Invalid hackathon response')
+  if (!hackathon || typeof hackathon.id === 'undefined') throw new Error('Invalid challenge response')
   return hackathon
 }
 
 export type CreateHackathonFormData = {
   title: string
   shortDescription: string
-  submissionDeadline: string
+  applyDeadline: string
+  finalSubmissionDeadline: string
   scoringDeadline: string
+  submissionMode: 'daily_update' | 'single_submission'
+  /** Required when submissionMode is daily_update; JSON string of { dayNumber, instruction }[]. */
+  dailyInstructionsJson?: string
   instructions: string
   /** Set by admin when creating; omitted for sponsors (server uses current user). */
   sponsorId?: string
@@ -1419,14 +1465,17 @@ export type CreateHackathonFormData = {
 }
 
 /** Create hackathon (Admin only). multipart/form-data. */
-export async function createHackathon(form: CreateHackathonFormData): Promise<{ success: boolean; message: string; data: Hackathon }> {
+export async function createHackathon(form: CreateHackathonFormData): Promise<{ success: boolean; message: string; data: Challenge }> {
   const baseUrl = getBaseUrl()
   if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
   const body = new FormData()
   body.append('title', form.title)
   body.append('shortDescription', form.shortDescription)
-  body.append('submissionDeadline', form.submissionDeadline)
+  body.append('applyDeadline', form.applyDeadline)
+  body.append('finalSubmissionDeadline', form.finalSubmissionDeadline)
   body.append('scoringDeadline', form.scoringDeadline)
+  body.append('submissionMode', form.submissionMode)
+  if (form.dailyInstructionsJson) body.append('dailyInstructions', form.dailyInstructionsJson)
   body.append('instructions', form.instructions)
   if (form.sponsorId) body.append('sponsorId', form.sponsorId)
   body.append('judgeIds', JSON.stringify(form.judgeIds))
@@ -1438,26 +1487,30 @@ export async function createHackathon(form: CreateHackathonFormData): Promise<{ 
     headers: { accept: 'application/json' },
     body,
   })
-  const json = (await res.json()) as { success?: boolean; message?: string; data?: Hackathon }
+  const json = (await res.json()) as { success?: boolean; message?: string; data?: Challenge }
   if (!res.ok) {
-    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to create hackathon')
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to create challenge')
   }
   const data = json?.data
-  if (!data) throw new Error('Invalid create hackathon response')
-  return { success: true, message: (json as { message?: string })?.message ?? 'Hackathon created successfully', data }
+  if (!data) throw new Error('Invalid create challenge response')
+  return { success: true, message: (json as { message?: string })?.message ?? 'Challenge created successfully', data }
 }
 
 export type UpdateHackathonFormData = Partial<CreateHackathonFormData> & { status?: string }
 
 /** Update hackathon (Admin only). multipart/form-data. */
-export async function updateHackathon(id: string, form: UpdateHackathonFormData): Promise<Hackathon> {
+export async function updateHackathon(id: string, form: UpdateHackathonFormData): Promise<Challenge> {
   const baseUrl = getBaseUrl()
   if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
   const body = new FormData()
   if (form.title !== undefined) body.append('title', form.title)
   if (form.shortDescription !== undefined) body.append('shortDescription', form.shortDescription)
-  if (form.submissionDeadline !== undefined) body.append('submissionDeadline', form.submissionDeadline)
+  if (form.applyDeadline !== undefined) body.append('applyDeadline', form.applyDeadline)
+  if (form.finalSubmissionDeadline !== undefined)
+    body.append('finalSubmissionDeadline', form.finalSubmissionDeadline)
   if (form.scoringDeadline !== undefined) body.append('scoringDeadline', form.scoringDeadline)
+  if (form.submissionMode !== undefined) body.append('submissionMode', form.submissionMode)
+  if (form.dailyInstructionsJson !== undefined) body.append('dailyInstructions', form.dailyInstructionsJson)
   if (form.instructions !== undefined) body.append('instructions', form.instructions)
   if (form.sponsorId !== undefined) body.append('sponsorId', form.sponsorId)
   if (form.judgeIds !== undefined) body.append('judgeIds', JSON.stringify(form.judgeIds))
@@ -1470,12 +1523,12 @@ export async function updateHackathon(id: string, form: UpdateHackathonFormData)
     headers: { accept: 'application/json' },
     body,
   })
-  const json = (await res.json()) as { data?: Hackathon; message?: string }
+  const json = (await res.json()) as { data?: Challenge; message?: string }
   if (!res.ok) {
-    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to update hackathon')
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to update challenge')
   }
   const data = json?.data
-  if (!data) throw new Error('Invalid update hackathon response')
+  if (!data) throw new Error('Invalid update challenge response')
   return data
 }
 
@@ -1483,7 +1536,7 @@ export async function updateHackathon(id: string, form: UpdateHackathonFormData)
 export async function reviewHackathon(
   id: string,
   payload: { action: 'approve' | 'reject' | 'request_changes'; feedback?: string }
-): Promise<Hackathon> {
+): Promise<Challenge> {
   const baseUrl = getBaseUrl()
   if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
   const res = await authenticatedFetch(`${baseUrl}/hackathons/${encodeURIComponent(id)}/approval`, {
@@ -1491,7 +1544,7 @@ export async function reviewHackathon(
     headers: { accept: 'application/json', 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
-  const json = (await res.json()) as { data?: Hackathon; message?: string }
+  const json = (await res.json()) as { data?: Challenge; message?: string }
   if (!res.ok) {
     throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to update review')
   }
@@ -1510,7 +1563,7 @@ export async function deleteHackathon(id: string): Promise<void> {
   })
   if (!res.ok) {
     const json = (await res.json()) as { message?: string }
-    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to delete hackathon')
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to delete challenge')
   }
 }
 
@@ -1655,7 +1708,14 @@ export type ParticipationListItem = {
   hackathonId: string
   teamId: string | null
   createdAt: string
-  hackathon: { id: string; title: string; status: string; submissionDeadline: string }
+  hackathon: {
+    id: string
+    title: string
+    status: string
+    applyDeadline: string
+    finalSubmissionDeadline: string
+    submissionMode: string
+  }
   team: { id: string; name: string } | null
   hasSubmitted: boolean
   submission: { id: string; title: string; createdAt: string } | null
@@ -1758,23 +1818,6 @@ export async function getHackathonParticipations(
   return Array.isArray(json?.data) ? json.data : []
 }
 
-/** Withdraw participation (only allowed before submission). For team, also leaves the team. */
-export async function withdrawParticipation(participationId: string): Promise<{ message: string; hackathonId: string }> {
-  const baseUrl = getBaseUrl()
-  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
-  const res = await authenticatedFetch(
-    `${baseUrl}/participations/${encodeURIComponent(participationId)}`,
-    { method: 'DELETE', headers: { accept: 'application/json' } }
-  )
-  const json = (await res.json()) as { data?: { message: string; hackathonId: string }; message?: string }
-  if (!res.ok) {
-    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to withdraw participation')
-  }
-  const data = json?.data
-  if (!data) throw new Error('Invalid withdraw response')
-  return data
-}
-
 // --- Submissions: single, by hackathon, create, delete ---
 
 /** Get a single submission by ID */
@@ -1817,6 +1860,28 @@ export type CreateSubmissionFormData = {
   file: File
 }
 
+export type CreateDailyThreadEntryFormData = {
+  hackathonId: string
+  teamId?: string | null
+  feedbackMessage: string
+  file: File
+}
+
+export type ChunkUploadInitResponse = {
+  id: string
+  totalChunks: number
+  chunkSize: number
+  expiresAt: string
+  status: 'active' | 'finalizing' | 'completed' | 'aborted' | 'expired'
+}
+
+export type UploadChunkProgressResponse = {
+  sessionId: string
+  receivedChunks: number
+  totalChunks: number
+  progressPercent: number
+}
+
 /** Create submission (multipart/form-data) */
 export async function createSubmission(form: CreateSubmissionFormData): Promise<Submission> {
   const baseUrl = getBaseUrl()
@@ -1839,6 +1904,283 @@ export async function createSubmission(form: CreateSubmissionFormData): Promise<
   const data = json?.data
   if (!data) throw new Error('Invalid create submission response')
   return data
+}
+
+/** Create a daily submission thread entry (multipart/form-data) */
+export async function createDailyThreadEntry(
+  form: CreateDailyThreadEntryFormData
+): Promise<SubmissionThreadEntry> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const body = new FormData()
+  body.append('hackathonId', form.hackathonId)
+  body.append('feedbackMessage', form.feedbackMessage)
+  if (form.teamId) body.append('teamId', form.teamId)
+  body.append('file', form.file)
+  const res = await authenticatedFetch(`${baseUrl}/submissions/thread/entries`, {
+    method: 'POST',
+    headers: { accept: 'application/json' },
+    body,
+  })
+  const json = (await res.json()) as { data?: SubmissionThreadEntry; message?: string }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to create daily update')
+  }
+  const data = json?.data
+  if (!data) throw new Error('Invalid create daily update response')
+  return data
+}
+
+/** Initialize chunk upload session for daily thread entry */
+export async function initDailyThreadChunkUpload(form: {
+  hackathonId: string
+  teamId?: string | null
+  originalFileName: string
+  mimeType: string
+  totalSize: number
+  chunkSize: number
+  totalChunks: number
+}): Promise<ChunkUploadInitResponse> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(`${baseUrl}/submissions/thread/uploads/init`, {
+    method: 'POST',
+    headers: { accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify(form),
+  })
+  const json = (await res.json()) as { data?: ChunkUploadInitResponse; message?: string }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to initialize upload')
+  }
+  const data = json?.data
+  if (!data?.id) throw new Error('Invalid chunk upload init response')
+  return data
+}
+
+/** Upload one chunk (binary) */
+export async function uploadDailyThreadChunk(
+  sessionId: string,
+  chunkIndex: number,
+  chunkBlob: Blob
+): Promise<UploadChunkProgressResponse> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(
+    `${baseUrl}/submissions/thread/uploads/${encodeURIComponent(sessionId)}/chunks/${chunkIndex}`,
+    {
+      method: 'PUT',
+      headers: { accept: 'application/json', 'Content-Type': 'application/octet-stream' },
+      body: chunkBlob,
+    }
+  )
+  const json = (await res.json()) as { data?: UploadChunkProgressResponse; message?: string }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to upload chunk')
+  }
+  const data = json?.data
+  if (!data) throw new Error('Invalid upload chunk response')
+  return data
+}
+
+/** Complete chunk upload and create final thread entry */
+export async function completeDailyThreadChunkUpload(
+  sessionId: string,
+  feedbackMessage: string
+): Promise<SubmissionThreadEntry> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(
+    `${baseUrl}/submissions/thread/uploads/${encodeURIComponent(sessionId)}/complete`,
+    {
+      method: 'POST',
+      headers: { accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ feedbackMessage }),
+    }
+  )
+  const json = (await res.json()) as { data?: SubmissionThreadEntry; message?: string }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to complete upload')
+  }
+  const data = json?.data
+  if (!data) throw new Error('Invalid complete upload response')
+  return data
+}
+
+/** Abort chunk upload session and cleanup partial chunks */
+export async function abortDailyThreadChunkUpload(sessionId: string): Promise<void> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(
+    `${baseUrl}/submissions/thread/uploads/${encodeURIComponent(sessionId)}`,
+    {
+      method: 'DELETE',
+      headers: { accept: 'application/json' },
+    }
+  )
+  if (!res.ok) {
+    const json = (await res.json()) as { message?: string }
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to abort upload')
+  }
+}
+
+/** Initialize chunk upload session for final submission */
+export async function initFinalSubmissionChunkUpload(form: {
+  hackathonId: string
+  teamId?: string | null
+  originalFileName: string
+  mimeType: string
+  totalSize: number
+  chunkSize: number
+  totalChunks: number
+}): Promise<ChunkUploadInitResponse> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(`${baseUrl}/submissions/final/uploads/init`, {
+    method: 'POST',
+    headers: { accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...form, purpose: 'final_submission' }),
+  })
+  const json = (await res.json()) as { data?: ChunkUploadInitResponse; message?: string }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to initialize final upload')
+  }
+  const data = json?.data
+  if (!data?.id) throw new Error('Invalid final chunk upload init response')
+  return data
+}
+
+/** Upload one final-submission chunk (binary) */
+export async function uploadFinalSubmissionChunk(
+  sessionId: string,
+  chunkIndex: number,
+  chunkBlob: Blob
+): Promise<UploadChunkProgressResponse> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(
+    `${baseUrl}/submissions/final/uploads/${encodeURIComponent(sessionId)}/chunks/${chunkIndex}`,
+    {
+      method: 'PUT',
+      headers: { accept: 'application/json', 'Content-Type': 'application/octet-stream' },
+      body: chunkBlob,
+    }
+  )
+  const json = (await res.json()) as { data?: UploadChunkProgressResponse; message?: string }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to upload final chunk')
+  }
+  const data = json?.data
+  if (!data) throw new Error('Invalid final chunk response')
+  return data
+}
+
+/** Complete final chunk upload and create final submission */
+export async function completeFinalSubmissionChunkUpload(
+  sessionId: string,
+  payload: { title: string; description: string }
+): Promise<Submission> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(
+    `${baseUrl}/submissions/final/uploads/${encodeURIComponent(sessionId)}/complete`,
+    {
+      method: 'POST',
+      headers: { accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }
+  )
+  const json = (await res.json()) as { data?: Submission; message?: string }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to complete final upload')
+  }
+  const data = json?.data
+  if (!data) throw new Error('Invalid final upload completion response')
+  return data
+}
+
+/** Abort final chunk upload session and cleanup partial chunks */
+export async function abortFinalSubmissionChunkUpload(sessionId: string): Promise<void> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(
+    `${baseUrl}/submissions/final/uploads/${encodeURIComponent(sessionId)}`,
+    {
+      method: 'DELETE',
+      headers: { accept: 'application/json' },
+    }
+  )
+  if (!res.ok) {
+    const json = (await res.json()) as { message?: string }
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to abort final upload')
+  }
+}
+
+/** Get current participant submission thread for a hackathon */
+export async function getMySubmissionThread(hackathonId: string): Promise<SubmissionThread | null> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(
+    `${baseUrl}/submissions/thread/hackathon/${encodeURIComponent(hackathonId)}/me`,
+    {
+      method: 'GET',
+      headers: { accept: 'application/json' },
+    }
+  )
+  const json = (await res.json()) as { data?: SubmissionThread | null; message?: string }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to fetch submission thread')
+  }
+  return json?.data ?? null
+}
+
+/** Get all submission threads for a hackathon (admin/sponsor/judge) */
+export async function getHackathonSubmissionThreads(hackathonId: string): Promise<SubmissionThread[]> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(
+    `${baseUrl}/submissions/thread/hackathon/${encodeURIComponent(hackathonId)}`,
+    {
+      method: 'GET',
+      headers: { accept: 'application/json' },
+    }
+  )
+  const json = (await res.json()) as { data?: SubmissionThread[]; message?: string }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to fetch thread updates')
+  }
+  return Array.isArray(json?.data) ? json.data : []
+}
+
+/** Download a thread entry file */
+export async function downloadThreadEntry(entryId: string, filename?: string): Promise<void> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(
+    `${baseUrl}/submissions/thread/entries/${encodeURIComponent(entryId)}/download`,
+    { method: 'GET', headers: { accept: 'application/octet-stream' } }
+  )
+  if (!res.ok) {
+    const text = await res.text()
+    let msg = 'Failed to download thread entry'
+    try {
+      const j = JSON.parse(text) as { message?: string }
+      if (typeof j?.message === 'string') msg = j.message
+    } catch {
+      if (text) msg = text
+    }
+    throw new Error(msg)
+  }
+  const disposition = res.headers.get('Content-Disposition')
+  const name =
+    filename ||
+    (disposition?.match(/filename="([^"]+)"/)?.[1] ?? `thread-entry-${entryId}.zip`)
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = name
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 /** Delete submission (owner, team leader, or admin) */
@@ -1890,6 +2232,7 @@ export async function downloadSubmission(submissionId: string, filename?: string
 // --- Scores ---
 
 export type CreateScoreBody = { submissionId: string; score: number; feedback?: string | null }
+export type UpdateScoreBody = { scoreId: string; score: number; feedback?: string | null }
 
 /** Create judge score (Judge only) */
 export async function createScore(body: CreateScoreBody): Promise<JudgeScore> {
@@ -1926,6 +2269,27 @@ export async function getSubmissionScores(submissionId: string): Promise<JudgeSc
     throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to fetch scores')
   }
   return Array.isArray(json?.data) ? json.data : []
+}
+
+/** Update score (Admin only) */
+export async function updateScore(body: UpdateScoreBody): Promise<JudgeScore> {
+  const baseUrl = getBaseUrl()
+  if (!baseUrl) throw new Error('NEXT_PUBLIC_BACKEND_BASE_URL is not set')
+  const res = await authenticatedFetch(`${baseUrl}/scores/${encodeURIComponent(body.scoreId)}`, {
+    method: 'PATCH',
+    headers: { accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      score: body.score,
+      feedback: body.feedback ?? null,
+    }),
+  })
+  const json = (await res.json()) as { data?: JudgeScore; message?: string }
+  if (!res.ok) {
+    throw new Error(typeof json?.message === 'string' ? json.message : 'Failed to update score')
+  }
+  const data = json?.data
+  if (!data) throw new Error('Invalid update score response')
+  return data
 }
 
 // --- Winners ---

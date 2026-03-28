@@ -12,7 +12,7 @@ const SiteHeader = () => {
     { label: "Home", href: "/" },
     { label: "Features", href: "/#features" },
     { label: "How It Works", href: "/#how-it-works" },
-    { label: "Hackathons", href: "/#hackathons" },
+    { label: "Challenges", href: "/#hackathons" },
     { label: "FAQs", href: "/#faqs" },
     { label: "Get Started", href: "/auth/sign-in" },
   ];

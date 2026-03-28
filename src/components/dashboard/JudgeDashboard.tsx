@@ -90,7 +90,7 @@ export default function JudgeDashboard() {
           <Button variant="outline" className="justify-start" asChild>
             <Link href="/judge/hackathons">
               <Trophy className="mr-2 size-4" />
-              Hackathons to judge
+              Challenges to judge
             </Link>
           </Button>
           <Button variant="outline" className="justify-start" asChild>

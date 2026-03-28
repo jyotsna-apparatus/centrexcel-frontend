@@ -8,9 +8,9 @@ import {
 const features = [
   {
     icon: Target,
-    title: "Discover Hackathons",
+    title: "Discover Challenges",
     description:
-      "Browse world-class hackathons from top companies. Filter by theme, deadline, and prize pool to find the right fit.",
+      "Browse world-class challenges from top companies. Filter by theme, deadline, and prize pool to find the right fit.",
   },
   {
     icon: Zap,
@@ -44,7 +44,7 @@ const Features = () => {
           data-aos="fade-up"
           data-aos-delay="100"
         >
-          One platform to discover hackathons, solve real challenges, and take
+          One platform to discover challenges, solve real challenges, and take
           the next step in your career.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl">

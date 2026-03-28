@@ -5,8 +5,12 @@ import {
   getSubmissions,
   getSubmission,
   getSubmissionsByHackathon,
+  getMySubmissionThread,
+  getHackathonSubmissionThreads,
   type Submission,
   type SubmissionListItem,
+  type SubmissionThread,
+  type SubmissionThreadEntry,
 } from '@/lib/auth-api'
 
 const REFETCH_INTERVAL_MS = 20_000
@@ -41,13 +45,31 @@ export function useSubmissionsByHackathon(hackathonId: string | null) {
   })
 }
 
+export function useMySubmissionThread(hackathonId: string | null) {
+  return useQuery({
+    queryKey: ['submission-thread-me', hackathonId],
+    queryFn: () => getMySubmissionThread(hackathonId!),
+    enabled: !!hackathonId,
+  })
+}
+
+export function useHackathonSubmissionThreads(hackathonId: string | null) {
+  return useQuery({
+    queryKey: ['submission-threads-hackathon', hackathonId],
+    queryFn: () => getHackathonSubmissionThreads(hackathonId!),
+    enabled: !!hackathonId,
+  })
+}
+
 export function useInvalidateSubmissions() {
   const queryClient = useQueryClient()
   return () => {
     queryClient.invalidateQueries({ queryKey: ['submissions'] })
     queryClient.invalidateQueries({ queryKey: ['submission'] })
     queryClient.invalidateQueries({ queryKey: ['submissions-hackathon'] })
+    queryClient.invalidateQueries({ queryKey: ['submission-thread-me'] })
+    queryClient.invalidateQueries({ queryKey: ['submission-threads-hackathon'] })
   }
 }
 
-export type { Submission, SubmissionListItem }
+export type { Submission, SubmissionListItem, SubmissionThread, SubmissionThreadEntry }

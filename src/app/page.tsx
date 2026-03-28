@@ -4,7 +4,7 @@ import Hero from "@/components/sections/Hero";
 import StatsSection from "@/components/sections/StatsSection";
 import Features from "@/components/sections/Features";
 import HowItWorks from "@/components/sections/HowItWorks";
-import Hackathons from "@/components/sections/Hackathons";
+import Challenges from "@/components/sections/Challenges";
 import Faqs from "@/components/sections/Faqs";
 import FooterSection from "@/components/sections/FooterSection";
 import SecondSection from "@/components/sections/secondSection/SecondSection";
@@ -28,7 +28,7 @@ export default function LandingPage() {
       {/* <StatsSection /> */}
       {/* <Features /> */}
       {/* <HowItWorks /> */}
-      {/* <Hackathons /> */}
+      {/* <Challenges /> */}
       {/* <Faqs />   */}
       <FooterSection />
     </AOSProvider>

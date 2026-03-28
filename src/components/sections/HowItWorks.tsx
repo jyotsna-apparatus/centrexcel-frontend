@@ -8,7 +8,7 @@ const steps = [
   },
   {
     step: 2,
-    title: "Find a hackathon",
+    title: "Find a challenge",
     description: "Browse upcoming events, filter by theme or prize, and pick one that fits.",
   },
   {

@@ -29,14 +29,14 @@ export default function JudgeHackathonsPage() {
   }
 
   if (isError && error) {
-    toast.error(error instanceof Error ? error.message : 'Failed to load hackathons')
+    toast.error(error instanceof Error ? error.message : 'Failed to load challenges')
   }
 
   return (
     <div>
       <PageHeader
-        title="Hackathons to judge"
-        description="Select a hackathon to view and score submissions."
+        title="Challenges to judge"
+        description="Select a challenge to view and score submissions."
       />
 
       {isLoading ? (
@@ -45,10 +45,10 @@ export default function JudgeHackathonsPage() {
         <div className="rounded-lg border border-cs-border bg-card p-8 text-center">
           <Trophy className="mx-auto size-12 text-muted-foreground" />
           <p className="mt-4 text-muted-foreground">
-            You are not assigned to any hackathons yet.
+            You are not assigned to any challenges yet.
           </p>
           <Button variant="outline" className="mt-4" asChild>
-            <Link href="/hackathons">Browse all hackathons</Link>
+            <Link href="/hackathons">Browse all challenges</Link>
           </Button>
         </div>
       ) : (

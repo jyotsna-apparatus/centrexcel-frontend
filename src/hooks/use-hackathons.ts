@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getHackathons, getHackathon, getFeaturedHackathons, type Hackathon, type HackathonListItem } from '@/lib/auth-api'
+import { getHackathons, getHackathon, getFeaturedHackathons, type Challenge, type HackathonListItem } from '@/lib/auth-api'
 
 const REFETCH_INTERVAL_MS = 30_000
 const FEATURED_LIMIT = 3
@@ -17,7 +17,7 @@ export type UseHackathonsParams = {
   approvalStatus?: string
 }
 
-/** Hackathons assigned to the current user (judge). */
+/** Challenges assigned to the current user (judge). */
 export function useJudgeHackathons(params: { page?: number; pageSize?: number }) {
   const page = params.page ?? 0
   const pageSize = params.pageSize ?? 20
@@ -85,4 +85,4 @@ export function useInvalidateHackathons() {
   }
 }
 
-export type { Hackathon, HackathonListItem }
+export type { Challenge, HackathonListItem }

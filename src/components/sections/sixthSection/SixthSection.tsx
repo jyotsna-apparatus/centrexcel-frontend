@@ -4,7 +4,7 @@ import Image from 'next/image'
 const FEATURED_HACKATHONS = [
   {
     number: '1',
-    title: 'AI Frontier Hackathon',
+    title: 'AI Frontier Challenge',
     description: 'Build the next generation of AI-powered products. From agents to automation—48 hours to ship something that matters.',
     image: '/third/1.avif',
     gradient: 'linear-gradient(135deg, rgba(0, 106, 255, 0.25) 0%, transparent 50%, rgba(255, 89, 0, 0.2) 100%)',

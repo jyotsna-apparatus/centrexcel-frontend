@@ -86,11 +86,7 @@ export default function TransactionsPage() {
       ) : transactions.length === 0 ? (
         <div className="mt-6 rounded-lg border border-cs-border bg-card p-8 text-center">
           <p className="text-muted-foreground">No transactions yet.</p>
-          {!isAdmin && (
-            <Button className="mt-4" asChild>
-              <Link href="/payments/checkout">Go to checkout</Link>
-            </Button>
-          )}
+          
         </div>
       ) : (
         <>
@@ -104,7 +100,7 @@ export default function TransactionsPage() {
                   {isAdmin && (
                     <th className="px-4 py-3 text-left font-medium text-cs-heading">User</th>
                   )}
-                  <th className="px-4 py-3 text-left font-medium text-cs-heading">Hackathon</th>
+                  <th className="px-4 py-3 text-left font-medium text-cs-heading">Challenge</th>
                   <th className="px-4 py-3 text-left font-medium text-cs-heading">Date</th>
                 </tr>
               </thead>

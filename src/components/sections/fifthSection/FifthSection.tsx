@@ -4,19 +4,19 @@ import React, { useState } from 'react'
 
 const FAQ_ITEMS = [
   {
-    question: 'What is a hackathon and how does it work?',
+    question: 'What is a challenge and how does it work?',
     answer:
-      'A hackathon is a time-bound event where individuals or teams build projects—often software or hardware—around a theme or challenge. You’ll typically have 24–72 hours to ideate, build, and demo. Most events include mentorship, workshops, and judging, with prizes for top projects.',
+      'A challenge is a time-bound event where individuals or teams build projects—often software or hardware—around a theme or problem statement. You’ll typically have 24–72 hours to ideate, build, and demo. Most events include mentorship, workshops, and judging, with prizes for top projects.',
   },
   {
     question: 'Who can participate? Do I need a team?',
     answer:
-      'Anyone can participate—students, professionals, and hobbyists. Many hackathons allow solo participants; others encourage or require teams (e.g. 2–4 people). Check the event rules. No prior experience is required for most events; beginners are welcome.',
+      'Anyone can participate—students, professionals, and hobbyists. Many challenges allow solo participants; others encourage or require teams (e.g. 2–4 people). Check the event rules. No prior experience is required for most events; beginners are welcome.',
   },
   {
     question: 'What should I build? Are there themes or tracks?',
     answer:
-      'Most hackathons announce themes or tracks (e.g. AI, sustainability, fintech, health). You can align your project with a track for specific prizes or build something you’re passionate about. Judges look for creativity, technical execution, and impact.',
+      'Most challenges announce themes or tracks (e.g. AI, sustainability, fintech, health). You can align your project with a track for specific prizes or build something you’re passionate about. Judges look for creativity, technical execution, and impact.',
   },
   {
     question: 'What do I need to bring? Is there a registration fee?',

@@ -114,7 +114,7 @@ export default function JudgeHackathonSubmissionsPage() {
   if (!id) {
     return (
       <div>
-        <PageHeader title="Submissions" description="Invalid hackathon." />
+        <PageHeader title="Submissions" description="Invalid challenge." />
         <Button variant="outline" asChild>
           <Link href="/judge/hackathons">Back</Link>
         </Button>
@@ -126,12 +126,12 @@ export default function JudgeHackathonSubmissionsPage() {
     <div>
       <PageHeader
         title={hackathon ? `Submissions — ${hackathon.title}` : 'Submissions'}
-        description="View and score submissions for this hackathon."
+        description="View and score submissions for this challenge."
       >
         <Button variant="outline" size="sm" asChild>
           <Link href="/judge/hackathons">
             <ArrowLeft className="mr-2 size-4" />
-            Back to hackathons
+            Back to challenges
           </Link>
         </Button>
       </PageHeader>

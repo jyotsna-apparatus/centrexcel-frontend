@@ -107,7 +107,7 @@ export default function AdminDashboard() {
       {/* Statistics Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="Hackathons"
+          title="Challenges"
           value={totalHackathons}
           icon={<Trophy className="size-6" />}
           href="/hackathons"
@@ -161,7 +161,7 @@ export default function AdminDashboard() {
           <Button variant="outline" className="justify-start" asChild>
             <Link href="/hackathons">
               <Trophy className="mr-2 size-4" />
-              View Hackathons
+              View Challenges
             </Link>
           </Button>
         </div>

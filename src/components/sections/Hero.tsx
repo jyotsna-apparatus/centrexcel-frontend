@@ -53,7 +53,7 @@ const Hero = () => {
           />
 
           <h1 className="h1 text-center !text-2xl sm:!text-3xl md:!text-4xl lg:!text-[4.5rem]">
-            Ship at Hackathons. <span className="text-cs-primary">Get Hired</span> by Top Companies.
+            Ship at Challenges. <span className="text-cs-primary">Get Hired</span> by Top Companies.
           </h1>
         </div>
         <p className="p1 text-center max-w-2xl" data-aos="fade-up" data-aos-delay="100">

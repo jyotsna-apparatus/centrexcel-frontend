@@ -3,12 +3,17 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import type { HackathonListItem } from "@/lib/auth-api";
-import { Calendar, Users, FileUp, Eye, Pencil, UserPlus } from "lucide-react";
+import { Calendar, Users, FileUp, FileText, Eye, Pencil, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   HACKATHON_STATUS_LABELS,
   HACKATHON_APPROVAL_LABELS,
 } from "@/config/hackathon-constants";
+
+function isApplyDeadlinePassed(iso: string | null | undefined): boolean {
+  if (!iso) return false;
+  return new Date(iso).getTime() < Date.now();
+}
 
 /** Build URL for hackathon banner image (proxied via /api). */
 export function hackathonImageSrc(imagePath: string | null | undefined): string | null {
@@ -84,6 +89,8 @@ type HackathonCardProps = {
   /** Sponsor can edit pending / changes / rejected own challenges */
   isSponsor?: boolean;
   isParticipant?: boolean;
+  /** When true, participant has already enrolled in this hackathon. */
+  hasParticipated?: boolean;
   /** When set, user is in a team for this hackathon—show "Submit with team" instead of "Solo". */
   userTeamForHackathon?: { id: string } | null;
   className?: string;
@@ -99,13 +106,16 @@ export function HackathonCard({
   showApprovalBadge = false,
   isSponsor = false,
   isParticipant = false,
+  hasParticipated = false,
   userTeamForHackathon = null,
   className,
   dataAos,
   dataAosDelay,
 }: HackathonCardProps) {
   const imageSrc = hackathonImageSrc(hackathon.image);
-  const deadline = formatHackathonDeadline(hackathon.submissionDeadline);
+  const applyClosed = isApplyDeadlinePassed(hackathon.applyDeadline);
+  const applyBy = formatHackathonDeadline(hackathon.applyDeadline);
+  const submitBy = formatHackathonDeadline(hackathon.finalSubmissionDeadline);
 
   if (variant === "featured") {
     return (
@@ -136,7 +146,9 @@ export function HackathonCard({
         )}
         <div className="flex flex-1 flex-col gap-3 p-4">
           <h3 className="h4">{hackathon.title}</h3>
-          <p className="p1 text-cs-text">Deadline: {deadline}</p>
+          <p className="p1 text-cs-text">
+            Apply by {applyBy} · Submit by {submitBy}
+          </p>
           {hackathon.isPaid && hackathon.priceOfEntry != null ? (
             <p className="p1">
               Entry:{" "}
@@ -203,12 +215,19 @@ export function HackathonCard({
           {hackathon.shortDescription || "—"}
         </p>
         <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <Calendar className="size-3.5" />
-            {deadline}
+          <span className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-2">
+            <span className="flex items-center gap-1">
+              <Calendar className="size-3.5 shrink-0" />
+              Apply {applyBy}
+            </span>
+            <span className="hidden sm:inline">·</span>
+            <span className="flex items-center gap-1">
+              <FileUp className="size-3.5 shrink-0" />
+              Submit {submitBy}
+            </span>
           </span>
           <span className="flex items-center gap-1">
-            <FileUp className="size-3.5" />
+            <FileText className="size-3.5" />
             {hackathon._count?.submissions ?? 0} entries
           </span>
           <span className="flex items-center gap-1">
@@ -245,6 +264,8 @@ export function HackathonCard({
             </Button>
           )}
         {isParticipant &&
+          !hasParticipated &&
+          !applyClosed &&
           hackathon.approvalStatus === "approved" &&
           hackathon.status !== "submission_closed" &&
           hackathon.status !== "closed" &&

@@ -7,17 +7,17 @@ const faqs = [
   {
     question: "What is CentreExcel?",
     answer:
-      "CentreExcel is a platform where you can discover hackathons, solve real challenges from top companies, and connect with opportunities. We bring together participants, sponsors, and judges in one place.",
+      "CentreExcel is a platform where you can discover challenges, solve real challenges from top companies, and connect with opportunities. We bring together participants, sponsors, and judges in one place.",
   },
   {
-    question: "How do I join a hackathon?",
+    question: "How do I join a challenge?",
     answer:
-      "Sign up for a free account, browse upcoming hackathons, and click Apply on any event you’re interested in. You can form a team or join as an individual. Follow the event rules and submit before the deadline.",
+      "Sign up for a free account, browse upcoming challenges, and click Apply on any event you’re interested in. You can form a team or join as an individual. Follow the event rules and submit before the deadline.",
   },
   {
     question: "Are there prizes?",
     answer:
-      "Yes. Most hackathons on CentreExcel offer cash prizes, swag, and recognition. Prize amounts and criteria are listed on each event page.",
+      "Yes. Most challenges on CentreExcel offer cash prizes, swag, and recognition. Prize amounts and criteria are listed on each event page.",
   },
   {
     question: "Who can participate?",
@@ -27,7 +27,7 @@ const faqs = [
   {
     question: "How do I submit my project?",
     answer:
-      "After building your solution, go to the hackathon page and use the Submit button before the deadline. You’ll typically provide a link to your repo, a short description, and sometimes a demo video.",
+      "After building your solution, go to the challenge page and use the Submit button before the deadline. You’ll typically provide a link to your repo, a short description, and sometimes a demo video.",
   },
 ];
 

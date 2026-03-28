@@ -7,7 +7,7 @@ const footerSections = [
     links: [
       { label: "Features", href: "/features" },
       { label: "How it works", href: "/how-it-works" },
-      { label: "Hackathons", href: "/hackathons" },
+      { label: "Challenges", href: "/hackathons" },
     ],
   },
   {

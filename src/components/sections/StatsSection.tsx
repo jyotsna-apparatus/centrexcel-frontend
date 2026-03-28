@@ -32,7 +32,7 @@ export default function StatsSection() {
     <section className="parent py-12 bg-white/3">
       <div className="container px-4">
         <div className="flex items-center justify-center gap-50 flex-wrap">
-          <CountUpSection end={100} description="Active Hackathons" symbol="+" />
+          <CountUpSection end={100} description="Active Challenges" symbol="+" />
           <CountUpSection end={1000} description="Participants" symbol="+" />
           <CountUpSection end={100} description="Prize upto" symbol="K" before="₹" />
         </div>

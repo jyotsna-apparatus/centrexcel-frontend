@@ -1,5 +1,5 @@
 /**
- * Hackathon module types — aligned with HACKATHON_FRONTEND_INTEGRATION.md
+ * Challenge module types — aligned with HACKATHON_FRONTEND_INTEGRATION.md
  */
 
 export type HackathonStatus = 'open' | 'submission_closed' | 'closed' | 'cancelled'

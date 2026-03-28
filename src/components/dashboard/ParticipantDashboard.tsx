@@ -99,7 +99,7 @@ export default function ParticipantDashboard() {
           <Button variant="outline" className="justify-start" asChild>
             <Link href="/hackathons">
               <Trophy className="mr-2 size-4" />
-              Browse Hackathons
+              Browse Challenges
             </Link>
           </Button>
           <Button variant="outline" className="justify-start" asChild>
@@ -146,7 +146,7 @@ export default function ParticipantDashboard() {
                       <p className="text-muted-foreground text-sm">
                         {team.participations?.length
                           ? `${team.participations.length} hackathon(s)`
-                          : 'Not in any hackathon yet'}
+                          : 'Not in any challenge yet'}
                       </p>
                     </div>
                   </div>
@@ -164,7 +164,7 @@ export default function ParticipantDashboard() {
               <Button variant="outline" className="w-full" asChild>
                 <Link href="/hackathons">
                   <Plus className="mr-2 size-4" />
-                  Join a Hackathon
+                  Join a Challenge
                 </Link>
               </Button>
             </div>
@@ -197,7 +197,7 @@ export default function ParticipantDashboard() {
                     <div>
                       <p className="font-medium">{submission.title}</p>
                       <p className="text-muted-foreground text-sm">
-                        {submission.hackathon?.title ?? 'Unknown hackathon'}
+                        {submission.hackathon?.title ?? 'Unknown challenge'}
                       </p>
                     </div>
                   </div>

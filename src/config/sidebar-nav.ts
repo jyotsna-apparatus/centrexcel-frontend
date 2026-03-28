@@ -44,7 +44,7 @@ export const SIDEBAR_NAV_CONFIG: SidebarNavItem[] = [
     roles: [ROLES.ADMIN, ROLES.SPONSOR, ROLES.PARTICIPANT, ROLES.JUDGE],
   },
   {
-    label: 'Hackathons',
+    label: 'Challenges',
     href: '/hackathons',
     icon: Trophy,
     roles: [ROLES.ADMIN, ROLES.SPONSOR, ROLES.PARTICIPANT, ROLES.JUDGE],
