@@ -1,40 +1,42 @@
-'use client'
+"use client";
 
-import { useAuth } from '@/contexts/auth-context'
-import { usePathname, useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { useAuth } from "@/contexts/auth-context";
 
 function isOnboardingPath(pathname: string): boolean {
-  return pathname === '/onboarding' || pathname.startsWith('/onboarding/')
+  return pathname === "/onboarding" || pathname.startsWith("/onboarding/");
 }
 
 export function OnboardingGuard({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth()
-  const pathname = usePathname()
-  const router = useRouter()
+  const { user } = useAuth();
+  const pathname = usePathname();
+  const router = useRouter();
 
   useEffect(() => {
-    if (!user) return
+    if (!user) return;
     if (user.isOnboarded === true && isOnboardingPath(pathname)) {
-      router.replace('/dashboard')
-      return
+      router.replace("/dashboard");
+      return;
     }
     if (user.isOnboarded !== true && !isOnboardingPath(pathname)) {
-      router.replace('/onboarding')
+      router.replace("/onboarding");
     }
-  }, [user, pathname, router])
+  }, [user, pathname, router]);
 
   if (!user) {
-    return <>{children}</>
+    return <>{children}</>;
   }
 
   if (user.isOnboarded !== true && !isOnboardingPath(pathname)) {
     return (
       <div className="flex w-full h-[calc(100dvh-4rem)] items-center justify-center">
-        <div className="text-cs-text p1">Redirecting to complete your profile…</div>
+        <div className="text-cs-text p1">
+          Redirecting to complete your profile…
+        </div>
       </div>
-    )
+    );
   }
 
-  return <>{children}</>
+  return <>{children}</>;
 }

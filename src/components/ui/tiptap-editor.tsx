@@ -1,35 +1,35 @@
-'use client'
+"use client";
 
-import * as React from 'react'
-import { useEditor, EditorContent } from '@tiptap/react'
-import StarterKit from '@tiptap/starter-kit'
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
+import { EditorContent, useEditor } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
 import {
   Bold,
+  Code,
+  Heading2,
   Italic,
   List,
   ListOrdered,
-  Heading2,
   Quote,
-  Code,
   Strikethrough,
-} from 'lucide-react'
+} from "lucide-react";
+import * as React from "react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export interface TiptapEditorProps {
-  value?: string
-  onChange?: (html: string) => void
-  placeholder?: string
-  className?: string
+  value?: string;
+  onChange?: (html: string) => void;
+  placeholder?: string;
+  className?: string;
   /** Override min-height of the editable area (Tailwind classes), e.g. min-h-[100px] */
-  editorContentClassName?: string
-  maxLength?: number
-  'aria-invalid'?: boolean
-  disabled?: boolean
+  editorContentClassName?: string;
+  maxLength?: number;
+  "aria-invalid"?: boolean;
+  disabled?: boolean;
 }
 
 function Toolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
-  if (!editor) return null
+  if (!editor) return null;
   return (
     <div className="flex flex-wrap items-center gap-0.5 border-b border-cs-border bg-transparent p-1">
       <Button
@@ -37,7 +37,9 @@ function Toolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
         variant="ghost"
         size="icon-xs"
         onClick={() => editor.chain().focus().toggleBold().run()}
-        className={cn(editor.isActive('bold') && 'bg-cs-primary/20 text-cs-primary')}
+        className={cn(
+          editor.isActive("bold") && "bg-cs-primary/20 text-cs-primary",
+        )}
         title="Bold"
       >
         <Bold className="size-4" />
@@ -47,7 +49,9 @@ function Toolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
         variant="ghost"
         size="icon-xs"
         onClick={() => editor.chain().focus().toggleItalic().run()}
-        className={cn(editor.isActive('italic') && 'bg-cs-primary/20 text-cs-primary')}
+        className={cn(
+          editor.isActive("italic") && "bg-cs-primary/20 text-cs-primary",
+        )}
         title="Italic"
       >
         <Italic className="size-4" />
@@ -57,7 +61,9 @@ function Toolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
         variant="ghost"
         size="icon-xs"
         onClick={() => editor.chain().focus().toggleStrike().run()}
-        className={cn(editor.isActive('strike') && 'bg-cs-primary/20 text-cs-primary')}
+        className={cn(
+          editor.isActive("strike") && "bg-cs-primary/20 text-cs-primary",
+        )}
         title="Strikethrough"
       >
         <Strikethrough className="size-4" />
@@ -67,7 +73,9 @@ function Toolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
         variant="ghost"
         size="icon-xs"
         onClick={() => editor.chain().focus().toggleCode().run()}
-        className={cn(editor.isActive('code') && 'bg-cs-primary/20 text-cs-primary')}
+        className={cn(
+          editor.isActive("code") && "bg-cs-primary/20 text-cs-primary",
+        )}
         title="Code"
       >
         <Code className="size-4" />
@@ -78,7 +86,10 @@ function Toolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
         variant="ghost"
         size="icon-xs"
         onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-        className={cn(editor.isActive('heading', { level: 2 }) && 'bg-cs-primary/20 text-cs-primary')}
+        className={cn(
+          editor.isActive("heading", { level: 2 }) &&
+            "bg-cs-primary/20 text-cs-primary",
+        )}
         title="Heading"
       >
         <Heading2 className="size-4" />
@@ -88,7 +99,9 @@ function Toolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
         variant="ghost"
         size="icon-xs"
         onClick={() => editor.chain().focus().toggleBulletList().run()}
-        className={cn(editor.isActive('bulletList') && 'bg-cs-primary/20 text-cs-primary')}
+        className={cn(
+          editor.isActive("bulletList") && "bg-cs-primary/20 text-cs-primary",
+        )}
         title="Bullet list"
       >
         <List className="size-4" />
@@ -98,7 +111,9 @@ function Toolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
         variant="ghost"
         size="icon-xs"
         onClick={() => editor.chain().focus().toggleOrderedList().run()}
-        className={cn(editor.isActive('orderedList') && 'bg-cs-primary/20 text-cs-primary')}
+        className={cn(
+          editor.isActive("orderedList") && "bg-cs-primary/20 text-cs-primary",
+        )}
         title="Numbered list"
       >
         <ListOrdered className="size-4" />
@@ -108,75 +123,82 @@ function Toolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
         variant="ghost"
         size="icon-xs"
         onClick={() => editor.chain().focus().toggleBlockquote().run()}
-        className={cn(editor.isActive('blockquote') && 'bg-cs-primary/20 text-cs-primary')}
+        className={cn(
+          editor.isActive("blockquote") && "bg-cs-primary/20 text-cs-primary",
+        )}
         title="Quote"
       >
         <Quote className="size-4" />
       </Button>
     </div>
-  )
+  );
 }
 
 export function TiptapEditor({
-  value = '',
+  value = "",
   onChange,
-  placeholder = 'Write something...',
+  placeholder = "Write something...",
   className,
   editorContentClassName,
   maxLength,
-  'aria-invalid': ariaInvalid,
+  "aria-invalid": ariaInvalid,
   disabled,
 }: TiptapEditorProps) {
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [StarterKit],
-    content: value || '',
+    content: value || "",
     editable: !disabled,
     onUpdate: ({ editor }) => {
-      const html = editor.getHTML()
-      onChange?.(html === '<p></p>' ? '' : html)
+      const html = editor.getHTML();
+      onChange?.(html === "<p></p>" ? "" : html);
     },
     editorProps: {
       attributes: {
+        "aria-label": placeholder,
         ...(ariaInvalid !== undefined
-          ? { 'aria-invalid': ariaInvalid ? 'true' : 'false' }
+          ? { "aria-invalid": ariaInvalid ? "true" : "false" }
           : {}),
         class: cn(
-          'min-h-[120px] w-full rounded-b-md border-0 bg-transparent px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-0 prose prose-sm max-w-none text-cs-text prose-headings:text-cs-heading prose-p:text-cs-text prose-li:text-cs-text prose-blockquote:text-cs-text prose-code:text-cs-text',
-          editorContentClassName
+          "min-h-[120px] w-full rounded-b-md border-0 bg-transparent px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-0 prose prose-sm max-w-none text-cs-text prose-headings:text-cs-heading prose-p:text-cs-text prose-li:text-cs-text prose-blockquote:text-cs-text prose-code:text-cs-text",
+          editorContentClassName,
         ),
       },
     },
-  })
+  });
 
   React.useEffect(() => {
-    if (editor && value !== undefined && editor.getHTML() !== (value || '<p></p>')) {
-      editor.commands.setContent(value || '', { emitUpdate: false })
+    if (
+      editor &&
+      value !== undefined &&
+      editor.getHTML() !== (value || "<p></p>")
+    ) {
+      editor.commands.setContent(value || "", { emitUpdate: false });
     }
-  }, [value, editor])
+  }, [value, editor]);
 
   React.useEffect(() => {
     if (editor) {
-      editor.setEditable(!disabled)
+      editor.setEditable(!disabled);
     }
-  }, [editor, disabled])
+  }, [editor, disabled]);
 
   if (!editor) {
     return (
       <div
         className={cn(
-          'min-h-[120px] rounded-md border border-cs-border bg-transparent',
-          className
+          "min-h-[120px] rounded-md border border-cs-border bg-transparent",
+          className,
         )}
       />
-    )
+    );
   }
 
   return (
     <div
       className={cn(
-        'rounded-md border border-cs-border focus-within:ring-2 focus-within:ring-cs-primary/30 focus-within:ring-offset-2 focus-within:ring-offset-background',
-        className
+        "rounded-md border border-cs-border focus-within:ring-2 focus-within:ring-cs-primary/30 focus-within:ring-offset-2 focus-within:ring-offset-background",
+        className,
       )}
     >
       <Toolbar editor={editor} />
@@ -187,5 +209,5 @@ export function TiptapEditor({
         </div>
       )}
     </div>
-  )
+  );
 }

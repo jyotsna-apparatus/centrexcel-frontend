@@ -1,67 +1,71 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import PageHeader from '@/components/pageHeader/PageHeader'
-import { Button } from '@/components/ui/button'
-import { Select } from '@/components/ui/select'
-import { deleteHackathon, reviewHackathon } from '@/lib/auth-api'
-import { HACKATHON_APPROVAL_LABELS } from '@/config/hackathon-constants'
-import { useAuth } from '@/contexts/auth-context'
-import { useHackathons } from '@/hooks/use-hackathons'
-import { toast } from 'sonner'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import PageHeader from "@/components/pageHeader/PageHeader";
+import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
+import { HACKATHON_APPROVAL_LABELS } from "@/config/hackathon-constants";
+import { useAuth } from "@/contexts/auth-context";
+import { useHackathons } from "@/hooks/use-hackathons";
+import { deleteHackathon, reviewHackathon } from "@/lib/auth-api";
 
 const FILTERS = [
-  { value: 'pending_review', label: 'Pending review' },
-  { value: 'changes_requested', label: 'Changes requested' },
-  { value: 'rejected', label: 'Rejected' },
-] as const
+  { value: "pending_review", label: "Pending review" },
+  { value: "changes_requested", label: "Changes requested" },
+  { value: "rejected", label: "Rejected" },
+] as const;
 
 export default function HackathonApprovalsPage() {
-  const router = useRouter()
-  const { user } = useAuth()
-  const queryClient = useQueryClient()
-  const [filter, setFilter] = useState<string>('pending_review')
-  const [feedbackById, setFeedbackById] = useState<Record<string, string>>({})
+  const router = useRouter();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [filter, setFilter] = useState<string>("pending_review");
+  const [feedbackById, setFeedbackById] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (user && user.role !== 'admin') {
-      router.replace('/hackathons')
+    if (user && user.role !== "admin") {
+      router.replace("/hackathons");
     }
-  }, [user, router])
+  }, [user, router]);
 
   const { data, isLoading, isError, error } = useHackathons({
     page: 0,
     pageSize: 50,
     approvalStatus: filter,
-  })
+  });
 
   const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ['hackathons'] })
-  }
+    queryClient.invalidateQueries({ queryKey: ["hackathons"] });
+  };
 
   const mutation = useMutation({
     mutationFn: async (payload: {
-      id: string
-      action: 'approve' | 'reject' | 'request_changes'
-      feedback?: string
-    }) => reviewHackathon(payload.id, { action: payload.action, feedback: payload.feedback }),
+      id: string;
+      action: "approve" | "reject" | "request_changes";
+      feedback?: string;
+    }) =>
+      reviewHackathon(payload.id, {
+        action: payload.action,
+        feedback: payload.feedback,
+      }),
     onSuccess: () => {
-      toast.success('Review saved.')
-      invalidate()
+      toast.success("Review saved.");
+      invalidate();
     },
     onError: (err: Error) => {
-      toast.error(err.message ?? 'Failed to save review')
+      toast.error(err.message ?? "Failed to save review");
     },
-  })
+  });
 
-  const hackathons = data?.data ?? []
+  const hackathons = data?.data ?? [];
 
-  if (!user || user.role !== 'admin') {
-    return null
+  if (!user || user.role !== "admin") {
+    return null;
   }
 
   return (
@@ -79,7 +83,10 @@ export default function HackathonApprovalsPage() {
       </PageHeader>
 
       <div className="mb-6 flex flex-wrap items-center gap-4">
-        <label className="text-sm text-muted-foreground" htmlFor="approval-filter">
+        <label
+          className="text-sm text-muted-foreground"
+          htmlFor="approval-filter"
+        >
           Filter
         </label>
         <Select
@@ -98,7 +105,7 @@ export default function HackathonApprovalsPage() {
 
       {isError && (
         <p className="text-destructive text-sm">
-          {error instanceof Error ? error.message : 'Failed to load'}
+          {error instanceof Error ? error.message : "Failed to load"}
         </p>
       )}
 
@@ -112,7 +119,7 @@ export default function HackathonApprovalsPage() {
       ) : (
         <ul className="space-y-6">
           {hackathons.map((h) => {
-            const fb = feedbackById[h.id] ?? ''
+            const fb = feedbackById[h.id] ?? "";
             return (
               <li
                 key={h.id}
@@ -125,7 +132,8 @@ export default function HackathonApprovalsPage() {
                       {h.shortDescription}
                     </p>
                     <p className="mt-2 text-xs text-muted-foreground">
-                      Sponsor: {h.sponsor?.username ?? h.sponsor?.email ?? h.sponsorId}
+                      Sponsor:{" "}
+                      {h.sponsor?.username ?? h.sponsor?.email ?? h.sponsorId}
                     </p>
                     {h.adminFeedback ? (
                       <p className="mt-2 rounded-md bg-muted/60 p-2 text-sm whitespace-pre-wrap">
@@ -138,14 +146,21 @@ export default function HackathonApprovalsPage() {
                     <Link href={`/hackathons/${h.id}`}>Open</Link>
                   </Button>
                 </div>
-                <label className="mt-4 block text-sm font-medium" htmlFor={`fb-${h.id}`}>
-                  Feedback (optional for approve; required for reject or request changes)
+                <label
+                  className="mt-4 block text-sm font-medium"
+                  htmlFor={`fb-${h.id}`}
+                >
+                  Feedback (optional for approve; required for reject or request
+                  changes)
                 </label>
                 <textarea
                   id={`fb-${h.id}`}
                   value={fb}
                   onChange={(e) =>
-                    setFeedbackById((prev) => ({ ...prev, [h.id]: e.target.value }))
+                    setFeedbackById((prev) => ({
+                      ...prev,
+                      [h.id]: e.target.value,
+                    }))
                   }
                   rows={3}
                   className="border-cs-border placeholder:text-muted-foreground mt-1 w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus:ring-2 focus:ring-cs-primary/20"
@@ -156,7 +171,11 @@ export default function HackathonApprovalsPage() {
                     size="sm"
                     disabled={mutation.isPending}
                     onClick={() =>
-                      mutation.mutate({ id: h.id, action: 'approve', feedback: fb || undefined })
+                      mutation.mutate({
+                        id: h.id,
+                        action: "approve",
+                        feedback: fb || undefined,
+                      })
                     }
                   >
                     Approve
@@ -166,12 +185,16 @@ export default function HackathonApprovalsPage() {
                     variant="secondary"
                     disabled={mutation.isPending}
                     onClick={() => {
-                      const t = fb.trim()
+                      const t = fb.trim();
                       if (!t) {
-                        toast.error('Add feedback when requesting changes.')
-                        return
+                        toast.error("Add feedback when requesting changes.");
+                        return;
                       }
-                      mutation.mutate({ id: h.id, action: 'request_changes', feedback: t })
+                      mutation.mutate({
+                        id: h.id,
+                        action: "request_changes",
+                        feedback: t,
+                      });
                     }}
                   >
                     Request changes
@@ -181,12 +204,16 @@ export default function HackathonApprovalsPage() {
                     variant="destructive"
                     disabled={mutation.isPending}
                     onClick={() => {
-                      const t = fb.trim()
+                      const t = fb.trim();
                       if (!t) {
-                        toast.error('Add feedback when rejecting.')
-                        return
+                        toast.error("Add feedback when rejecting.");
+                        return;
                       }
-                      mutation.mutate({ id: h.id, action: 'reject', feedback: t })
+                      mutation.mutate({
+                        id: h.id,
+                        action: "reject",
+                        feedback: t,
+                      });
                     }}
                   >
                     Reject
@@ -198,17 +225,19 @@ export default function HackathonApprovalsPage() {
                     onClick={async () => {
                       if (
                         !window.confirm(
-                          'Delete this challenge permanently? This cannot be undone.'
+                          "Delete this challenge permanently? This cannot be undone.",
                         )
                       ) {
-                        return
+                        return;
                       }
                       try {
-                        await deleteHackathon(h.id)
-                        toast.success('Challenge deleted.')
-                        invalidate()
+                        await deleteHackathon(h.id);
+                        toast.success("Challenge deleted.");
+                        invalidate();
                       } catch (err) {
-                        toast.error(err instanceof Error ? err.message : 'Delete failed')
+                        toast.error(
+                          err instanceof Error ? err.message : "Delete failed",
+                        );
                       }
                     }}
                   >
@@ -216,13 +245,15 @@ export default function HackathonApprovalsPage() {
                   </Button>
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Status: {HACKATHON_APPROVAL_LABELS[h.approvalStatus ?? ''] ?? h.approvalStatus}
+                  Status:{" "}
+                  {HACKATHON_APPROVAL_LABELS[h.approvalStatus ?? ""] ??
+                    h.approvalStatus}
                 </p>
               </li>
-            )
+            );
           })}
         </ul>
       )}
     </div>
-  )
+  );
 }

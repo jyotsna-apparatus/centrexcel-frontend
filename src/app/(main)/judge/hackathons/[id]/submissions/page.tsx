@@ -1,114 +1,131 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { useParams, useRouter } from 'next/navigation'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useHackathon } from '@/hooks/use-hackathons'
-import { useSubmissionsByHackathon } from '@/hooks/use-submissions'
-import { useAuth } from '@/contexts/auth-context'
-import { createScore, downloadSubmission, type Submission } from '@/lib/auth-api'
-import PageHeader from '@/components/pageHeader/PageHeader'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Skeleton } from '@/components/ui/skeleton'
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, CheckCircle2, Download, FileUp } from "lucide-react";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import PageHeader from "@/components/pageHeader/PageHeader";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Sheet,
   SheetContent,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
-  SheetFooter,
-} from '@/components/ui/sheet'
-import { ArrowLeft, FileUp, CheckCircle2, Download } from 'lucide-react'
-import { toast } from 'sonner'
+} from "@/components/ui/sheet";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/contexts/auth-context";
+import { useHackathon } from "@/hooks/use-hackathons";
+import { useSubmissionsByHackathon } from "@/hooks/use-submissions";
+import {
+  createScore,
+  downloadSubmission,
+  type Submission,
+} from "@/lib/auth-api";
 
-const SCORE_MIN = 0
-const SCORE_MAX = 100
+const SCORE_MIN = 0;
+const SCORE_MAX = 100;
 
 export default function JudgeHackathonSubmissionsPage() {
-  const params = useParams()
-  const queryClient = useQueryClient()
-  const router = useRouter()
-  const id = typeof params.id === 'string' ? params.id : ''
-  const { user } = useAuth()
+  const params = useParams();
+  const queryClient = useQueryClient();
+  const router = useRouter();
+  const id = typeof params.id === "string" ? params.id : "";
+  const { user } = useAuth();
 
   useEffect(() => {
-    if (user && user.role !== 'judge') {
-      router.replace('/dashboard')
+    if (user && user.role !== "judge") {
+      router.replace("/dashboard");
     }
-  }, [user, router])
+  }, [user, router]);
 
-  const { data: hackathon, isLoading: hackathonLoading } = useHackathon(id || null)
+  const { data: hackathon, isLoading: hackathonLoading } = useHackathon(
+    id || null,
+  );
   const { data: submissions = [], isLoading: submissionsLoading } =
-    useSubmissionsByHackathon(id || null)
+    useSubmissionsByHackathon(id || null);
 
-  const [scoreSheetOpen, setScoreSheetOpen] = useState(false)
-  const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null)
-  const [scoreInput, setScoreInput] = useState('')
-  const [feedbackInput, setFeedbackInput] = useState('')
-  const [reviewedForScoring, setReviewedForScoring] = useState(false)
-  const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const [scoreSheetOpen, setScoreSheetOpen] = useState(false);
+  const [selectedSubmission, setSelectedSubmission] =
+    useState<Submission | null>(null);
+  const [scoreInput, setScoreInput] = useState("");
+  const [feedbackInput, setFeedbackInput] = useState("");
+  const [reviewedForScoring, setReviewedForScoring] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const createScoreMutation = useMutation({
-    mutationFn: (body: { submissionId: string; score: number; feedback?: string | null }) =>
-      createScore(body),
+    mutationFn: (body: {
+      submissionId: string;
+      score: number;
+      feedback?: string | null;
+    }) => createScore(body),
     onSuccess: () => {
-      toast.success('Score submitted.')
-      queryClient.invalidateQueries({ queryKey: ['submissions-hackathon', id] })
-      setScoreSheetOpen(false)
-      setSelectedSubmission(null)
-      setScoreInput('')
-      setFeedbackInput('')
+      toast.success("Score submitted.");
+      queryClient.invalidateQueries({
+        queryKey: ["submissions-hackathon", id],
+      });
+      setScoreSheetOpen(false);
+      setSelectedSubmission(null);
+      setScoreInput("");
+      setFeedbackInput("");
     },
     onError: (err: Error) => {
-      toast.error(err.message ?? 'Failed to submit score')
+      toast.error(err.message ?? "Failed to submit score");
     },
-  })
+  });
 
   const openScoreSheet = (sub: Submission) => {
-    const myScore = sub.scores?.find((s) => s.judgeId === user?.id)
-    setSelectedSubmission(sub)
-    setScoreInput(myScore != null ? String(myScore.score) : '')
-    setFeedbackInput(myScore?.feedback ?? '')
-    setReviewedForScoring(false)
-    setScoreSheetOpen(true)
-  }
+    const myScore = sub.scores?.find((s) => s.judgeId === user?.id);
+    setSelectedSubmission(sub);
+    setScoreInput(myScore != null ? String(myScore.score) : "");
+    setFeedbackInput(myScore?.feedback ?? "");
+    setReviewedForScoring(false);
+    setScoreSheetOpen(true);
+  };
 
   const handleDownload = async (sub: Submission) => {
-    if (downloadingId) return
-    setDownloadingId(sub.id)
+    if (downloadingId) return;
+    setDownloadingId(sub.id);
     try {
-      await downloadSubmission(sub.id, `${sub.title.replace(/[^a-zA-Z0-9-_]/g, '_')}.zip`)
-      toast.success('Download started.')
+      await downloadSubmission(
+        sub.id,
+        `${sub.title.replace(/[^a-zA-Z0-9-_]/g, "_")}.zip`,
+      );
+      toast.success("Download started.");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Download failed')
+      toast.error(err instanceof Error ? err.message : "Download failed");
     } finally {
-      setDownloadingId(null)
+      setDownloadingId(null);
     }
-  }
+  };
 
-  const selectedMyScore = selectedSubmission?.scores?.find((s) => s.judgeId === user?.id)
-  const alreadyScored = !!selectedMyScore
+  const selectedMyScore = selectedSubmission?.scores?.find(
+    (s) => s.judgeId === user?.id,
+  );
+  const alreadyScored = !!selectedMyScore;
 
   const handleSubmitScore = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!selectedSubmission) return
-    const score = parseInt(scoreInput, 10)
+    e.preventDefault();
+    if (!selectedSubmission) return;
+    const score = parseInt(scoreInput, 10);
     if (Number.isNaN(score) || score < SCORE_MIN || score > SCORE_MAX) {
-      toast.error(`Score must be between ${SCORE_MIN} and ${SCORE_MAX}`)
-      return
+      toast.error(`Score must be between ${SCORE_MIN} and ${SCORE_MAX}`);
+      return;
     }
     createScoreMutation.mutate({
       submissionId: selectedSubmission.id,
       score,
       feedback: feedbackInput.trim() || null,
-    })
-  }
+    });
+  };
 
-  const isLoading = hackathonLoading || submissionsLoading
+  const isLoading = hackathonLoading || submissionsLoading;
 
-  if (user && user.role !== 'judge') {
-    return null
+  if (user && user.role !== "judge") {
+    return null;
   }
 
   if (!id) {
@@ -119,13 +136,13 @@ export default function JudgeHackathonSubmissionsPage() {
           <Link href="/judge/hackathons">Back</Link>
         </Button>
       </div>
-    )
+    );
   }
 
   return (
     <div>
       <PageHeader
-        title={hackathon ? `Submissions — ${hackathon.title}` : 'Submissions'}
+        title={hackathon ? `Submissions — ${hackathon.title}` : "Submissions"}
         description="View and score submissions for this challenge."
       >
         <Button variant="outline" size="sm" asChild>
@@ -146,8 +163,8 @@ export default function JudgeHackathonSubmissionsPage() {
       ) : (
         <div className="space-y-3">
           {submissions.map((sub) => {
-            const myScore = sub.scores?.find((s) => s.judgeId === user?.id)
-            const scoredByMe = !!myScore
+            const myScore = sub.scores?.find((s) => s.judgeId === user?.id);
+            const scoredByMe = !!myScore;
             return (
               <div
                 key={sub.id}
@@ -156,7 +173,11 @@ export default function JudgeHackathonSubmissionsPage() {
                 <div className="min-w-0">
                   <h3 className="font-medium text-cs-heading">{sub.title}</h3>
                   <p className="text-sm text-muted-foreground">
-                    {sub.teamId ? (sub.team?.name ? `Team: ${sub.team.name}` : 'Team') : 'Solo'}
+                    {sub.teamId
+                      ? sub.team?.name
+                        ? `Team: ${sub.team.name}`
+                        : "Team"
+                      : "Solo"}
                     {sub.averageScore != null && (
                       <> · Avg score: {Number(sub.averageScore)}</>
                     )}
@@ -176,18 +197,18 @@ export default function JudgeHackathonSubmissionsPage() {
                     disabled={downloadingId === sub.id}
                   >
                     <Download className="mr-1 size-4" />
-                    {downloadingId === sub.id ? 'Downloading…' : 'Download'}
+                    {downloadingId === sub.id ? "Downloading…" : "Download"}
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => openScoreSheet(sub)}
                   >
-                    {scoredByMe ? 'View score' : 'Score'}
+                    {scoredByMe ? "View score" : "Score"}
                   </Button>
                 </div>
               </div>
-            )
+            );
           })}
         </div>
       )}
@@ -196,14 +217,18 @@ export default function JudgeHackathonSubmissionsPage() {
         <SheetContent side="right" className="sm:max-w-md">
           <SheetHeader>
             <SheetTitle>
-              {selectedSubmission ? selectedSubmission.title : 'Score submission'}
+              {selectedSubmission
+                ? selectedSubmission.title
+                : "Score submission"}
             </SheetTitle>
           </SheetHeader>
           {selectedSubmission && (
             <div className="flex flex-1 flex-col gap-4 overflow-auto px-4">
               {selectedSubmission.description && (
                 <div>
-                  <p className="text-sm font-medium text-cs-heading">Description</p>
+                  <p className="text-sm font-medium text-cs-heading">
+                    Description
+                  </p>
                   <p className="mt-1 text-sm text-muted-foreground whitespace-pre-wrap">
                     {selectedSubmission.description}
                   </p>
@@ -218,7 +243,9 @@ export default function JudgeHackathonSubmissionsPage() {
                   disabled={downloadingId === selectedSubmission.id}
                 >
                   <Download className="mr-2 size-4" />
-                  {downloadingId === selectedSubmission.id ? 'Downloading…' : 'Download submission'}
+                  {downloadingId === selectedSubmission.id
+                    ? "Downloading…"
+                    : "Download submission"}
                 </Button>
               </div>
               {!alreadyScored && (
@@ -229,12 +256,21 @@ export default function JudgeHackathonSubmissionsPage() {
                     onChange={(e) => setReviewedForScoring(e.target.checked)}
                     className="border-cs-border rounded border"
                   />
-                  <span className="text-cs-heading">I have reviewed this submission (required before scoring)</span>
+                  <span className="text-cs-heading">
+                    I have reviewed this submission (required before scoring)
+                  </span>
                 </label>
               )}
-              <form id="score-form" onSubmit={handleSubmitScore} className="space-y-4">
+              <form
+                id="score-form"
+                onSubmit={handleSubmitScore}
+                className="space-y-4"
+              >
                 <div>
-                  <label htmlFor="score" className="mb-1.5 block text-sm font-medium text-cs-heading">
+                  <label
+                    htmlFor="score"
+                    className="mb-1.5 block text-sm font-medium text-cs-heading"
+                  >
                     Score (0–100) *
                   </label>
                   <Input
@@ -244,18 +280,29 @@ export default function JudgeHackathonSubmissionsPage() {
                     max={SCORE_MAX}
                     value={scoreInput}
                     onChange={(e) => setScoreInput(e.target.value)}
-                    disabled={createScoreMutation.isPending || alreadyScored || (!alreadyScored && !reviewedForScoring)}
+                    disabled={
+                      createScoreMutation.isPending ||
+                      alreadyScored ||
+                      (!alreadyScored && !reviewedForScoring)
+                    }
                   />
                 </div>
                 <div>
-                  <label htmlFor="feedback" className="mb-1.5 block text-sm font-medium text-cs-heading">
+                  <label
+                    htmlFor="feedback"
+                    className="mb-1.5 block text-sm font-medium text-cs-heading"
+                  >
                     Feedback (optional)
                   </label>
                   <textarea
                     id="feedback"
                     value={feedbackInput}
                     onChange={(e) => setFeedbackInput(e.target.value)}
-                    disabled={createScoreMutation.isPending || alreadyScored || (!alreadyScored && !reviewedForScoring)}
+                    disabled={
+                      createScoreMutation.isPending ||
+                      alreadyScored ||
+                      (!alreadyScored && !reviewedForScoring)
+                    }
                     className="border-cs-border placeholder:text-muted-foreground w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus:ring-2 focus:ring-cs-primary/20"
                     rows={4}
                     placeholder="Optional feedback for the participant"
@@ -271,12 +318,12 @@ export default function JudgeHackathonSubmissionsPage() {
                 form="score-form"
                 disabled={createScoreMutation.isPending || !reviewedForScoring}
               >
-                {createScoreMutation.isPending ? 'Submitting…' : 'Submit score'}
+                {createScoreMutation.isPending ? "Submitting…" : "Submit score"}
               </Button>
             )}
           </SheetFooter>
         </SheetContent>
       </Sheet>
     </div>
-  )
+  );
 }

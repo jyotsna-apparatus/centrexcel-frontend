@@ -1,14 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { HackathonCard } from "@/components/hackathon-card";
+import { Button } from "@/components/ui/button";
 import { useFeaturedHackathons } from "@/hooks/use-hackathons";
 
 const FEATURED_LIMIT = 3;
 
 const Challenges = () => {
-  const { data: list = [], isLoading, isError } = useFeaturedHackathons(FEATURED_LIMIT);
+  const {
+    data: list = [],
+    isLoading,
+    isError,
+  } = useFeaturedHackathons(FEATURED_LIMIT);
   const hackathons = Array.isArray(list) ? list : [];
 
   return (

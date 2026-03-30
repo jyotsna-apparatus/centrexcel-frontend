@@ -1,9 +1,4 @@
-import {
-  Trophy,
-  Target,
-  Zap,
-  Rocket,
-} from "lucide-react";
+import { Rocket, Target, Trophy, Zap } from "lucide-react";
 
 const features = [
   {

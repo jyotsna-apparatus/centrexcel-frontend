@@ -1,8 +1,14 @@
-'use client';
+"use client";
 
-import { createContext, useCallback, useContext, useState, type ReactNode } from 'react';
-import { getMe } from '@/lib/auth-api';
-import type { LoginUser } from '@/lib/auth-api';
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useState,
+} from "react";
+import type { LoginUser } from "@/lib/auth-api";
+import { getMe } from "@/lib/auth-api";
 
 type AuthContextValue = {
   user: LoginUser | null;
@@ -38,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
   if (!ctx) {
-    throw new Error('useAuth must be used within AuthProvider');
+    throw new Error("useAuth must be used within AuthProvider");
   }
   return ctx;
 }

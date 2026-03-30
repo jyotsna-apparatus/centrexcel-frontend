@@ -1,35 +1,40 @@
-'use client'
+"use client";
 
-import { useEffect } from 'react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useJudgeHackathons } from '@/hooks/use-hackathons'
-import { useAuth } from '@/contexts/auth-context'
-import PageHeader from '@/components/pageHeader/PageHeader'
-import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Trophy, FileUp } from 'lucide-react'
-import { toast } from 'sonner'
+import { FileUp, Trophy } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { toast } from "sonner";
+import PageHeader from "@/components/pageHeader/PageHeader";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/contexts/auth-context";
+import { useJudgeHackathons } from "@/hooks/use-hackathons";
 
 export default function JudgeHackathonsPage() {
-  const router = useRouter()
-  const { user } = useAuth()
-  const { data, isLoading, isError, error } = useJudgeHackathons({ page: 0, pageSize: 50 })
+  const router = useRouter();
+  const { user } = useAuth();
+  const { data, isLoading, isError, error } = useJudgeHackathons({
+    page: 0,
+    pageSize: 50,
+  });
 
   useEffect(() => {
-    if (user && user.role !== 'judge') {
-      router.replace('/dashboard')
+    if (user && user.role !== "judge") {
+      router.replace("/dashboard");
     }
-  }, [user, router])
+  }, [user, router]);
 
-  const hackathons = data?.data ?? []
+  const hackathons = data?.data ?? [];
 
-  if (user && user.role !== 'judge') {
-    return null
+  if (user && user.role !== "judge") {
+    return null;
   }
 
   if (isError && error) {
-    toast.error(error instanceof Error ? error.message : 'Failed to load challenges')
+    toast.error(
+      error instanceof Error ? error.message : "Failed to load challenges",
+    );
   }
 
   return (
@@ -63,9 +68,12 @@ export default function JudgeHackathonsPage() {
                 <FileUp className="size-6 text-primary" />
               </div>
               <div className="min-w-0 flex-1">
-                <h3 className="font-medium text-cs-heading truncate">{h.title}</h3>
+                <h3 className="font-medium text-cs-heading truncate">
+                  {h.title}
+                </h3>
                 <p className="text-sm text-muted-foreground">
-                  {h._count?.submissions ?? 0} submission{(h._count?.submissions ?? 0) !== 1 ? 's' : ''}
+                  {h._count?.submissions ?? 0} submission
+                  {(h._count?.submissions ?? 0) !== 1 ? "s" : ""}
                 </p>
               </div>
             </Link>
@@ -73,5 +81,5 @@ export default function JudgeHackathonsPage() {
         </div>
       )}
     </div>
-  )
+  );
 }

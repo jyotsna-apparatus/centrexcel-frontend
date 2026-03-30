@@ -1,41 +1,46 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { useQuery } from '@tanstack/react-query'
-import { useHackathons } from '@/hooks/use-hackathons'
-import { useHackathonWinners } from '@/hooks/use-winners'
-import { getMyParticipations } from '@/lib/auth-api'
-import PageHeader from '@/components/pageHeader/PageHeader'
-import { Select } from '@/components/ui/select'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Medal, Trophy } from 'lucide-react'
-import { useAuth } from '@/contexts/auth-context'
-import { canAccessPath } from '@/config/sidebar-nav'
-import { toast } from 'sonner'
+import { useQuery } from "@tanstack/react-query";
+import { Medal, Trophy } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import PageHeader from "@/components/pageHeader/PageHeader";
+import { Select } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { canAccessPath } from "@/config/sidebar-nav";
+import { useAuth } from "@/contexts/auth-context";
+import { useHackathons } from "@/hooks/use-hackathons";
+import { useHackathonWinners } from "@/hooks/use-winners";
+import { getMyParticipations } from "@/lib/auth-api";
 
 const POSITION_LABELS: Record<number, string> = {
-  1: '1st place',
-  2: '2nd place',
-  3: '3rd place',
-}
+  1: "1st place",
+  2: "2nd place",
+  3: "3rd place",
+};
 
 export default function WinnersPage() {
-  const router = useRouter()
-  const { user } = useAuth()
-  const [selectedHackathonId, setSelectedHackathonId] = useState<string>('')
-  const isParticipant = user?.role === 'participant'
+  const router = useRouter();
+  const { user } = useAuth();
+  const [selectedHackathonId, setSelectedHackathonId] = useState<string>("");
+  const isParticipant = user?.role === "participant";
 
   useEffect(() => {
-    if (user?.role && !canAccessPath('/winners', user.role)) {
-      router.replace('/dashboard')
+    if (user?.role && !canAccessPath("/winners", user.role)) {
+      router.replace("/dashboard");
     }
-  }, [user?.role, router])
+  }, [user?.role, router]);
 
-  const { data: hackathonsData, isLoading: loadingHackathons, isError: hackathonsError, error: hackathonsErr } = useHackathons({
+  const {
+    data: hackathonsData,
+    isLoading: loadingHackathons,
+    isError: hackathonsError,
+    error: hackathonsErr,
+  } = useHackathons({
     page: 0,
     pageSize: 100,
-  })
+  });
 
   const {
     data: participationsData,
@@ -43,51 +48,60 @@ export default function WinnersPage() {
     isError: participationsError,
     error: participationsErr,
   } = useQuery({
-    queryKey: ['winnings', 'participations'],
+    queryKey: ["winnings", "participations"],
     queryFn: () => getMyParticipations({ page: 1, limit: 500 }),
     enabled: isParticipant,
-  })
+  });
 
   const participantHackathons = Array.from(
     new Map(
       (participationsData?.data ?? []).map((p) => [
         p.hackathonId,
         { id: p.hackathon.id, title: p.hackathon.title },
-      ])
-    ).values()
-  )
+      ]),
+    ).values(),
+  );
   const hackathons = isParticipant
     ? participantHackathons
-    : (Array.isArray(hackathonsData?.data) ? hackathonsData.data : [])
-  const firstId = hackathons[0]?.id ?? ''
+    : Array.isArray(hackathonsData?.data)
+      ? hackathonsData.data
+      : [];
+  const firstId = hackathons[0]?.id ?? "";
 
   useEffect(() => {
-    if (selectedHackathonId === '' && firstId) {
-      setSelectedHackathonId(firstId)
+    if (selectedHackathonId === "" && firstId) {
+      setSelectedHackathonId(firstId);
     }
-  }, [firstId, selectedHackathonId])
+  }, [firstId, selectedHackathonId]);
 
-  const { data: winners, isLoading: loadingWinners, isError: winnersError, error: winnersErr } = useHackathonWinners(
-    selectedHackathonId || null
-  )
+  const {
+    data: winners,
+    isLoading: loadingWinners,
+    isError: winnersError,
+    error: winnersErr,
+  } = useHackathonWinners(selectedHackathonId || null);
 
-  const winnersList = Array.isArray(winners) ? winners : []
+  const winnersList = Array.isArray(winners) ? winners : [];
 
   useEffect(() => {
     if (hackathonsError && hackathonsErr) {
-      toast.error(hackathonsErr instanceof Error ? hackathonsErr.message : 'Failed to load challenges')
+      toast.error(
+        hackathonsErr instanceof Error
+          ? hackathonsErr.message
+          : "Failed to load challenges",
+      );
     }
-  }, [hackathonsError, hackathonsErr])
+  }, [hackathonsError, hackathonsErr]);
 
   useEffect(() => {
     if (participationsError && participationsErr) {
       toast.error(
         participationsErr instanceof Error
           ? participationsErr.message
-          : 'Failed to load participations'
-      )
+          : "Failed to load participations",
+      );
     }
-  }, [participationsError, participationsErr])
+  }, [participationsError, participationsErr]);
 
   useEffect(() => {
     if (
@@ -95,15 +109,19 @@ export default function WinnersPage() {
       hackathons.length > 0 &&
       !hackathons.some((h) => h.id === selectedHackathonId)
     ) {
-      setSelectedHackathonId(firstId)
+      setSelectedHackathonId(firstId);
     }
-  }, [selectedHackathonId, hackathons, firstId])
+  }, [selectedHackathonId, hackathons, firstId]);
 
   useEffect(() => {
     if (winnersError && winnersErr && selectedHackathonId) {
-      toast.error(winnersErr instanceof Error ? winnersErr.message : 'Failed to load winners')
+      toast.error(
+        winnersErr instanceof Error
+          ? winnersErr.message
+          : "Failed to load winners",
+      );
     }
-  }, [winnersError, winnersErr, selectedHackathonId])
+  }, [winnersError, winnersErr, selectedHackathonId]);
 
   return (
     <div>
@@ -128,18 +146,23 @@ export default function WinnersPage() {
         </Select>
       </div>
 
-      {(loadingHackathons || loadingParticipations) && hackathons.length === 0 ? (
+      {(loadingHackathons || loadingParticipations) &&
+      hackathons.length === 0 ? (
         <Skeleton className="h-32 w-full rounded-lg" />
       ) : isParticipant && hackathons.length === 0 ? (
         <p className="text-muted-foreground">
           You can view winnings only for hackathons where you participated.
         </p>
       ) : !selectedHackathonId ? (
-        <p className="text-muted-foreground">Select a hackathon to view winnings.</p>
+        <p className="text-muted-foreground">
+          Select a hackathon to view winnings.
+        </p>
       ) : loadingWinners ? (
         <Skeleton className="h-48 w-full rounded-lg" />
       ) : winnersList.length === 0 ? (
-        <p className="text-muted-foreground">No winnings announced yet for this hackathon.</p>
+        <p className="text-muted-foreground">
+          No winnings announced yet for this hackathon.
+        </p>
       ) : (
         <ul className="space-y-4">
           {winnersList
@@ -161,7 +184,7 @@ export default function WinnersPage() {
                     {POSITION_LABELS[w.position] ?? `Position ${w.position}`}
                   </p>
                   <p className="mt-0.5 text-sm text-cs-text">
-                    {w.submission?.title ?? 'Submission'}
+                    {w.submission?.title ?? "Submission"}
                   </p>
                   {w.submission?.team?.name && (
                     <p className="text-xs text-muted-foreground">
@@ -179,5 +202,5 @@ export default function WinnersPage() {
         </ul>
       )}
     </div>
-  )
+  );
 }

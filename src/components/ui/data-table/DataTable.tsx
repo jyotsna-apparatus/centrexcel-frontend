@@ -1,45 +1,41 @@
-"use client"
+"use client";
 
-import * as React from "react"
 import {
+  type ColumnDef,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
-  useReactTable,
-  type ColumnDef,
   type Header,
   type PaginationState,
-  type SortingState,
   type RowData,
+  type SortingState,
   type Table,
   type Updater,
-} from "@tanstack/react-table"
-import { ChevronDown, ChevronUp, ChevronsUpDown, Search } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import {
-  type DataTableProps,
-  type DynamicSearchConfig,
-  type SearchMode,
-} from "./types"
+  useReactTable,
+} from "@tanstack/react-table";
+import { ChevronDown, ChevronsUpDown, ChevronUp, Search } from "lucide-react";
+import * as React from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+import type { DataTableProps, DynamicSearchConfig, SearchMode } from "./types";
 
-const DEFAULT_PAGE_SIZE = 10
-const DEFAULT_PAGE_SIZE_OPTIONS = [10, 20, 50, 100]
+const DEFAULT_PAGE_SIZE = 10;
+const DEFAULT_PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 function useDebounce<T>(value: T, delayMs: number | undefined): T {
-  const [debouncedValue, setDebouncedValue] = React.useState(value)
+  const [debouncedValue, setDebouncedValue] = React.useState(value);
   React.useEffect(() => {
     if (delayMs == null || delayMs <= 0) {
-      setDebouncedValue(value)
-      return
+      setDebouncedValue(value);
+      return;
     }
-    const id = window.setTimeout(() => setDebouncedValue(value), delayMs)
-    return () => window.clearTimeout(id)
-  }, [value, delayMs])
-  return debouncedValue
+    const id = window.setTimeout(() => setDebouncedValue(value), delayMs);
+    return () => window.clearTimeout(id);
+  }, [value, delayMs]);
+  return debouncedValue;
 }
 
 export function DataTable<TData extends RowData>({
@@ -60,51 +56,53 @@ export function DataTable<TData extends RowData>({
   emptyMessage = "No results.",
   responsiveCardLayout = true,
 }: DataTableProps<TData>) {
-  const [globalFilter, setGlobalFilter] = React.useState("")
+  const [globalFilter, setGlobalFilter] = React.useState("");
   const [uncontrolledPagination, setUncontrolledPagination] =
     React.useState<PaginationState>({
       pageIndex: 0,
       pageSize: paginationConfig?.pageSize ?? DEFAULT_PAGE_SIZE,
-    })
+    });
   const [uncontrolledSorting, setUncontrolledSorting] =
-    React.useState<SortingState>(sortingConfig?.initialSorting ?? [])
+    React.useState<SortingState>(sortingConfig?.initialSorting ?? []);
 
-  const isServerPagination = onPaginationChange != null
+  const isServerPagination = onPaginationChange != null;
   const isServerSorting =
-    sortingConfig?.serverSide === true && sortingConfig?.onSortingChange != null
+    sortingConfig?.serverSide === true &&
+    sortingConfig?.onSortingChange != null;
 
-  const paginationState =
-    controlledPaginationState ?? uncontrolledPagination
+  const paginationState = controlledPaginationState ?? uncontrolledPagination;
   const setPaginationState = React.useCallback(
     (updaterOrValue: Updater<PaginationState>) => {
       const next =
-        typeof updaterOrValue === 'function'
-          ? (updaterOrValue as (prev: PaginationState) => PaginationState)(paginationState)
-          : updaterOrValue
-      onPaginationChange?.(next)
-      if (!controlledPaginationState) setUncontrolledPagination(next)
+        typeof updaterOrValue === "function"
+          ? (updaterOrValue as (prev: PaginationState) => PaginationState)(
+              paginationState,
+            )
+          : updaterOrValue;
+      onPaginationChange?.(next);
+      if (!controlledPaginationState) setUncontrolledPagination(next);
     },
-    [paginationState, onPaginationChange, controlledPaginationState]
-  )
+    [paginationState, onPaginationChange, controlledPaginationState],
+  );
 
-  const sortingState = controlledSortingState ?? uncontrolledSorting
+  const sortingState = controlledSortingState ?? uncontrolledSorting;
   const setSortingState = React.useCallback(
     (updater: SortingState | ((prev: SortingState) => SortingState)) => {
       const next =
-        typeof updater === "function" ? updater(sortingState) : updater
-      sortingConfig?.onSortingChange?.(next)
-      if (!controlledSortingState) setUncontrolledSorting(next)
+        typeof updater === "function" ? updater(sortingState) : updater;
+      sortingConfig?.onSortingChange?.(next);
+      if (!controlledSortingState) setUncontrolledSorting(next);
     },
-    [sortingState, sortingConfig, controlledSortingState]
-  )
+    [sortingState, sortingConfig, controlledSortingState],
+  );
 
   const pageSizeOptions =
-    paginationConfig?.pageSizeOptions ?? DEFAULT_PAGE_SIZE_OPTIONS
-  const totalCount = paginationConfig?.totalCount
+    paginationConfig?.pageSizeOptions ?? DEFAULT_PAGE_SIZE_OPTIONS;
+  const totalCount = paginationConfig?.totalCount;
   const pageCount =
     totalCount != null && totalCount >= 0
       ? Math.ceil(totalCount / paginationState.pageSize) || 1
-      : undefined
+      : undefined;
 
   const table = useReactTable({
     data,
@@ -129,14 +127,16 @@ export function DataTable<TData extends RowData>({
     manualSorting: isServerSorting,
     pageCount,
     manualFiltering: searchMode === "dynamic",
-  })
+  });
 
-  const rows = table.getRowModel().rows
-  const canPrev = table.getCanPreviousPage()
-  const canNext = table.getCanNextPage()
+  const rows = table.getRowModel().rows;
+  const canPrev = table.getCanPreviousPage();
+  const canNext = table.getCanNextPage();
   const totalRows =
     totalCount ??
-    (searchMode === "client" ? table.getFilteredRowModel().rows.length : data.length)
+    (searchMode === "client"
+      ? table.getFilteredRowModel().rows.length
+      : data.length);
 
   return (
     <div className={cn("space-y-4", className)}>
@@ -184,7 +184,7 @@ export function DataTable<TData extends RowData>({
         />
       )}
     </div>
-  )
+  );
 }
 
 function DataTableSearch({
@@ -194,32 +194,33 @@ function DataTableSearch({
   dynamicSearchConfig,
   searchPlaceholder,
 }: {
-  searchMode: SearchMode
-  globalFilter: string
-  onGlobalFilterChange: (v: string) => void
-  dynamicSearchConfig?: DynamicSearchConfig
-  searchPlaceholder: string
+  searchMode: SearchMode;
+  globalFilter: string;
+  onGlobalFilterChange: (v: string) => void;
+  dynamicSearchConfig?: DynamicSearchConfig;
+  searchPlaceholder: string;
 }) {
-  const dynamicValue = dynamicSearchConfig?.searchValue ?? ""
-  const dynamicOnSearch = dynamicSearchConfig?.onSearch
-  const debounceMs = dynamicSearchConfig?.debounceMs ?? 300
-  const [localDynamicValue, setLocalDynamicValue] = React.useState(dynamicValue)
-  const debouncedDynamic = useDebounce(localDynamicValue, debounceMs)
+  const dynamicValue = dynamicSearchConfig?.searchValue ?? "";
+  const dynamicOnSearch = dynamicSearchConfig?.onSearch;
+  const debounceMs = dynamicSearchConfig?.debounceMs ?? 300;
+  const [localDynamicValue, setLocalDynamicValue] =
+    React.useState(dynamicValue);
+  const debouncedDynamic = useDebounce(localDynamicValue, debounceMs);
 
   React.useEffect(() => {
     if (searchMode === "dynamic" && dynamicOnSearch) {
-      dynamicOnSearch(debouncedDynamic)
+      dynamicOnSearch(debouncedDynamic);
     }
-  }, [debouncedDynamic, searchMode, dynamicOnSearch])
+  }, [debouncedDynamic, searchMode, dynamicOnSearch]);
 
   React.useEffect(() => {
-    setLocalDynamicValue(dynamicValue)
-  }, [dynamicValue])
+    setLocalDynamicValue(dynamicValue);
+  }, [dynamicValue]);
 
   const placeholder =
     searchMode === "dynamic"
-      ? dynamicSearchConfig?.placeholder ?? searchPlaceholder
-      : searchPlaceholder
+      ? (dynamicSearchConfig?.placeholder ?? searchPlaceholder)
+      : searchPlaceholder;
 
   if (searchMode === "client") {
     return (
@@ -232,7 +233,7 @@ function DataTableSearch({
           className="pl-9"
         />
       </div>
-    )
+    );
   }
 
   return (
@@ -245,15 +246,15 @@ function DataTableSearch({
         className="pl-9"
       />
     </div>
-  )
+  );
 }
 
 function TableDesktop<TData extends RowData>({
   table,
-  columns,
+  columns: _columns,
 }: {
-  table: ReturnType<typeof useReactTable<TData>>
-  columns: ColumnDef<TData, unknown>[]
+  table: ReturnType<typeof useReactTable<TData>>;
+  columns: ColumnDef<TData, unknown>[];
 }) {
   return (
     <table className="w-full min-w-[640px] caption-bottom text-sm">
@@ -286,20 +287,24 @@ function TableDesktop<TData extends RowData>({
         ))}
       </tbody>
     </table>
-  )
+  );
 }
 
-function SortableHeader<TData extends RowData>({ header }: { header: Header<TData, unknown> }) {
-  const canSort = header.column.getCanSort()
-  const sorted = header.column.getIsSorted()
-  const toggle = header.column.getToggleSortingHandler()
+function SortableHeader<TData extends RowData>({
+  header,
+}: {
+  header: Header<TData, unknown>;
+}) {
+  const canSort = header.column.getCanSort();
+  const sorted = header.column.getIsSorted();
+  const toggle = header.column.getToggleSortingHandler();
 
   if (!canSort) {
     return (
       <span className="!text-white [&_svg]:brightness-0">
         {flexRender(header.column.columnDef.header, header.getContext())}
       </span>
-    )
+    );
   }
 
   return (
@@ -317,17 +322,17 @@ function SortableHeader<TData extends RowData>({ header }: { header: Header<TDat
         <ChevronsUpDown className="brightness-0 size-4" />
       )}
     </button>
-  )
+  );
 }
 
 function TableCards<TData extends RowData>({
   table,
-  columns,
+  columns: _columns,
 }: {
-  table: ReturnType<typeof useReactTable<TData>>
-  columns: ColumnDef<TData, unknown>[]
+  table: ReturnType<typeof useReactTable<TData>>;
+  columns: ColumnDef<TData, unknown>[];
 }) {
-  const headers = table.getHeaderGroups()[0]?.headers ?? []
+  const headers = table.getHeaderGroups()[0]?.headers ?? [];
   return (
     <div className="divide-y divide-cs-border p-2">
       {table.getRowModel().rows.map((row) => (
@@ -336,13 +341,13 @@ function TableCards<TData extends RowData>({
           className="space-y-2 rounded-md border border-cs-border bg-cs-card/50 p-3"
         >
           {row.getVisibleCells().map((cell, i) => {
-            const colHeader = headers[i]
+            const colHeader = headers[i];
             const label = colHeader
               ? flexRender(
                   colHeader.column.columnDef.header,
-                  colHeader.getContext()
+                  colHeader.getContext(),
                 )
-              : null
+              : null;
             return (
               <div key={cell.id} className="flex flex-col gap-0.5">
                 <span className="text-muted-foreground text-xs font-medium">
@@ -352,12 +357,12 @@ function TableCards<TData extends RowData>({
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
                 </span>
               </div>
-            )
+            );
           })}
         </div>
       ))}
     </div>
-  )
+  );
 }
 
 function DataTablePagination<TData extends RowData>({
@@ -367,16 +372,16 @@ function DataTablePagination<TData extends RowData>({
   canPrev,
   canNext,
 }: {
-  table: Table<TData>
-  totalRows: number
-  pageSizeOptions: number[]
-  canPrev: boolean
-  canNext: boolean
+  table: Table<TData>;
+  totalRows: number;
+  pageSizeOptions: number[];
+  canPrev: boolean;
+  canNext: boolean;
 }) {
-  const pageIndex = table.getState().pagination.pageIndex
-  const pageSize = table.getState().pagination.pageSize
-  const start = pageIndex * pageSize + 1
-  const end = Math.min((pageIndex + 1) * pageSize, totalRows)
+  const pageIndex = table.getState().pagination.pageIndex;
+  const pageSize = table.getState().pagination.pageSize;
+  const start = pageIndex * pageSize + 1;
+  const end = Math.min((pageIndex + 1) * pageSize, totalRows);
 
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -420,5 +425,5 @@ function DataTablePagination<TData extends RowData>({
         </div>
       </div>
     </div>
-  )
+  );
 }

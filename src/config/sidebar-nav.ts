@@ -1,20 +1,19 @@
-import type { LucideIcon } from 'lucide-react';
+import type { LucideIcon } from "lucide-react";
 import {
-  LayoutDashboard,
-  Trophy,
-  FileUp,
   Award,
-  Gavel,
-  Building2,
-  UsersRound,
-  Settings,
+  ClipboardCheck,
   CreditCard,
+  FileUp,
+  Gavel,
+  LayoutDashboard,
+  Settings,
+  Trophy,
   UserCheck,
   UserCircle,
-  ClipboardCheck,
-} from 'lucide-react';
-import type { Role } from '@/types/roles';
-import { ROLES, isRole } from '@/types/roles';
+  UsersRound,
+} from "lucide-react";
+import type { Role } from "@/types/roles";
+import { isRole, ROLES } from "@/types/roles";
 
 export type SidebarNavChild = {
   label: string;
@@ -38,66 +37,66 @@ export type SidebarNavItem = {
  */
 export const SIDEBAR_NAV_CONFIG: SidebarNavItem[] = [
   {
-    label: 'Dashboard',
-    href: '/dashboard',
+    label: "Dashboard",
+    href: "/dashboard",
     icon: LayoutDashboard,
     roles: [ROLES.ADMIN, ROLES.SPONSOR, ROLES.PARTICIPANT, ROLES.JUDGE],
   },
   {
-    label: 'Challenges',
-    href: '/hackathons',
+    label: "Challenges",
+    href: "/hackathons",
     icon: Trophy,
     roles: [ROLES.ADMIN, ROLES.SPONSOR, ROLES.PARTICIPANT, ROLES.JUDGE],
   },
   {
-    label: 'Approvals',
-    href: '/hackathons/approvals',
+    label: "Approvals",
+    href: "/hackathons/approvals",
     icon: ClipboardCheck,
     roles: [ROLES.ADMIN],
   },
   {
-    label: 'My participations',
-    href: '/participations',
+    label: "My participations",
+    href: "/participations",
     icon: UserCheck,
     roles: [ROLES.PARTICIPANT],
   },
   {
-    label: 'Score submissions',
-    href: '/judge/hackathons',
+    label: "Score submissions",
+    href: "/judge/hackathons",
     icon: Gavel,
     roles: [ROLES.JUDGE],
   },
   {
-    label: 'Submissions',
-    href: '/submissions',
+    label: "Submissions",
+    href: "/submissions",
     icon: FileUp,
     roles: [ROLES.PARTICIPANT],
   },
   {
-    label: 'Winnings',
-    href: '/winners',
+    label: "Winnings",
+    href: "/winners",
     icon: Award,
     roles: [ROLES.PARTICIPANT],
   },
   {
-    label: 'Transactions',
-    href: '/payments',
+    label: "Transactions",
+    href: "/payments",
     icon: CreditCard,
     roles: [ROLES.ADMIN, ROLES.PARTICIPANT],
   },
   {
-    label: 'Users',
+    label: "Users",
     icon: UsersRound,
     roles: [ROLES.ADMIN],
     children: [
-      { label: 'Participants', href: '/users/participants' },
-      { label: 'Judges', href: '/users/judges' },
-      { label: 'Sponsors', href: '/users/sponsors' },
+      { label: "Participants", href: "/users/participants" },
+      { label: "Judges", href: "/users/judges" },
+      { label: "Sponsors", href: "/users/sponsors" },
     ],
   },
   {
-    label: 'Settings',
-    href: '/settings',
+    label: "Settings",
+    href: "/settings",
     icon: Settings,
     roles: [ROLES.ADMIN, ROLES.SPONSOR, ROLES.PARTICIPANT, ROLES.JUDGE],
   },
@@ -106,8 +105,8 @@ export const SIDEBAR_NAV_CONFIG: SidebarNavItem[] = [
 /** Shown while logged in but profile onboarding is incomplete (all other routes redirect to /onboarding). */
 export const ONBOARDING_ONLY_NAV: SidebarNavItem[] = [
   {
-    label: 'Complete profile',
-    href: '/onboarding',
+    label: "Complete profile",
+    href: "/onboarding",
     icon: UserCircle,
     roles: [ROLES.ADMIN, ROLES.SPONSOR, ROLES.PARTICIPANT, ROLES.JUDGE],
   },
@@ -117,7 +116,9 @@ export const ONBOARDING_ONLY_NAV: SidebarNavItem[] = [
  * Filter sidebar items by user role. Use in sidebar and optionally in middleware.
  * Accepts API role string; invalid roles get no items.
  */
-export function getSidebarItemsForRole(role: Role | string | null | undefined): SidebarNavItem[] {
+export function getSidebarItemsForRole(
+  role: Role | string | null | undefined,
+): SidebarNavItem[] {
   if (!role || !isRole(role)) return [];
   return SIDEBAR_NAV_CONFIG.filter((item) => item.roles.includes(role));
 }
@@ -131,7 +132,7 @@ export function getRouteRolesMap(): Map<string, Role[]> {
   for (const item of SIDEBAR_NAV_CONFIG) {
     if (item.href) map.set(item.href, item.roles);
     if (item.children?.length) {
-      const basePath = item.children[0].href.replace(/\/[^/]+$/, '');
+      const basePath = item.children[0].href.replace(/\/[^/]+$/, "");
       map.set(basePath, item.roles);
     }
     for (const child of item.children ?? []) {
@@ -142,12 +143,16 @@ export function getRouteRolesMap(): Map<string, Role[]> {
 }
 
 /** Check if a role can access a path (exact or prefix). For middleware / route protection. */
-export function canAccessPath(pathname: string, role: Role | string | null | undefined): boolean {
+export function canAccessPath(
+  pathname: string,
+  role: Role | string | null | undefined,
+): boolean {
   if (!role || !isRole(role)) return false;
   const map = getRouteRolesMap();
-  if (map.has(pathname)) return map.get(pathname)!.includes(role);
+  if (map.has(pathname)) return map.get(pathname)?.includes(role) ?? false;
   for (const [path, roles] of map) {
-    if (pathname === path || pathname.startsWith(path + '/')) return roles.includes(role);
+    if (pathname === path || pathname.startsWith(`${path}/`))
+      return roles.includes(role);
   }
   return false;
 }

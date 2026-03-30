@@ -1,60 +1,62 @@
-'use client'
+"use client";
 
-import { getAccessToken, clearTokens } from '@/lib/auth'
-import { useAuth } from '@/contexts/auth-context'
-import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/contexts/auth-context";
+import { clearTokens, getAccessToken } from "@/lib/auth";
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
-  const router = useRouter()
-  const { loadUser } = useAuth()
-  const [authState, setAuthState] = useState<'checking' | 'authenticated' | 'unauthenticated'>('checking')
+  const router = useRouter();
+  const { loadUser } = useAuth();
+  const [authState, setAuthState] = useState<
+    "checking" | "authenticated" | "unauthenticated"
+  >("checking");
 
   useEffect(() => {
-    let cancelled = false
+    let cancelled = false;
 
     async function validateAuth() {
-      const token = getAccessToken()
+      const token = getAccessToken();
       if (!token) {
         if (!cancelled) {
-          setAuthState('unauthenticated')
-          router.replace('/auth/sign-in')
+          setAuthState("unauthenticated");
+          router.replace("/auth/sign-in");
         }
-        return
+        return;
       }
 
       try {
-        const user = await loadUser()
-        if (!cancelled && user) setAuthState('authenticated')
+        const user = await loadUser();
+        if (!cancelled && user) setAuthState("authenticated");
         else if (!cancelled) {
-          clearTokens()
-          setAuthState('unauthenticated')
-          router.replace('/auth/sign-in')
+          clearTokens();
+          setAuthState("unauthenticated");
+          router.replace("/auth/sign-in");
         }
       } catch {
         if (!cancelled) {
-          clearTokens()
-          setAuthState('unauthenticated')
-          router.replace('/auth/sign-in')
+          clearTokens();
+          setAuthState("unauthenticated");
+          router.replace("/auth/sign-in");
         }
       }
     }
 
-    validateAuth()
+    validateAuth();
     return () => {
-      cancelled = true
-    }
-  }, [router, loadUser])
+      cancelled = true;
+    };
+  }, [router, loadUser]);
 
-  if (authState === 'checking') {
+  if (authState === "checking") {
     return (
       <div className="flex w-full h-[calc(100dvh-4rem)] items-center justify-center">
         <div className="text-cs-text p1">Loading...</div>
       </div>
-    )
+    );
   }
 
-  if (authState !== 'authenticated') return null
+  if (authState !== "authenticated") return null;
 
-  return <>{children}</>
+  return <>{children}</>;
 }

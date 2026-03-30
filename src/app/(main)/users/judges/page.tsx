@@ -1,182 +1,213 @@
-'use client'
+"use client";
 
-import { useMemo, useState, useCallback, useEffect } from 'react'
-import Link from 'next/link'
-import type { ColumnDef } from '@tanstack/react-table'
-import type { PaginationState } from '@tanstack/react-table'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { DataTable } from '@/components/ui/data-table'
-import { useJudges, type UserListItem } from '@/hooks/use-judges'
-import PageHeader from '@/components/pageHeader/PageHeader'
-import { Button } from '@/components/ui/button'
-import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { deleteUser, createFavorite, deleteFavorite, getFavorites, type Favorite } from '@/lib/auth-api'
-import { Eye, Pencil, Trash2, Star } from 'lucide-react'
-import { toast } from 'sonner'
-import { Select } from '@/components/ui/select'
-import { UserTableProfileCell } from '@/components/admin/UserTableProfileCell'
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { ColumnDef, PaginationState } from "@tanstack/react-table";
+import { Eye, Pencil, Star, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import { UserTableProfileCell } from "@/components/admin/UserTableProfileCell";
+import PageHeader from "@/components/pageHeader/PageHeader";
+import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { DataTable } from "@/components/ui/data-table";
+import { Select } from "@/components/ui/select";
+import { type UserListItem, useJudges } from "@/hooks/use-judges";
+import {
+  createFavorite,
+  deleteFavorite,
+  deleteUser,
+  type Favorite,
+  getFavorites,
+} from "@/lib/auth-api";
 
 export default function UsersJudgesPage() {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
-  })
-  const [search, setSearch] = useState('')
-  const [favoriteFilter, setFavoriteFilter] = useState<'all' | 'favorites' | 'non-favorites'>('all')
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; email: string } | null>(null)
+  });
+  const [search, setSearch] = useState("");
+  const [favoriteFilter, setFavoriteFilter] = useState<
+    "all" | "favorites" | "non-favorites"
+  >("all");
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: string;
+    email: string;
+  } | null>(null);
 
   const { data, isLoading, isError, error, isFetching } = useJudges({
     page: pagination.pageIndex,
     pageSize: pagination.pageSize,
     search,
-  })
+  });
 
   // Fetch favorites to check which judges are favorited
   const { data: favoritesData } = useQuery({
-    queryKey: ['favorites', 'judge'],
-    queryFn: () => getFavorites('judge'),
-  })
+    queryKey: ["favorites", "judge"],
+    queryFn: () => getFavorites("judge"),
+  });
 
-  const favorites = favoritesData?.data ?? []
-  const favoriteIds = new Set(favorites.map((f: Favorite) => f.favoriteId))
+  const favorites = favoritesData?.data ?? [];
+  const favoriteIds = new Set(favorites.map((f: Favorite) => f.favoriteId));
 
   const handleSearch = useCallback((value: string) => {
-    setSearch(value)
-    setPagination((prev) => ({ ...prev, pageIndex: 0 }))
-  }, [])
+    setSearch(value);
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, []);
 
   const handleFavoriteFilterChange = useCallback((value: string) => {
-    setFavoriteFilter(value as 'all' | 'favorites' | 'non-favorites')
-    setPagination((prev) => ({ ...prev, pageIndex: 0 }))
-  }, [])
+    setFavoriteFilter(value as "all" | "favorites" | "non-favorites");
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, []);
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteUser(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['judges'] })
-      queryClient.invalidateQueries({ queryKey: ['favorites'] })
-      setDeleteTarget(null)
-      toast.success('Judge deleted successfully')
+      queryClient.invalidateQueries({ queryKey: ["judges"] });
+      queryClient.invalidateQueries({ queryKey: ["favorites"] });
+      setDeleteTarget(null);
+      toast.success("Judge deleted successfully");
     },
     onError: (err: Error) => {
-      toast.error(err.message ?? 'Failed to delete judge')
+      toast.error(err.message ?? "Failed to delete judge");
     },
-  })
+  });
 
   const favoriteMutation = useMutation({
-    mutationFn: async ({ favoriteId, isFavorite }: { favoriteId: string; isFavorite: boolean }) => {
+    mutationFn: async ({
+      favoriteId,
+      isFavorite,
+    }: {
+      favoriteId: string;
+      isFavorite: boolean;
+    }) => {
       if (isFavorite) {
-        const favorite = favorites.find((f: Favorite) => f.favoriteId === favoriteId)
-        if (!favorite) throw new Error('Favorite not found')
-        await deleteFavorite(favorite.id)
-        return
+        const favorite = favorites.find(
+          (f: Favorite) => f.favoriteId === favoriteId,
+        );
+        if (!favorite) throw new Error("Favorite not found");
+        await deleteFavorite(favorite.id);
+        return;
       }
-      await createFavorite('judge', favoriteId)
+      await createFavorite("judge", favoriteId);
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['favorites'] })
-      toast.success(variables.isFavorite ? 'Removed from favorites' : 'Added to favorites')
+      queryClient.invalidateQueries({ queryKey: ["favorites"] });
+      toast.success(
+        variables.isFavorite ? "Removed from favorites" : "Added to favorites",
+      );
     },
     onError: (err: Error) => {
-      toast.error(err.message ?? 'Failed to update favorite')
+      toast.error(err.message ?? "Failed to update favorite");
     },
-  })
+  });
 
   const handleDeleteConfirm = useCallback(() => {
-    if (deleteTarget) deleteMutation.mutate(deleteTarget.id)
-  }, [deleteTarget, deleteMutation])
+    if (deleteTarget) deleteMutation.mutate(deleteTarget.id);
+  }, [deleteTarget, deleteMutation]);
 
   const handleToggleFavorite = useCallback(
     (judgeId: string) => {
-      const isFavorite = favoriteIds.has(judgeId)
-      favoriteMutation.mutate({ favoriteId: judgeId, isFavorite })
+      const isFavorite = favoriteIds.has(judgeId);
+      favoriteMutation.mutate({ favoriteId: judgeId, isFavorite });
     },
-    [favoriteIds, favoriteMutation]
-  )
+    [favoriteIds, favoriteMutation],
+  );
 
   // Extract judges and pagination from response
-  const judgesRaw = data?.data
-  const allJudges = Array.isArray(judgesRaw) ? judgesRaw : []
-  
+  const judgesRaw = data?.data;
+  const allJudges = Array.isArray(judgesRaw) ? judgesRaw : [];
+
   // Filter by favorite status
   const filteredJudges = useMemo(() => {
-    if (favoriteFilter === 'all') return allJudges
-    if (favoriteFilter === 'favorites') {
-      return allJudges.filter((judge) => favoriteIds.has(judge.id))
+    if (favoriteFilter === "all") return allJudges;
+    if (favoriteFilter === "favorites") {
+      return allJudges.filter((judge) => favoriteIds.has(judge.id));
     }
     // non-favorites
-    return allJudges.filter((judge) => !favoriteIds.has(judge.id))
-  }, [allJudges, favoriteFilter, favoriteIds])
-  
-  const judges = filteredJudges
-  const totalCount = favoriteFilter === 'all' ? (data?.pagination?.total ?? 0) : filteredJudges.length
+    return allJudges.filter((judge) => !favoriteIds.has(judge.id));
+  }, [allJudges, favoriteFilter, favoriteIds]);
+
+  const judges = filteredJudges;
+  const totalCount =
+    favoriteFilter === "all"
+      ? (data?.pagination?.total ?? 0)
+      : filteredJudges.length;
 
   // Show error toast if query fails
   useEffect(() => {
     if (isError && error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to load judges')
+      toast.error(
+        error instanceof Error ? error.message : "Failed to load judges",
+      );
     }
-  }, [isError, error])
+  }, [isError, error]);
 
   const columns = useMemo<ColumnDef<UserListItem, unknown>[]>(
     () => [
       {
-        id: 'user',
-        header: 'User',
+        id: "user",
+        header: "User",
         cell: (info) => <UserTableProfileCell user={info.row.original} />,
       },
       {
-        accessorKey: 'role',
-        header: 'Role',
-        cell: (info) => (info.getValue() as string) ?? '—',
+        accessorKey: "role",
+        header: "Role",
+        cell: (info) => (info.getValue() as string) ?? "—",
       },
       {
-        accessorKey: 'emailVerified',
-        header: 'Verified',
+        accessorKey: "emailVerified",
+        header: "Verified",
         cell: (info) => {
-          const v = info.getValue() as boolean
+          const v = info.getValue() as boolean;
           return v ? (
             <span className="text-emerald-500">Yes</span>
           ) : (
             <span className="text-amber-500">No</span>
-          )
+          );
         },
       },
       {
-        accessorKey: 'createdAt',
-        header: 'Joined',
+        accessorKey: "createdAt",
+        header: "Joined",
         cell: (info) => {
-          const raw = info.getValue() as string
-          if (!raw) return '—'
+          const raw = info.getValue() as string;
+          if (!raw) return "—";
           try {
-            const d = new Date(raw)
+            const d = new Date(raw);
             return d.toLocaleDateString(undefined, {
-              year: 'numeric',
-              month: 'short',
-              day: 'numeric',
-            })
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            });
           } catch {
-            return raw
+            return raw;
           }
         },
       },
       {
-        id: 'actions',
-        header: 'Actions',
+        id: "actions",
+        header: "Actions",
         cell: (info) => {
-          const row = info.row.original
-          const isFavorite = favoriteIds.has(row.id)
+          const row = info.row.original;
+          const isFavorite = favoriteIds.has(row.id);
           return (
             <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
                 size="icon-xs"
                 onClick={() => handleToggleFavorite(row.id)}
-                className={isFavorite ? 'text-yellow-500 hover:text-yellow-600' : ''}
-                title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                className={
+                  isFavorite ? "text-yellow-500 hover:text-yellow-600" : ""
+                }
+                title={
+                  isFavorite ? "Remove from favorites" : "Add to favorites"
+                }
               >
-                <Star className={`size-3.5 ${isFavorite ? 'fill-current' : ''}`} />
+                <Star
+                  className={`size-3.5 ${isFavorite ? "fill-current" : ""}`}
+                />
               </Button>
               <Button variant="ghost" size="icon-xs" asChild>
                 <Link href={`/users/judges/${row.id}`} title="View">
@@ -192,18 +223,20 @@ export default function UsersJudgesPage() {
                 variant="ghost"
                 size="icon-xs"
                 className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
-                onClick={() => setDeleteTarget({ id: row.id, email: row.email })}
+                onClick={() =>
+                  setDeleteTarget({ id: row.id, email: row.email })
+                }
                 title="Delete"
               >
                 <Trash2 className="size-3.5" />
               </Button>
             </div>
-          )
+          );
         },
       },
     ],
-    [favoriteIds, handleToggleFavorite]
-  )
+    [favoriteIds, handleToggleFavorite],
+  );
 
   return (
     <div>
@@ -215,7 +248,10 @@ export default function UsersJudgesPage() {
 
       <div className="mb-4 flex items-center gap-4">
         <div className="flex items-center gap-2">
-          <label htmlFor="favorite-filter" className="text-sm font-medium text-muted-foreground">
+          <label
+            htmlFor="favorite-filter"
+            className="text-sm font-medium text-muted-foreground"
+          >
             Filter:
           </label>
           <Select
@@ -238,7 +274,7 @@ export default function UsersJudgesPage() {
         description={
           deleteTarget
             ? `Are you sure you want to delete ${deleteTarget.email}? This action cannot be undone.`
-            : ''
+            : ""
         }
         confirmLabel="Delete"
         cancelLabel="Cancel"
@@ -255,7 +291,7 @@ export default function UsersJudgesPage() {
         dynamicSearchConfig={{
           searchValue: search,
           onSearch: handleSearch,
-          placeholder: 'Search by name, email, or username...',
+          placeholder: "Search by name, email, or username...",
           debounceMs: 300,
         }}
         pagination
@@ -269,9 +305,13 @@ export default function UsersJudgesPage() {
         sorting={false}
         getRowId={(row) => row.id}
         emptyMessage={
-          isLoading ? 'Loading...' : isFetching && search ? 'Searching...' : 'No judges found.'
+          isLoading
+            ? "Loading..."
+            : isFetching && search
+              ? "Searching..."
+              : "No judges found."
         }
       />
     </div>
-  )
+  );
 }

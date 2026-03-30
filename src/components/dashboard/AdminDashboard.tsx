@@ -1,36 +1,45 @@
-'use client'
+"use client";
 
-import { useQuery } from '@tanstack/react-query'
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { getUsers, getHackathons } from '@/lib/auth-api'
+import { useQuery } from "@tanstack/react-query";
 import {
-  UsersRound,
-  Trophy,
-  Gavel,
-  Building2,
-  UserCheck,
   ArrowRight,
-} from 'lucide-react'
-import { useAuth } from '@/contexts/auth-context'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { hackathonImageSrc } from '@/components/hackathon-card/HackathonCard'
-import { userTablePrimaryLine, userListInitials } from '@/lib/user-display'
+  Building2,
+  Gavel,
+  Trophy,
+  UserCheck,
+  UsersRound,
+} from "lucide-react";
+import Link from "next/link";
+import { hackathonImageSrc } from "@/components/hackathon-card/HackathonCard";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/auth-context";
+import { getHackathons, getUsers } from "@/lib/auth-api";
+import { userListInitials, userTablePrimaryLine } from "@/lib/user-display";
 
-const PROFILE_PLACEHOLDER = '/profile-placeholder.svg'
+const PROFILE_PLACEHOLDER = "/profile-placeholder.svg";
 
 type StatCardProps = {
-  title: string
-  value: string | number
-  icon: React.ReactNode
-  href?: string
-  trend?: string
-  className?: string
-}
+  title: string;
+  value: string | number;
+  icon: React.ReactNode;
+  href?: string;
+  trend?: string;
+  className?: string;
+};
 
-function StatCard({ title, value, icon, href, trend, className = '' }: StatCardProps) {
+function StatCard({
+  title,
+  value,
+  icon,
+  href,
+  trend,
+  className = "",
+}: StatCardProps) {
   const content = (
-    <div className={`glass cs-card rounded-lg border border-cs-border p-6 shadow-sm transition-all hover:shadow-md ${className}`}>
+    <div
+      className={`glass cs-card rounded-lg border border-cs-border p-6 shadow-sm transition-all hover:shadow-md ${className}`}
+    >
       <div className="flex items-center justify-between">
         <div>
           <p className="text-muted-foreground text-sm font-medium">{title}</p>
@@ -40,67 +49,68 @@ function StatCard({ title, value, icon, href, trend, className = '' }: StatCardP
           )}
         </div>
         <div className="rounded-full bg-primary p-3 text-primary">
-         <span className="brightness-0 ">{icon}</span>
+          <span className="brightness-0 ">{icon}</span>
         </div>
       </div>
     </div>
-  )
+  );
 
   if (href) {
     return (
       <Link href={href} className="block">
         {content}
       </Link>
-    )
+    );
   }
 
-  return content
+  return content;
 }
 
 export default function AdminDashboard() {
-  const { user } = useAuth()
+  const { user } = useAuth();
 
   // Fetch statistics
   const { data: participantsData } = useQuery({
-    queryKey: ['dashboard', 'participants'],
-    queryFn: () => getUsers({ page: 1, limit: 1, role: 'participant' }),
-  })
+    queryKey: ["dashboard", "participants"],
+    queryFn: () => getUsers({ page: 1, limit: 1, role: "participant" }),
+  });
 
   const { data: judgesData } = useQuery({
-    queryKey: ['dashboard', 'judges'],
-    queryFn: () => getUsers({ page: 1, limit: 1, role: 'judge' }),
-  })
+    queryKey: ["dashboard", "judges"],
+    queryFn: () => getUsers({ page: 1, limit: 1, role: "judge" }),
+  });
 
   const { data: sponsorsData } = useQuery({
-    queryKey: ['dashboard', 'sponsors'],
-    queryFn: () => getUsers({ page: 1, limit: 1, role: 'sponsor' }),
-  })
+    queryKey: ["dashboard", "sponsors"],
+    queryFn: () => getUsers({ page: 1, limit: 1, role: "sponsor" }),
+  });
 
   const { data: hackathonsData } = useQuery({
-    queryKey: ['dashboard', 'hackathons'],
+    queryKey: ["dashboard", "hackathons"],
     queryFn: () => getHackathons({ page: 1, limit: 1 }),
-  })
+  });
 
-  const totalParticipants = participantsData?.pagination?.total ?? 0
-  const totalJudges = judgesData?.pagination?.total ?? 0
-  const totalSponsors = sponsorsData?.pagination?.total ?? 0
-  const totalHackathons = hackathonsData?.pagination?.total ?? 0
-  const totalUsers = totalParticipants + totalJudges + totalSponsors
+  const totalParticipants = participantsData?.pagination?.total ?? 0;
+  const totalJudges = judgesData?.pagination?.total ?? 0;
+  const totalSponsors = sponsorsData?.pagination?.total ?? 0;
+  const totalHackathons = hackathonsData?.pagination?.total ?? 0;
+  const _totalUsers = totalParticipants + totalJudges + totalSponsors;
 
   // Get recent data for activity
   const { data: recentParticipants } = useQuery({
-    queryKey: ['dashboard', 'recent-participants'],
-    queryFn: () => getUsers({ page: 1, limit: 5, role: 'participant' }),
-  })
+    queryKey: ["dashboard", "recent-participants"],
+    queryFn: () => getUsers({ page: 1, limit: 5, role: "participant" }),
+  });
 
-  const recentParticipantsList = recentParticipants?.data?.slice(0, 5) ?? []
+  const recentParticipantsList = recentParticipants?.data?.slice(0, 5) ?? [];
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="h2 text-cs-heading">Admin Dashboard</h1>
         <p className="p1 mt-1 text-cs-text">
-          Welcome back, {user?.email}. Here's what's happening with your platform.
+          Welcome back, {user?.email}. Here's what's happening with your
+          platform.
         </p>
       </div>
 
@@ -111,7 +121,9 @@ export default function AdminDashboard() {
           value={totalHackathons}
           icon={<Trophy className="size-6" />}
           href="/hackathons"
-          trend={totalHackathons === 0 ? 'Create one to get started' : 'View all'}
+          trend={
+            totalHackathons === 0 ? "Create one to get started" : "View all"
+          }
         />
         <StatCard
           title="Total Users"
@@ -191,7 +203,10 @@ export default function AdminDashboard() {
                   <div className="flex items-center gap-3">
                     <Avatar className="size-10 shrink-0 border border-cs-border">
                       <AvatarImage
-                        src={hackathonImageSrc(participant.profilePic ?? null) ?? PROFILE_PLACEHOLDER}
+                        src={
+                          hackathonImageSrc(participant.profilePic ?? null) ??
+                          PROFILE_PLACEHOLDER
+                        }
                         alt=""
                       />
                       <AvatarFallback className="text-xs">
@@ -202,22 +217,26 @@ export default function AdminDashboard() {
                       <p className="truncate font-medium">
                         {userTablePrimaryLine(participant)}
                       </p>
-                      <p className="text-muted-foreground truncate text-sm">{participant.email}</p>
+                      <p className="text-muted-foreground truncate text-sm">
+                        {participant.email}
+                      </p>
                     </div>
                   </div>
                   <div className="text-muted-foreground text-xs">
                     {participant.createdAt
                       ? new Date(participant.createdAt).toLocaleDateString()
-                      : '—'}
+                      : "—"}
                   </div>
                 </Link>
               ))}
             </div>
           ) : (
-            <p className="text-muted-foreground text-center py-8 text-sm">No participants yet</p>
+            <p className="text-muted-foreground text-center py-8 text-sm">
+              No participants yet
+            </p>
           )}
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -1,79 +1,79 @@
-'use client'
+"use client";
 
-import { Button } from '@/components/ui/button'
-import { PasswordInput } from '@/components/ui/password-input'
-import { changePassword } from '@/lib/auth-api'
-import { getAccessToken } from '@/lib/auth'
-import { validatePassword } from '@/lib/validate'
-import { useMutation } from '@tanstack/react-query'
-import Image from 'next/image'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
+import { useMutation } from "@tanstack/react-query";
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { PasswordInput } from "@/components/ui/password-input";
+import { getAccessToken } from "@/lib/auth";
+import { changePassword } from "@/lib/auth-api";
+import { validatePassword } from "@/lib/validate";
 
 type ChangePasswordFormData = {
-  currentPassword: string
-  newPassword: string
-  confirmPassword: string
-}
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+};
 
 const ChangePasswordPage = () => {
-  const router = useRouter()
+  const router = useRouter();
   const [formData, setFormData] = useState<ChangePasswordFormData>({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-  })
-  const [passwordError, setPasswordError] = useState<string | null>(null)
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return
+    if (typeof window === "undefined") return;
     if (!getAccessToken()) {
-      router.replace('/auth/sign-in')
-      return
+      router.replace("/auth/sign-in");
+      return;
     }
-    setIsCheckingAuth(false)
-  }, [router])
+    setIsCheckingAuth(false);
+  }, [router]);
 
   const changeMutation = useMutation({
     mutationFn: (payload: { currentPassword: string; newPassword: string }) =>
       changePassword(payload),
     onSuccess: () => {
-      toast.success('Password changed successfully.')
-      router.push('/dashboard')
+      toast.success("Password changed successfully.");
+      router.push("/dashboard");
     },
     onError: (error: Error) => {
-      toast.error(error.message ?? 'Failed to change password')
+      toast.error(error.message ?? "Failed to change password");
     },
-  })
+  });
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setPasswordError(null)
-    const validation = validatePassword(formData.newPassword)
+    e.preventDefault();
+    setPasswordError(null);
+    const validation = validatePassword(formData.newPassword);
     if (!validation.valid) {
-      setPasswordError(validation.message ?? 'Invalid password')
-      toast.error(validation.message)
-      return
+      setPasswordError(validation.message ?? "Invalid password");
+      toast.error(validation.message);
+      return;
     }
     if (formData.newPassword !== formData.confirmPassword) {
-      toast.error('New passwords do not match')
-      return
+      toast.error("New passwords do not match");
+      return;
     }
     changeMutation.mutate({
       currentPassword: formData.currentPassword,
       newPassword: formData.newPassword,
-    })
-  }
+    });
+  };
 
   if (isCheckingAuth) {
     return (
       <div className="parent h-dvh flex items-center justify-center">
         <p className="p1 text-cs-text">Loading...</p>
       </div>
-    )
+    );
   }
 
   return (
@@ -107,12 +107,12 @@ const ChangePasswordPage = () => {
               placeholder="New password"
               value={formData.newPassword}
               onChange={(e) => {
-                setFormData({ ...formData, newPassword: e.target.value })
-                setPasswordError(null)
+                setFormData({ ...formData, newPassword: e.target.value });
+                setPasswordError(null);
               }}
               required
             />
-           
+
             {passwordError && (
               <p className="text-sm text-destructive">{passwordError}</p>
             )}
@@ -129,7 +129,7 @@ const ChangePasswordPage = () => {
               className="w-full mt-4"
               disabled={changeMutation.isPending}
             >
-              {changeMutation.isPending ? 'Updating…' : 'Update password'}
+              {changeMutation.isPending ? "Updating…" : "Update password"}
             </Button>
           </form>
         </div>
@@ -140,7 +140,7 @@ const ChangePasswordPage = () => {
         </p>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default ChangePasswordPage
+export default ChangePasswordPage;

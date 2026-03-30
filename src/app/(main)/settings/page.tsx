@@ -1,314 +1,353 @@
-'use client'
+"use client";
 
-import { Button } from '@/components/ui/button'
-import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { Input } from '@/components/ui/input'
-import { PasswordInput } from '@/components/ui/password-input'
-import { hackathonImageSrc } from '@/components/hackathon-card/HackathonCard'
+import { useMutation } from "@tanstack/react-query";
+import Image from "next/image";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
+import { hackathonImageSrc } from "@/components/hackathon-card/HackathonCard";
+import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
+import { useAuth } from "@/contexts/auth-context";
 import {
+  confirmEmailChange,
+  confirmPasswordChange,
+  requestEmailChange,
+  requestPasswordChangeOtp,
   updateProfile,
   updateProfilePicture,
-  requestEmailChange,
-  confirmEmailChange,
-  requestPasswordChangeOtp,
-  confirmPasswordChange,
-} from '@/lib/auth-api'
-import { useAuth } from '@/contexts/auth-context'
-import { validatePassword, validateUsername } from '@/lib/validate'
-import { validateEmail } from '@/lib/validate'
-import { cn } from '@/lib/utils'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import Image from 'next/image'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { toast } from 'sonner'
+} from "@/lib/auth-api";
+import { cn } from "@/lib/utils";
+import {
+  validateEmail,
+  validatePassword,
+  validateUsername,
+} from "@/lib/validate";
 
-const PROFILE_ACCEPT = 'image/png,image/webp,image/jpeg,image/jpg'
-const MAX_BIO_LEN = 1000
-const MAX_PROFILE_FILE = 2 * 1024 * 1024
+const PROFILE_ACCEPT = "image/png,image/webp,image/jpeg,image/jpg";
+const MAX_BIO_LEN = 1000;
+const MAX_PROFILE_FILE = 2 * 1024 * 1024;
 
-const OTP_LENGTH = 6
+const OTP_LENGTH = 6;
 
 export default function SettingsPage() {
-  const { user, loadUser } = useAuth()
-  const queryClient = useQueryClient()
+  const { user, loadUser } = useAuth();
 
   // Profile
-  const [name, setName] = useState('')
-  const [username, setUsername] = useState('')
-  const [usernameError, setUsernameError] = useState<string | null>(null)
-  const [profileBio, setProfileBio] = useState('')
-  const [profileBaseline, setProfileBaseline] = useState({ name: '', username: '', profileBio: '' })
-  const [profileSaveDialogOpen, setProfileSaveDialogOpen] = useState(false)
+  const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [profileBio, setProfileBio] = useState("");
+  const [profileBaseline, setProfileBaseline] = useState({
+    name: "",
+    username: "",
+    profileBio: "",
+  });
+  const [profileSaveDialogOpen, setProfileSaveDialogOpen] = useState(false);
 
   // Email change
-  const [newEmail, setNewEmail] = useState('')
-  const [emailOtpDigits, setEmailOtpDigits] = useState<string[]>(() => Array(OTP_LENGTH).fill(''))
-  const [emailStep, setEmailStep] = useState<'form' | 'otp'>('form')
-  const emailOtpRefs = useRef<(HTMLInputElement | null)[]>([])
-  const [emailResendCooldown, setEmailResendCooldown] = useState(0)
+  const [newEmail, setNewEmail] = useState("");
+  const [emailOtpDigits, setEmailOtpDigits] = useState<string[]>(() =>
+    Array(OTP_LENGTH).fill(""),
+  );
+  const [emailStep, setEmailStep] = useState<"form" | "otp">("form");
+  const emailOtpRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const [emailResendCooldown, setEmailResendCooldown] = useState(0);
 
   // Password change
-  const [passwordOtpDigits, setPasswordOtpDigits] = useState<string[]>(() => Array(OTP_LENGTH).fill(''))
-  const [newPassword, setNewPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [passwordError, setPasswordError] = useState<string | null>(null)
-  const [passwordStep, setPasswordStep] = useState<'idle' | 'otp'>('idle')
-  const passwordOtpRefs = useRef<(HTMLInputElement | null)[]>([])
-  const [passwordResendCooldown, setPasswordResendCooldown] = useState(0)
+  const [passwordOtpDigits, setPasswordOtpDigits] = useState<string[]>(() =>
+    Array(OTP_LENGTH).fill(""),
+  );
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordStep, setPasswordStep] = useState<"idle" | "otp">("idle");
+  const passwordOtpRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const [passwordResendCooldown, setPasswordResendCooldown] = useState(0);
 
   useEffect(() => {
-    if (!user) return
-    const n = user.name ?? ''
-    const u = user.username ?? ''
-    const b = user.profileBio ?? ''
-    setName(n)
-    setUsername(u)
-    setProfileBio(b)
-    setProfileBaseline({ name: n, username: u, profileBio: b })
-  }, [user])
+    if (!user) return;
+    const n = user.name ?? "";
+    const u = user.username ?? "";
+    const b = user.profileBio ?? "";
+    setName(n);
+    setUsername(u);
+    setProfileBio(b);
+    setProfileBaseline({ name: n, username: u, profileBio: b });
+  }, [user]);
 
   const isProfileDirty = useMemo(() => {
-    const bn = profileBaseline.name.trim()
-    const bu = profileBaseline.username.trim()
-    const bb = profileBaseline.profileBio.trim()
+    const bn = profileBaseline.name.trim();
+    const bu = profileBaseline.username.trim();
+    const bb = profileBaseline.profileBio.trim();
     return (
-      name.trim() !== bn ||
-      username.trim() !== bu ||
-      profileBio.trim() !== bb
-    )
-  }, [name, username, profileBio, profileBaseline])
+      name.trim() !== bn || username.trim() !== bu || profileBio.trim() !== bb
+    );
+  }, [name, username, profileBio, profileBaseline]);
+
+  const profilePictureSrc = user ? hackathonImageSrc(user.profilePic) : null;
 
   useEffect(() => {
-    if (emailResendCooldown <= 0) return
-    const id = setInterval(() => setEmailResendCooldown((s) => (s <= 1 ? 0 : s - 1)), 1000)
-    return () => clearInterval(id)
-  }, [emailResendCooldown])
+    if (emailResendCooldown <= 0) return;
+    const id = setInterval(
+      () => setEmailResendCooldown((s) => (s <= 1 ? 0 : s - 1)),
+      1000,
+    );
+    return () => clearInterval(id);
+  }, [emailResendCooldown]);
 
   useEffect(() => {
-    if (passwordResendCooldown <= 0) return
-    const id = setInterval(() => setPasswordResendCooldown((s) => (s <= 1 ? 0 : s - 1)), 1000)
-    return () => clearInterval(id)
-  }, [passwordResendCooldown])
+    if (passwordResendCooldown <= 0) return;
+    const id = setInterval(
+      () => setPasswordResendCooldown((s) => (s <= 1 ? 0 : s - 1)),
+      1000,
+    );
+    return () => clearInterval(id);
+  }, [passwordResendCooldown]);
 
   const setEmailOtpDigit = useCallback((index: number, value: string) => {
-    const digit = value.replace(/\D/g, '').slice(-1)
+    const digit = value.replace(/\D/g, "").slice(-1);
     setEmailOtpDigits((prev) => {
-      const next = [...prev]
-      next[index] = digit
-      return next
-    })
-    if (digit && index < OTP_LENGTH - 1) emailOtpRefs.current[index + 1]?.focus()
-  }, [])
+      const next = [...prev];
+      next[index] = digit;
+      return next;
+    });
+    if (digit && index < OTP_LENGTH - 1)
+      emailOtpRefs.current[index + 1]?.focus();
+  }, []);
 
   const setPasswordOtpDigit = useCallback((index: number, value: string) => {
-    const digit = value.replace(/\D/g, '').slice(-1)
+    const digit = value.replace(/\D/g, "").slice(-1);
     setPasswordOtpDigits((prev) => {
-      const next = [...prev]
-      next[index] = digit
-      return next
-    })
-    if (digit && index < OTP_LENGTH - 1) passwordOtpRefs.current[index + 1]?.focus()
-  }, [])
+      const next = [...prev];
+      next[index] = digit;
+      return next;
+    });
+    if (digit && index < OTP_LENGTH - 1)
+      passwordOtpRefs.current[index + 1]?.focus();
+  }, []);
 
   const handleEmailOtpPaste = useCallback((e: React.ClipboardEvent) => {
-    e.preventDefault()
-    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, OTP_LENGTH)
-    if (!pasted) return
-    const digits = Array(OTP_LENGTH).fill('')
-    pasted.split('').forEach((c, i) => { if (i < OTP_LENGTH) digits[i] = c })
-    setEmailOtpDigits(digits)
-    emailOtpRefs.current[Math.min(pasted.length, OTP_LENGTH - 1)]?.focus()
-  }, [])
+    e.preventDefault();
+    const pasted = e.clipboardData
+      .getData("text")
+      .replace(/\D/g, "")
+      .slice(0, OTP_LENGTH);
+    if (!pasted) return;
+    const digits = Array(OTP_LENGTH).fill("");
+    pasted.split("").forEach((c, i) => {
+      if (i < OTP_LENGTH) digits[i] = c;
+    });
+    setEmailOtpDigits(digits);
+    emailOtpRefs.current[Math.min(pasted.length, OTP_LENGTH - 1)]?.focus();
+  }, []);
 
   const handlePasswordOtpPaste = useCallback((e: React.ClipboardEvent) => {
-    e.preventDefault()
-    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, OTP_LENGTH)
-    if (!pasted) return
-    const digits = Array(OTP_LENGTH).fill('')
-    pasted.split('').forEach((c, i) => { if (i < OTP_LENGTH) digits[i] = c })
-    setPasswordOtpDigits(digits)
-    passwordOtpRefs.current[Math.min(pasted.length, OTP_LENGTH - 1)]?.focus()
-  }, [])
+    e.preventDefault();
+    const pasted = e.clipboardData
+      .getData("text")
+      .replace(/\D/g, "")
+      .slice(0, OTP_LENGTH);
+    if (!pasted) return;
+    const digits = Array(OTP_LENGTH).fill("");
+    pasted.split("").forEach((c, i) => {
+      if (i < OTP_LENGTH) digits[i] = c;
+    });
+    setPasswordOtpDigits(digits);
+    passwordOtpRefs.current[Math.min(pasted.length, OTP_LENGTH - 1)]?.focus();
+  }, []);
 
   const profileMutation = useMutation({
-    mutationFn: (body: { name?: string | null; username?: string | null; profileBio?: string | null }) =>
-      updateProfile(body),
+    mutationFn: (body: {
+      name?: string | null;
+      username?: string | null;
+      profileBio?: string | null;
+    }) => updateProfile(body),
     onSuccess: async () => {
-      await loadUser()
-      toast.success('Profile updated')
+      await loadUser();
+      toast.success("Profile updated");
     },
     onError: (e: Error) => toast.error(e.message),
-  })
+  });
 
   const profilePictureMutation = useMutation({
     mutationFn: (f: File) => updateProfilePicture(f),
     onSuccess: async () => {
-      await loadUser()
-      toast.success('Profile picture updated')
+      await loadUser();
+      toast.success("Profile picture updated");
     },
     onError: (e: Error) => toast.error(e.message),
-  })
+  });
 
   const requestEmailMutation = useMutation({
     mutationFn: (email: string) => requestEmailChange(email),
     onSuccess: () => {
-      setEmailStep('otp')
-      setEmailResendCooldown(60)
-      toast.success('Verification code sent to your new email')
+      setEmailStep("otp");
+      setEmailResendCooldown(60);
+      toast.success("Verification code sent to your new email");
     },
     onError: (e: Error) => toast.error(e.message),
-  })
+  });
 
   const confirmEmailMutation = useMutation({
-    mutationFn: (body: { newEmail: string; otp: string }) => confirmEmailChange(body),
+    mutationFn: (body: { newEmail: string; otp: string }) =>
+      confirmEmailChange(body),
     onSuccess: async () => {
-      await loadUser()
-      setEmailStep('form')
-      setNewEmail('')
-      setEmailOtpDigits(Array(OTP_LENGTH).fill(''))
-      toast.success('Email updated successfully')
+      await loadUser();
+      setEmailStep("form");
+      setNewEmail("");
+      setEmailOtpDigits(Array(OTP_LENGTH).fill(""));
+      toast.success("Email updated successfully");
     },
     onError: (e: Error) => toast.error(e.message),
-  })
+  });
 
   const requestPasswordMutation = useMutation({
     mutationFn: () => requestPasswordChangeOtp(),
     onSuccess: () => {
-      setPasswordStep('otp')
-      setPasswordResendCooldown(60)
-      toast.success('Verification code sent to your email')
+      setPasswordStep("otp");
+      setPasswordResendCooldown(60);
+      toast.success("Verification code sent to your email");
     },
     onError: (e: Error) => toast.error(e.message),
-  })
+  });
 
   const confirmPasswordMutation = useMutation({
-    mutationFn: (body: { otp: string; newPassword: string }) => confirmPasswordChange(body),
+    mutationFn: (body: { otp: string; newPassword: string }) =>
+      confirmPasswordChange(body),
     onSuccess: async () => {
-      setPasswordStep('idle')
-      setPasswordOtpDigits(Array(OTP_LENGTH).fill(''))
-      setNewPassword('')
-      setConfirmPassword('')
-      setPasswordError(null)
-      toast.success('Password changed successfully')
+      setPasswordStep("idle");
+      setPasswordOtpDigits(Array(OTP_LENGTH).fill(""));
+      setNewPassword("");
+      setConfirmPassword("");
+      setPasswordError(null);
+      toast.success("Password changed successfully");
     },
     onError: (e: Error) => toast.error(e.message),
-  })
+  });
 
   const onRequestSaveProfile = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!isProfileDirty) return
-    setUsernameError(null)
+    e.preventDefault();
+    if (!isProfileDirty) return;
+    setUsernameError(null);
     if (username.trim()) {
-      const u = validateUsername(username.trim())
+      const u = validateUsername(username.trim());
       if (!u.valid) {
-        setUsernameError(u.message ?? 'Invalid username')
-        return
+        setUsernameError(u.message ?? "Invalid username");
+        return;
       }
     }
-    setProfileSaveDialogOpen(true)
-  }
+    setProfileSaveDialogOpen(true);
+  };
 
   const emailChangeDisabled =
     user == null ||
     !newEmail.trim() ||
-    newEmail.trim().toLowerCase() === user.email.toLowerCase()
+    newEmail.trim().toLowerCase() === user.email.toLowerCase();
 
   const executeProfileSave = async () => {
-    setUsernameError(null)
+    setUsernameError(null);
     if (username.trim()) {
-      const u = validateUsername(username.trim())
+      const u = validateUsername(username.trim());
       if (!u.valid) {
-        setUsernameError(u.message ?? 'Invalid username')
-        throw new Error(u.message ?? 'Invalid username')
+        setUsernameError(u.message ?? "Invalid username");
+        throw new Error(u.message ?? "Invalid username");
       }
     }
     await profileMutation.mutateAsync({
       name: name.trim() || null,
       username: username.trim() || null,
       profileBio: profileBio.trim(),
-    })
-  }
+    });
+  };
 
   const onPickProfilePicture = (f: File | null) => {
-    if (!f) return
-    if (!PROFILE_ACCEPT.split(',').some((t) => f.type === t.trim())) {
-      toast.error('Use PNG, WebP, or JPEG only')
-      return
+    if (!f) return;
+    if (!PROFILE_ACCEPT.split(",").some((t) => f.type === t.trim())) {
+      toast.error("Use PNG, WebP, or JPEG only");
+      return;
     }
     if (f.size > MAX_PROFILE_FILE) {
-      toast.error('Image must be 2MB or smaller')
-      return
+      toast.error("Image must be 2MB or smaller");
+      return;
     }
-    const img = new window.Image()
-    const objectUrl = URL.createObjectURL(f)
+    const img = new window.Image();
+    const objectUrl = URL.createObjectURL(f);
     img.onload = () => {
-      URL.revokeObjectURL(objectUrl)
+      URL.revokeObjectURL(objectUrl);
       if (img.naturalWidth > 2000 || img.naturalHeight > 2000) {
-        toast.error('Image must be at most 2000×2000 pixels')
-        return
+        toast.error("Image must be at most 2000×2000 pixels");
+        return;
       }
-      profilePictureMutation.mutate(f)
-    }
+      profilePictureMutation.mutate(f);
+    };
     img.onerror = () => {
-      URL.revokeObjectURL(objectUrl)
-      toast.error('Could not read that image')
-    }
-    img.src = objectUrl
-  }
+      URL.revokeObjectURL(objectUrl);
+      toast.error("Could not read that image");
+    };
+    img.src = objectUrl;
+  };
 
   const onRequestEmailChange = (e: React.FormEvent) => {
-    e.preventDefault()
-    const v = validateEmail(newEmail.trim())
+    e.preventDefault();
+    const v = validateEmail(newEmail.trim());
     if (!v.valid) {
-      toast.error(v.message)
-      return
+      toast.error(v.message);
+      return;
     }
-    requestEmailMutation.mutate(newEmail.trim().toLowerCase())
-  }
+    requestEmailMutation.mutate(newEmail.trim().toLowerCase());
+  };
 
   const onConfirmEmailChange = (e: React.FormEvent) => {
-    e.preventDefault()
-    const otp = emailOtpDigits.join('')
+    e.preventDefault();
+    const otp = emailOtpDigits.join("");
     if (otp.length !== OTP_LENGTH) {
-      toast.error('Enter the 6-digit code')
-      return
+      toast.error("Enter the 6-digit code");
+      return;
     }
-    confirmEmailMutation.mutate({ newEmail: newEmail.trim().toLowerCase(), otp })
-  }
+    confirmEmailMutation.mutate({
+      newEmail: newEmail.trim().toLowerCase(),
+      otp,
+    });
+  };
 
   const onConfirmPasswordChange = (e: React.FormEvent) => {
-    e.preventDefault()
-    setPasswordError(null)
-    const otp = passwordOtpDigits.join('')
+    e.preventDefault();
+    setPasswordError(null);
+    const otp = passwordOtpDigits.join("");
     if (otp.length !== OTP_LENGTH) {
-      toast.error('Enter the 6-digit code')
-      return
+      toast.error("Enter the 6-digit code");
+      return;
     }
-    const v = validatePassword(newPassword)
+    const v = validatePassword(newPassword);
     if (!v.valid) {
-      setPasswordError(v.message ?? 'Invalid password')
-      return
+      setPasswordError(v.message ?? "Invalid password");
+      return;
     }
     if (newPassword !== confirmPassword) {
-      toast.error('Passwords do not match')
-      return
+      toast.error("Passwords do not match");
+      return;
     }
-    confirmPasswordMutation.mutate({ otp, newPassword })
-  }
+    confirmPasswordMutation.mutate({ otp, newPassword });
+  };
 
   if (!user) {
     return (
       <div className="space-y-8">
         <p className="p1 text-cs-text">Loading...</p>
       </div>
-    )
+    );
   }
 
   return (
     <div className="space-y-8 max-w-2xl">
       <header>
         <h1 className="h2 text-cs-heading">Settings</h1>
-        <p className="p1 mt-1 text-cs-text">Manage your account details. Email and password changes require OTP verification.</p>
+        <p className="p1 mt-1 text-cs-text">
+          Manage your account details. Email and password changes require OTP
+          verification.
+        </p>
       </header>
 
       {/* Profile: name & username */}
@@ -318,9 +357,9 @@ export default function SettingsPage() {
           {user.isOnboarded === true && (
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
               <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-full border border-cs-border bg-muted">
-                {hackathonImageSrc(user.profilePic) ? (
+                {profilePictureSrc ? (
                   <Image
-                    src={hackathonImageSrc(user.profilePic)!}
+                    src={profilePictureSrc}
                     alt=""
                     fill
                     className="object-cover"
@@ -333,20 +372,28 @@ export default function SettingsPage() {
                 )}
               </div>
               <div className="min-w-0 flex-1 space-y-2">
-                <label className="text-sm font-medium text-cs-text block">Profile picture</label>
-                <p className="text-xs text-cs-text">PNG, WebP, or JPEG — max 2000×2000px, 2MB</p>
+                <label className="text-sm font-medium text-cs-text block">
+                  Profile picture
+                </label>
+                <p className="text-xs text-cs-text">
+                  PNG, WebP, or JPEG — max 2000×2000px, 2MB
+                </p>
                 <Input
                   type="file"
                   accept={PROFILE_ACCEPT}
                   className="cursor-pointer max-w-md"
                   disabled={profilePictureMutation.isPending}
-                  onChange={(e) => onPickProfilePicture(e.target.files?.[0] ?? null)}
+                  onChange={(e) =>
+                    onPickProfilePicture(e.target.files?.[0] ?? null)
+                  }
                 />
               </div>
             </div>
           )}
           <div>
-            <label className="text-sm font-medium text-cs-text mb-1.5 block">Name</label>
+            <label className="text-sm font-medium text-cs-text mb-1.5 block">
+              Name
+            </label>
             <Input
               type="text"
               placeholder="Your name"
@@ -357,37 +404,50 @@ export default function SettingsPage() {
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-cs-text mb-1.5 block">Username</label>
+            <label className="text-sm font-medium text-cs-text mb-1.5 block">
+              Username
+            </label>
             <Input
               type="text"
               placeholder="Username (3–30 characters)"
               value={username}
               onChange={(e) => {
-                setUsername(e.target.value)
-                setUsernameError(null)
+                setUsername(e.target.value);
+                setUsernameError(null);
               }}
               className="max-w-md"
               maxLength={30}
             />
-            {usernameError && <p className="text-sm text-destructive mt-1">{usernameError}</p>}
+            {usernameError && (
+              <p className="text-sm text-destructive mt-1">{usernameError}</p>
+            )}
           </div>
           <div>
-            <label className="text-sm font-medium text-cs-text mb-1.5 block">Bio</label>
+            <label className="text-sm font-medium text-cs-text mb-1.5 block">
+              Bio
+            </label>
             <textarea
               value={profileBio}
-              onChange={(e) => setProfileBio(e.target.value.slice(0, MAX_BIO_LEN))}
+              onChange={(e) =>
+                setProfileBio(e.target.value.slice(0, MAX_BIO_LEN))
+              }
               maxLength={MAX_BIO_LEN}
               rows={4}
               placeholder="Short bio (visible on your profile)"
               className={cn(
-                'placeholder:text-muted-foreground w-full min-h-[100px] rounded-md border border-cs-border bg-transparent px-3 py-2 text-base shadow-xs outline-none resize-y md:text-sm',
-                'focus-visible:border-cs-primary focus-visible:ring-ring/50 focus-visible:ring-[1px]'
+                "placeholder:text-muted-foreground w-full min-h-[100px] rounded-md border border-cs-border bg-transparent px-3 py-2 text-base shadow-xs outline-none resize-y md:text-sm",
+                "focus-visible:border-cs-primary focus-visible:ring-ring/50 focus-visible:ring-[1px]",
               )}
             />
-            <p className="text-xs text-cs-text mt-1">{profileBio.length} / {MAX_BIO_LEN}</p>
+            <p className="text-xs text-cs-text mt-1">
+              {profileBio.length} / {MAX_BIO_LEN}
+            </p>
           </div>
-          <Button type="submit" disabled={!isProfileDirty || profileMutation.isPending}>
-            {profileMutation.isPending ? 'Saving…' : 'Save profile'}
+          <Button
+            type="submit"
+            disabled={!isProfileDirty || profileMutation.isPending}
+          >
+            {profileMutation.isPending ? "Saving…" : "Save profile"}
           </Button>
         </form>
       </section>
@@ -406,11 +466,15 @@ export default function SettingsPage() {
       {/* Email change with OTP */}
       <section className="rounded-lg border border-cs-border bg-card p-6">
         <h2 className="h4 text-cs-heading mb-4">Email</h2>
-        <p className="p1 text-cs-text mb-4">Current email: <strong>{user.email}</strong></p>
-        {emailStep === 'form' ? (
+        <p className="p1 text-cs-text mb-4">
+          Current email: <strong>{user.email}</strong>
+        </p>
+        {emailStep === "form" ? (
           <form onSubmit={onRequestEmailChange} className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-cs-text mb-1.5 block">New email</label>
+              <label className="text-sm font-medium text-cs-text mb-1.5 block">
+                New email
+              </label>
               <Input
                 type="email"
                 placeholder="New email address"
@@ -420,46 +484,75 @@ export default function SettingsPage() {
                 required
               />
             </div>
-            <Button type="submit" disabled={emailChangeDisabled || requestEmailMutation.isPending}>
-              {requestEmailMutation.isPending ? 'Sending code…' : 'Send verification code'}
+            <Button
+              type="submit"
+              disabled={emailChangeDisabled || requestEmailMutation.isPending}
+            >
+              {requestEmailMutation.isPending
+                ? "Sending code…"
+                : "Send verification code"}
             </Button>
           </form>
         ) : (
           <form onSubmit={onConfirmEmailChange} className="space-y-4">
-            <p className="text-sm text-cs-text">Enter the 6-digit code sent to <strong>{newEmail}</strong></p>
-            <div className="flex gap-2 justify-start" onPaste={handleEmailOtpPaste}>
+            <p className="text-sm text-cs-text">
+              Enter the 6-digit code sent to <strong>{newEmail}</strong>
+            </p>
+            <div
+              className="flex gap-2 justify-start"
+              onPaste={handleEmailOtpPaste}
+            >
               {Array.from({ length: OTP_LENGTH }, (_, i) => (
                 <Input
                   key={i}
-                  ref={(el) => { emailOtpRefs.current[i] = el }}
+                  ref={(el) => {
+                    emailOtpRefs.current[i] = el;
+                  }}
                   type="text"
                   inputMode="numeric"
                   maxLength={1}
                   value={emailOtpDigits[i]}
                   onChange={(e) => setEmailOtpDigit(i, e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Backspace' && !emailOtpDigits[i] && i > 0) emailOtpRefs.current[i - 1]?.focus()
+                    if (e.key === "Backspace" && !emailOtpDigits[i] && i > 0)
+                      emailOtpRefs.current[i - 1]?.focus();
                   }}
-                  className={cn('w-11 h-12 text-center text-xl font-mono p-0')}
+                  className={cn("w-11 h-12 text-center text-xl font-mono p-0")}
                   aria-label={`Digit ${i + 1}`}
                 />
               ))}
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <Button type="submit" disabled={confirmEmailMutation.isPending || emailOtpDigits.join('').length !== OTP_LENGTH}>
-                {confirmEmailMutation.isPending ? 'Updating…' : 'Confirm new email'}
+              <Button
+                type="submit"
+                disabled={
+                  confirmEmailMutation.isPending ||
+                  emailOtpDigits.join("").length !== OTP_LENGTH
+                }
+              >
+                {confirmEmailMutation.isPending
+                  ? "Updating…"
+                  : "Confirm new email"}
               </Button>
               <button
                 type="button"
                 onClick={() => requestEmailMutation.mutate(newEmail)}
-                disabled={requestEmailMutation.isPending || emailResendCooldown > 0}
+                disabled={
+                  requestEmailMutation.isPending || emailResendCooldown > 0
+                }
                 className="text-sm text-primary hover:underline disabled:opacity-50"
               >
-                {emailResendCooldown > 0 ? `Resend in ${emailResendCooldown}s` : 'Resend code'}
+                {emailResendCooldown > 0
+                  ? `Resend in ${emailResendCooldown}s`
+                  : "Resend code"}
               </button>
               <button
                 type="button"
-                onClick={() => { setEmailStep('form'); setNewEmail(''); setEmailOtpDigits(Array(OTP_LENGTH).fill('')) }}
+                onClick={() => {
+                  setEmailStep("form");
+                  setNewEmail("");
+                  setEmailOtpDigits(Array(OTP_LENGTH).fill(""));
+                }}
                 className="text-sm text-cs-text hover:underline"
               >
                 Cancel
@@ -472,49 +565,71 @@ export default function SettingsPage() {
       {/* Password change with OTP */}
       <section className="rounded-lg border border-cs-border bg-card p-6">
         <h2 className="h4 text-cs-heading mb-4">Password</h2>
-        {passwordStep === 'idle' ? (
+        {passwordStep === "idle" ? (
           <div>
-            <p className="p1 text-cs-text mb-4">We will send a verification code to your email before changing your password.</p>
-            <Button onClick={() => requestPasswordMutation.mutate()} disabled={requestPasswordMutation.isPending}>
-              {requestPasswordMutation.isPending ? 'Sending…' : 'Send verification code'}
+            <p className="p1 text-cs-text mb-4">
+              We will send a verification code to your email before changing
+              your password.
+            </p>
+            <Button
+              onClick={() => requestPasswordMutation.mutate()}
+              disabled={requestPasswordMutation.isPending}
+            >
+              {requestPasswordMutation.isPending
+                ? "Sending…"
+                : "Send verification code"}
             </Button>
           </div>
         ) : (
           <form onSubmit={onConfirmPasswordChange} className="space-y-4">
-            <p className="text-sm text-cs-text">Enter the 6-digit code sent to your email.</p>
-            <div className="flex gap-2 justify-start" onPaste={handlePasswordOtpPaste}>
+            <p className="text-sm text-cs-text">
+              Enter the 6-digit code sent to your email.
+            </p>
+            <div
+              className="flex gap-2 justify-start"
+              onPaste={handlePasswordOtpPaste}
+            >
               {Array.from({ length: OTP_LENGTH }, (_, i) => (
                 <Input
                   key={i}
-                  ref={(el) => { passwordOtpRefs.current[i] = el }}
+                  ref={(el) => {
+                    passwordOtpRefs.current[i] = el;
+                  }}
                   type="text"
                   inputMode="numeric"
                   maxLength={1}
                   value={passwordOtpDigits[i]}
                   onChange={(e) => setPasswordOtpDigit(i, e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Backspace' && !passwordOtpDigits[i] && i > 0) passwordOtpRefs.current[i - 1]?.focus()
+                    if (e.key === "Backspace" && !passwordOtpDigits[i] && i > 0)
+                      passwordOtpRefs.current[i - 1]?.focus();
                   }}
-                  className={cn('w-11 h-12 text-center text-xl font-mono p-0')}
+                  className={cn("w-11 h-12 text-center text-xl font-mono p-0")}
                   aria-label={`Digit ${i + 1}`}
                 />
               ))}
             </div>
             <div>
-              <label className="text-sm font-medium text-cs-text mb-1.5 block">New password</label>
+              <label className="text-sm font-medium text-cs-text mb-1.5 block">
+                New password
+              </label>
               <PasswordInput
                 placeholder="New password"
                 value={newPassword}
                 onChange={(e) => {
-                  setNewPassword(e.target.value)
-                  setPasswordError(null)
+                  setNewPassword(e.target.value);
+                  setPasswordError(null);
                 }}
                 className="max-w-md"
               />
-              {passwordError && <p className="text-sm text-destructive mt-1">{passwordError}</p>}
+              {passwordError && (
+                <p className="text-sm text-destructive mt-1">{passwordError}</p>
+              )}
             </div>
             <div>
-              <label className="text-sm font-medium text-cs-text mb-1.5 block">Confirm new password</label>
+              <label className="text-sm font-medium text-cs-text mb-1.5 block">
+                Confirm new password
+              </label>
               <PasswordInput
                 placeholder="Confirm new password"
                 value={confirmPassword}
@@ -527,28 +642,35 @@ export default function SettingsPage() {
                 type="submit"
                 disabled={
                   confirmPasswordMutation.isPending ||
-                  passwordOtpDigits.join('').length !== OTP_LENGTH ||
+                  passwordOtpDigits.join("").length !== OTP_LENGTH ||
                   !newPassword ||
                   newPassword !== confirmPassword
                 }
               >
-                {confirmPasswordMutation.isPending ? 'Updating…' : 'Change password'}
+                {confirmPasswordMutation.isPending
+                  ? "Updating…"
+                  : "Change password"}
               </Button>
               <button
                 type="button"
                 onClick={() => requestPasswordMutation.mutate()}
-                disabled={requestPasswordMutation.isPending || passwordResendCooldown > 0}
+                disabled={
+                  requestPasswordMutation.isPending ||
+                  passwordResendCooldown > 0
+                }
                 className="text-sm text-primary hover:underline disabled:opacity-50"
               >
-                {passwordResendCooldown > 0 ? `Resend in ${passwordResendCooldown}s` : 'Resend code'}
+                {passwordResendCooldown > 0
+                  ? `Resend in ${passwordResendCooldown}s`
+                  : "Resend code"}
               </button>
               <button
                 type="button"
                 onClick={() => {
-                  setPasswordStep('idle')
-                  setPasswordOtpDigits(Array(OTP_LENGTH).fill(''))
-                  setNewPassword('')
-                  setConfirmPassword('')
+                  setPasswordStep("idle");
+                  setPasswordOtpDigits(Array(OTP_LENGTH).fill(""));
+                  setNewPassword("");
+                  setConfirmPassword("");
                 }}
                 className="text-sm text-cs-text hover:underline"
               >
@@ -559,5 +681,5 @@ export default function SettingsPage() {
         )}
       </section>
     </div>
-  )
+  );
 }

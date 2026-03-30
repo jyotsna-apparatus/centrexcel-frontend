@@ -3,10 +3,10 @@
  * Use for sidebar visibility, route protection, and middleware.
  */
 export const ROLES = {
-  ADMIN: 'admin',
-  SPONSOR: 'sponsor',
-  PARTICIPANT: 'participant',
-  JUDGE: 'judge',
+  ADMIN: "admin",
+  SPONSOR: "sponsor",
+  PARTICIPANT: "participant",
+  JUDGE: "judge",
 } as const;
 
 export type Role = (typeof ROLES)[keyof typeof ROLES];

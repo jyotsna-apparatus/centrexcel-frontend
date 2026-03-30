@@ -1,1 +1,5 @@
-export { HackathonCard, hackathonImageSrc, formatHackathonDeadline } from "./HackathonCard";
+export {
+  formatHackathonDeadline,
+  HackathonCard,
+  hackathonImageSrc,
+} from "./HackathonCard";

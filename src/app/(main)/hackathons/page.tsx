@@ -1,105 +1,115 @@
-'use client'
+"use client";
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
-import Link from 'next/link'
-import { useQuery } from '@tanstack/react-query'
-import { useHackathons } from '@/hooks/use-hackathons'
-import { useTeams } from '@/hooks/use-teams'
-import { getMyParticipations } from '@/lib/auth-api'
-import PageHeader from '@/components/pageHeader/PageHeader'
-import { HackathonCard } from '@/components/hackathon-card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/select'
-import { HACKATHON_STATUS_LABELS } from '@/config/hackathon-constants'
-import { useAuth } from '@/contexts/auth-context'
-import { Plus, ChevronLeft, ChevronRight, ClipboardCheck } from 'lucide-react'
-import { toast } from 'sonner'
+import { useQuery } from "@tanstack/react-query";
+import { ChevronLeft, ChevronRight, ClipboardCheck, Plus } from "lucide-react";
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import { HackathonCard } from "@/components/hackathon-card";
+import PageHeader from "@/components/pageHeader/PageHeader";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { HACKATHON_STATUS_LABELS } from "@/config/hackathon-constants";
+import { useAuth } from "@/contexts/auth-context";
+import { useHackathons } from "@/hooks/use-hackathons";
+import { useTeams } from "@/hooks/use-teams";
+import { getMyParticipations } from "@/lib/auth-api";
 
-const DEBOUNCE_MS = 300
-const PAGE_SIZE_OPTIONS = [12, 24, 48] as const
-const DEFAULT_PAGE_SIZE = 12
+const DEBOUNCE_MS = 300;
+const PAGE_SIZE_OPTIONS = [12, 24, 48] as const;
+const DEFAULT_PAGE_SIZE = 12;
 
 function useDebouncedSearch(initialValue: string, delayMs: number) {
-  const [value, setValue] = useState(initialValue)
-  const [debouncedValue, setDebouncedValue] = useState(initialValue)
+  const [value, setValue] = useState(initialValue);
+  const [debouncedValue, setDebouncedValue] = useState(initialValue);
 
   useEffect(() => {
-    const id = window.setTimeout(() => setDebouncedValue(value), delayMs)
-    return () => clearTimeout(id)
-  }, [value, delayMs])
+    const id = window.setTimeout(() => setDebouncedValue(value), delayMs);
+    return () => clearTimeout(id);
+  }, [value, delayMs]);
 
-  return [value, debouncedValue, setValue] as const
+  return [value, debouncedValue, setValue] as const;
 }
 
 export default function HackathonsPage() {
-  const { user } = useAuth()
-  const isParticipant = user?.role === 'participant'
-  const isAdmin = user?.role === 'admin'
-  const isSponsor = user?.role === 'sponsor'
+  const { user } = useAuth();
+  const isParticipant = user?.role === "participant";
+  const isAdmin = user?.role === "admin";
+  const isSponsor = user?.role === "sponsor";
 
-  const [pageIndex, setPageIndex] = useState(0)
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
-  const [searchInput, debouncedSearch, setSearchInput] = useDebouncedSearch('', DEBOUNCE_MS)
-  const [statusFilter, setStatusFilter] = useState<string>('')
+  const [pageIndex, setPageIndex] = useState(0);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [searchInput, debouncedSearch, setSearchInput] = useDebouncedSearch(
+    "",
+    DEBOUNCE_MS,
+  );
+  const [statusFilter, setStatusFilter] = useState<string>("");
 
   const { data, isLoading, isError, error, isFetching } = useHackathons({
     page: pageIndex,
     pageSize,
     search: debouncedSearch.trim() || undefined,
     status: statusFilter || undefined,
-  })
+  });
 
   const { data: myTeamsData } = useTeams({
     page: 0,
     pageSize: 100,
-    search: '',
+    search: "",
     hackathonId: undefined,
-  })
-  const allTeams = myTeamsData?.data ?? []
+  });
+  const allTeams = myTeamsData?.data ?? [];
   const myTeams = allTeams.filter((t) =>
-    t.members?.some((m) => m.userId === user?.id)
-  )
+    t.members?.some((m) => m.userId === user?.id),
+  );
   const teamByHackathonId = useMemo(() => {
-    const map: Record<string, { id: string }> = {}
+    const map: Record<string, { id: string }> = {};
     for (const team of myTeams) {
       for (const p of team.participations ?? []) {
         if (p.hackathon?.id && !map[p.hackathon.id]) {
-          map[p.hackathon.id] = { id: team.id }
+          map[p.hackathon.id] = { id: team.id };
         }
       }
     }
-    return map
-  }, [myTeams])
+    return map;
+  }, [myTeams]);
 
   const { data: myParticipationsData } = useQuery({
-    queryKey: ['hackathons-page', 'my-participations'],
+    queryKey: ["hackathons-page", "my-participations"],
     queryFn: () => getMyParticipations({ page: 1, limit: 500 }),
     enabled: isParticipant,
-  })
+  });
 
   const participatedHackathonIds = useMemo(() => {
-    return new Set((myParticipationsData?.data ?? []).map((p) => p.hackathonId))
-  }, [myParticipationsData?.data])
+    return new Set(
+      (myParticipationsData?.data ?? []).map((p) => p.hackathonId),
+    );
+  }, [myParticipationsData?.data]);
 
-  const hackathonsRaw = data?.data
-  const hackathons = Array.isArray(hackathonsRaw) ? hackathonsRaw : []
-  const pagination = data?.pagination
-  const totalPages = Math.max(1, pagination?.totalPages ?? 1)
-  const totalCount = pagination?.total ?? 0
-  const startItem = totalCount === 0 ? 0 : pageIndex * pageSize + 1
-  const endItem = Math.min((pageIndex + 1) * pageSize, totalCount)
+  const hackathonsRaw = data?.data;
+  const hackathons = Array.isArray(hackathonsRaw) ? hackathonsRaw : [];
+  const pagination = data?.pagination;
+  const totalPages = Math.max(1, pagination?.totalPages ?? 1);
+  const totalCount = pagination?.total ?? 0;
+  const startItem = totalCount === 0 ? 0 : pageIndex * pageSize + 1;
+  const endItem = Math.min((pageIndex + 1) * pageSize, totalCount);
 
-  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchInput(e.target.value)
-    setPageIndex(0)
-  }, [setSearchInput])
+  const handleSearchChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setSearchInput(e.target.value);
+      setPageIndex(0);
+    },
+    [setSearchInput],
+  );
 
   useEffect(() => {
     if (isError && error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to load challenges')
+      toast.error(
+        error instanceof Error ? error.message : "Failed to load challenges",
+      );
     }
-  }, [isError, error])
+  }, [isError, error]);
 
   return (
     <div>
@@ -120,7 +130,9 @@ export default function HackathonsPage() {
             <Button variant="default" asChild>
               <Link href="/hackathons/new">
                 <Plus className="size-4" color="black" />
-                {isSponsor && !isAdmin ? 'Submit challenge' : 'Create challenge'}
+                {isSponsor && !isAdmin
+                  ? "Submit challenge"
+                  : "Create challenge"}
               </Link>
             </Button>
           )}
@@ -139,8 +151,8 @@ export default function HackathonsPage() {
         <Select
           value={statusFilter}
           onChange={(e) => {
-            setStatusFilter(e.target.value)
-            setPageIndex(0)
+            setStatusFilter(e.target.value);
+            setPageIndex(0);
           }}
           className="w-[180px]"
         >
@@ -154,8 +166,8 @@ export default function HackathonsPage() {
         <Select
           value={String(pageSize)}
           onChange={(e) => {
-            setPageSize(Number(e.target.value))
-            setPageIndex(0)
+            setPageSize(Number(e.target.value));
+            setPageIndex(0);
           }}
           className="w-[120px]"
           aria-label="Items per page"
@@ -180,27 +192,36 @@ export default function HackathonsPage() {
       ) : hackathons.length === 0 ? (
         <div className="rounded-lg border border-cs-border bg-card py-16 text-center">
           <p className="text-muted-foreground mb-4">
-            {isFetching && debouncedSearch ? 'Searching...' : 'No challenges found.'}
+            {isFetching && debouncedSearch
+              ? "Searching..."
+              : "No challenges found."}
           </p>
           {(isAdmin || isSponsor) && !isFetching && !debouncedSearch && (
             <p className="text-muted-foreground text-sm mb-4">
               {isSponsor && !isAdmin
-                ? 'Submit a challenge for admin approval to list it here once approved.'
-                : 'Create your first challenge to get started.'}
+                ? "Submit a challenge for admin approval to list it here once approved."
+                : "Create your first challenge to get started."}
             </p>
           )}
           {(isAdmin || isSponsor) && !isFetching && (
             <Button asChild>
               <Link href="/hackathons/new">
                 <Plus className="mr-2 size-4" />
-                {isSponsor && !isAdmin ? 'Submit challenge' : 'Create challenge'}
+                {isSponsor && !isAdmin
+                  ? "Submit challenge"
+                  : "Create challenge"}
               </Link>
             </Button>
           )}
         </div>
       ) : (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 400px))' }}>
+          <div
+            className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+            style={{
+              gridTemplateColumns: "repeat(auto-fill, minmax(300px, 400px))",
+            }}
+          >
             {hackathons.map((hackathon) => (
               <HackathonCard
                 key={hackathon.id}
@@ -210,8 +231,16 @@ export default function HackathonsPage() {
                 showApprovalBadge={isAdmin || isSponsor}
                 isSponsor={isSponsor}
                 isParticipant={isParticipant}
-                hasParticipated={isParticipant ? participatedHackathonIds.has(hackathon.id) : false}
-                userTeamForHackathon={isParticipant ? (teamByHackathonId[hackathon.id] ?? null) : null}
+                hasParticipated={
+                  isParticipant
+                    ? participatedHackathonIds.has(hackathon.id)
+                    : false
+                }
+                userTeamForHackathon={
+                  isParticipant
+                    ? (teamByHackathonId[hackathon.id] ?? null)
+                    : null
+                }
               />
             ))}
           </div>
@@ -219,7 +248,7 @@ export default function HackathonsPage() {
           <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-cs-border pt-6">
             <p className="text-sm text-muted-foreground">
               {totalCount === 0
-                ? 'No challenges'
+                ? "No challenges"
                 : `Showing ${startItem}–${endItem} of ${totalCount}`}
             </p>
             <div className="flex items-center gap-2">
@@ -239,7 +268,9 @@ export default function HackathonsPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setPageIndex((p) => Math.min(totalPages - 1, p + 1))}
+                onClick={() =>
+                  setPageIndex((p) => Math.min(totalPages - 1, p + 1))
+                }
                 disabled={pageIndex >= totalPages - 1 || isFetching}
                 aria-label="Next page"
               >
@@ -251,5 +282,5 @@ export default function HackathonsPage() {
         </>
       )}
     </div>
-  )
+  );
 }

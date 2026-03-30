@@ -1,14 +1,22 @@
 "use client";
 
+import {
+  Calendar,
+  Eye,
+  FileText,
+  FileUp,
+  Pencil,
+  UserPlus,
+  Users,
+} from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import type { HackathonListItem } from "@/lib/auth-api";
-import { Calendar, Users, FileUp, FileText, Eye, Pencil, UserPlus } from "lucide-react";
-import { cn } from "@/lib/utils";
 import {
-  HACKATHON_STATUS_LABELS,
   HACKATHON_APPROVAL_LABELS,
+  HACKATHON_STATUS_LABELS,
 } from "@/config/hackathon-constants";
+import type { HackathonListItem } from "@/lib/auth-api";
+import { cn } from "@/lib/utils";
 
 function isApplyDeadlinePassed(iso: string | null | undefined): boolean {
   if (!iso) return false;
@@ -16,13 +24,17 @@ function isApplyDeadlinePassed(iso: string | null | undefined): boolean {
 }
 
 /** Build URL for hackathon banner image (proxied via /api). */
-export function hackathonImageSrc(imagePath: string | null | undefined): string | null {
+export function hackathonImageSrc(
+  imagePath: string | null | undefined,
+): string | null {
   if (!imagePath?.trim()) return null;
   const p = imagePath.startsWith("/") ? imagePath : `/${imagePath}`;
   return `/api${p}`;
 }
 
-export function formatHackathonDeadline(iso: string | null | undefined): string {
+export function formatHackathonDeadline(
+  iso: string | null | undefined,
+): string {
   if (!iso) return "—";
   try {
     return new Date(iso).toLocaleDateString("en-IN", {
@@ -50,7 +62,7 @@ function ApprovalBadge({ status }: { status: string }) {
     <span
       className={cn(
         "inline-flex shrink-0 rounded-full px-2.5 py-1 text-xs font-medium whitespace-nowrap",
-        className
+        className,
       )}
     >
       {label}
@@ -72,7 +84,7 @@ function StatusBadge({ status }: { status: string }) {
     <span
       className={cn(
         "inline-flex shrink-0 rounded-full px-2.5 py-1 text-xs font-medium whitespace-nowrap",
-        className
+        className,
       )}
     >
       {label}
@@ -107,7 +119,7 @@ export function HackathonCard({
   isSponsor = false,
   isParticipant = false,
   hasParticipated = false,
-  userTeamForHackathon = null,
+  userTeamForHackathon: _userTeamForHackathon = null,
   className,
   dataAos,
   dataAosDelay,
@@ -120,7 +132,10 @@ export function HackathonCard({
   if (variant === "featured") {
     return (
       <div
-        className={cn("card cs-card glass flex flex-col overflow-hidden !p-0 gap-0", className)}
+        className={cn(
+          "card cs-card glass flex flex-col overflow-hidden !p-0 gap-0",
+          className,
+        )}
         {...(dataAos && { "data-aos": dataAos })}
         {...(dataAosDelay && { "data-aos-delay": dataAosDelay })}
       >
@@ -174,7 +189,7 @@ export function HackathonCard({
     <div
       className={cn(
         "flex w-full min-w-[300px] max-w-[400px] flex-col rounded-lg border border-cs-border bg-card shadow-xs transition-shadow hover:shadow-sm",
-        className
+        className,
       )}
       {...(dataAos && { "data-aos": dataAos })}
       {...(dataAosDelay && { "data-aos-delay": dataAosDelay })}
@@ -244,7 +259,12 @@ export function HackathonCard({
           </Link>
         </Button>
         {isAdmin && (
-          <Button variant="outline" size="sm" className="flex-1 min-w-0" asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 min-w-0"
+            asChild
+          >
             <Link href={`/hackathons/${hackathon.id}/edit`}>
               <Pencil className="mr-1.5 size-4 shrink-0" />
               Edit
@@ -254,9 +274,14 @@ export function HackathonCard({
         {isSponsor &&
           hackathon.sponsorId &&
           ["pending_review", "changes_requested", "rejected"].includes(
-            hackathon.approvalStatus ?? ""
+            hackathon.approvalStatus ?? "",
           ) && (
-            <Button variant="outline" size="sm" className="flex-1 min-w-0" asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 min-w-0"
+              asChild
+            >
               <Link href={`/hackathons/${hackathon.id}/edit`}>
                 <Pencil className="mr-1.5 size-4 shrink-0" />
                 Edit
@@ -270,7 +295,12 @@ export function HackathonCard({
           hackathon.status !== "submission_closed" &&
           hackathon.status !== "closed" &&
           hackathon.status !== "cancelled" && (
-            <Button variant="default" size="sm" className="flex-1 min-w-0" asChild>
+            <Button
+              variant="default"
+              size="sm"
+              className="flex-1 min-w-0"
+              asChild
+            >
               <Link href={`/hackathons/${hackathon.id}/apply`}>
                 <UserPlus className="mr-1.5 size-4 shrink-0" />
                 Participate

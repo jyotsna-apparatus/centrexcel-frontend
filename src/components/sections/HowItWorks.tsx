@@ -4,22 +4,26 @@ const steps = [
   {
     step: 1,
     title: "Create an account",
-    description: "Create your free account in seconds. No credit card required.",
+    description:
+      "Create your free account in seconds. No credit card required.",
   },
   {
     step: 2,
     title: "Find a challenge",
-    description: "Browse upcoming events, filter by theme or prize, and pick one that fits.",
+    description:
+      "Browse upcoming events, filter by theme or prize, and pick one that fits.",
   },
   {
     step: 3,
     title: "Build your solution",
-    description: "Form a team, build your solution, and submit before the deadline.",
+    description:
+      "Form a team, build your solution, and submit before the deadline.",
   },
   {
     step: 4,
     title: "Win or get hired",
-    description: "Compete for prizes and visibility, get feedback from experts.",
+    description:
+      "Compete for prizes and visibility, get feedback from experts.",
   },
 ];
 
@@ -41,19 +45,18 @@ const HowItWorks = () => {
           {steps.map((item, i) => (
             <Fragment key={item.step}>
               <div className="card cs-card glass">
-            
-              <div
-                key={item.step}
-                className="flex flex-1 flex-col items-center text-center gap-3 min-w-0"
-                data-aos="fade-up"
-                data-aos-delay={String(200 + i * 100)}
-              >
-                <div className="size-12 rounded-full border-2 border-cs-primary bg-cs-card flex items-center justify-center text-cs-primary font-semibold text-lg shrink-0">
-                  {item.step}
+                <div
+                  key={item.step}
+                  className="flex flex-1 flex-col items-center text-center gap-3 min-w-0"
+                  data-aos="fade-up"
+                  data-aos-delay={String(200 + i * 100)}
+                >
+                  <div className="size-12 rounded-full border-2 border-cs-primary bg-cs-card flex items-center justify-center text-cs-primary font-semibold text-lg shrink-0">
+                    {item.step}
+                  </div>
+                  <h3 className="h3">{item.title}</h3>
+                  <p className="p1">{item.description}</p>
                 </div>
-                <h3 className="h3">{item.title}</h3>
-                <p className="p1">{item.description}</p>
-              </div>
               </div>
             </Fragment>
           ))}

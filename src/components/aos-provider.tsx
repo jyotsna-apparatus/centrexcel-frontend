@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
 import AOS from "aos";
+import { useEffect } from "react";
 import "aos/dist/aos.css";
 
 type AOSProviderProps = {
@@ -25,8 +25,10 @@ const defaultOptions = {
 
 export function AOSProvider({ children, options }: AOSProviderProps) {
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (reduceMotion.matches) return;
     AOS.init({ ...defaultOptions, ...options });
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- init once on mount
   }, []);
 
   return <>{children}</>;

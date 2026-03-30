@@ -1,163 +1,176 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { createTeam, joinTeam, createParticipation, type CreateTeamResponse } from '@/lib/auth-api'
-import { useHackathon } from '@/hooks/use-hackathons'
-import { useTeams } from '@/hooks/use-teams'
-import PageHeader from '@/components/pageHeader/PageHeader'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Skeleton } from '@/components/ui/skeleton'
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, CreditCard, User, Users } from "lucide-react";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
+import PageHeader from "@/components/pageHeader/PageHeader";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
-} from '@/components/ui/dialog'
-import { useAuth } from '@/contexts/auth-context'
-import { ArrowLeft, Users, CreditCard, User } from 'lucide-react'
-import { toast } from 'sonner'
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/contexts/auth-context";
+import { useHackathon } from "@/hooks/use-hackathons";
+import { useTeams } from "@/hooks/use-teams";
+import {
+  type CreateTeamResponse,
+  createParticipation,
+  createTeam,
+  joinTeam,
+} from "@/lib/auth-api";
 
-type TeamModalStep = 'choose' | 'create' | 'join' | 'existing'
+type TeamModalStep = "choose" | "create" | "join" | "existing";
 
 export default function HackathonApplyPage() {
-  const params = useParams()
-  const router = useRouter()
-  const queryClient = useQueryClient()
-  const id = typeof params.id === 'string' ? params.id : ''
+  const params = useParams();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const id = typeof params.id === "string" ? params.id : "";
 
-  const { data: hackathon, isLoading: hackathonLoading } = useHackathon(id || null)
+  const { data: hackathon, isLoading: hackathonLoading } = useHackathon(
+    id || null,
+  );
   const { data: teamsData } = useTeams({
     page: 0,
     pageSize: 20,
-    search: '',
+    search: "",
     hackathonId: undefined,
-  })
-  const allTeams = teamsData?.data ?? []
-  const { user } = useAuth()
+  });
+  const allTeams = teamsData?.data ?? [];
+  const { user } = useAuth();
   const myTeamIds = new Set(
-    allTeams.filter((t) => t.members?.some((m) => m.userId === user?.id)).map((t) => t.id)
-  )
-  const myTeams = allTeams.filter((t) => myTeamIds.has(t.id))
+    allTeams
+      .filter((t) => t.members?.some((m) => m.userId === user?.id))
+      .map((t) => t.id),
+  );
+  const myTeams = allTeams.filter((t) => myTeamIds.has(t.id));
   const teamsInThisHackathon = myTeams.filter((t) =>
-    t.participations?.some((p) => p.hackathon.id === id)
-  )
-  const hasTeamForHackathon = teamsInThisHackathon.length > 0
-  const firstTeam = hasTeamForHackathon ? teamsInThisHackathon[0] : null
+    t.participations?.some((p) => p.hackathon.id === id),
+  );
+  const hasTeamForHackathon = teamsInThisHackathon.length > 0;
+  const firstTeam = hasTeamForHackathon ? teamsInThisHackathon[0] : null;
   const teamsNotInThisHackathon = myTeams.filter(
-    (t) => !t.participations?.some((p) => p.hackathon.id === id)
-  )
+    (t) => !t.participations?.some((p) => p.hackathon.id === id),
+  );
 
-  const [soloModalOpen, setSoloModalOpen] = useState(false)
-  const [teamModalOpen, setTeamModalOpen] = useState(false)
-  const [teamModalStep, setTeamModalStep] = useState<TeamModalStep>('choose')
-  const [teamName, setTeamName] = useState('')
-  const [inviteCode, setInviteCode] = useState('')
+  const [soloModalOpen, setSoloModalOpen] = useState(false);
+  const [teamModalOpen, setTeamModalOpen] = useState(false);
+  const [teamModalStep, setTeamModalStep] = useState<TeamModalStep>("choose");
+  const [teamName, setTeamName] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
 
   const createMutation = useMutation({
     mutationFn: (name: string) => createTeam({ name, hackathonId: id }),
     onSuccess: (data: CreateTeamResponse) => {
-      toast.success('Team created successfully.')
-      queryClient.invalidateQueries({ queryKey: ['teams'] })
-      queryClient.invalidateQueries({ queryKey: ['participations'] })
-      queryClient.invalidateQueries({ queryKey: ['hackathons'] })
-      setTeamModalOpen(false)
-      setTeamModalStep('choose')
-      setTeamName('')
-      const teamId = data.data?.id
-      router.push(teamId ? `/hackathons/${id}/submit?teamId=${teamId}` : '/participations')
+      toast.success("Team created successfully.");
+      queryClient.invalidateQueries({ queryKey: ["teams"] });
+      queryClient.invalidateQueries({ queryKey: ["participations"] });
+      queryClient.invalidateQueries({ queryKey: ["hackathons"] });
+      setTeamModalOpen(false);
+      setTeamModalStep("choose");
+      setTeamName("");
+      const teamId = data.data?.id;
+      router.push(
+        teamId
+          ? `/hackathons/${id}/submit?teamId=${teamId}`
+          : "/participations",
+      );
     },
     onError: (err: Error) => {
-      toast.error(err.message ?? 'Failed to create team')
+      toast.error(err.message ?? "Failed to create team");
     },
-  })
+  });
 
   const joinMutation = useMutation({
     mutationFn: (code: string) => joinTeam(code, id),
     onSuccess: (data) => {
-      toast.success('Joined team successfully.')
-      queryClient.invalidateQueries({ queryKey: ['teams'] })
-      queryClient.invalidateQueries({ queryKey: ['participations'] })
-      queryClient.invalidateQueries({ queryKey: ['hackathons'] })
-      setTeamModalOpen(false)
-      setTeamModalStep('choose')
-      setInviteCode('')
-      router.push(`/hackathons/${id}/submit?teamId=${data.id}`)
+      toast.success("Joined team successfully.");
+      queryClient.invalidateQueries({ queryKey: ["teams"] });
+      queryClient.invalidateQueries({ queryKey: ["participations"] });
+      queryClient.invalidateQueries({ queryKey: ["hackathons"] });
+      setTeamModalOpen(false);
+      setTeamModalStep("choose");
+      setInviteCode("");
+      router.push(`/hackathons/${id}/submit?teamId=${data.id}`);
     },
     onError: (err: Error) => {
-      toast.error(err.message ?? 'Failed to join team')
+      toast.error(err.message ?? "Failed to join team");
     },
-  })
+  });
 
   const participateSoloMutation = useMutation({
     mutationFn: (hackathonId: string) =>
-      createParticipation({ hackathonId, type: 'solo' }),
+      createParticipation({ hackathonId, type: "solo" }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['participations'] })
-      queryClient.invalidateQueries({ queryKey: ['hackathons'] })
-      toast.success("You're in! Now submit your project.")
-      setSoloModalOpen(false)
-      router.push(`/hackathons/${id}/submit?solo=1`)
+      queryClient.invalidateQueries({ queryKey: ["participations"] });
+      queryClient.invalidateQueries({ queryKey: ["hackathons"] });
+      toast.success("You're in! Now submit your project.");
+      setSoloModalOpen(false);
+      router.push(`/hackathons/${id}/submit?solo=1`);
     },
     onError: (err: Error) => {
-      if (err.message.includes('already participating')) {
-        setSoloModalOpen(false)
-        router.push(`/hackathons/${id}/submit?solo=1`)
-        return
+      if (err.message.includes("already participating")) {
+        setSoloModalOpen(false);
+        router.push(`/hackathons/${id}/submit?solo=1`);
+        return;
       }
-      toast.error(err.message ?? 'Failed to participate')
+      toast.error(err.message ?? "Failed to participate");
     },
-  })
+  });
 
   const participateWithTeamMutation = useMutation({
     mutationFn: (teamId: string) =>
-      createParticipation({ hackathonId: id, type: 'team', teamId }),
+      createParticipation({ hackathonId: id, type: "team", teamId }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['participations'] })
-      queryClient.invalidateQueries({ queryKey: ['teams'] })
-      queryClient.invalidateQueries({ queryKey: ['hackathons'] })
-      toast.success('Registered with team. Now submit your project.')
-      setTeamModalOpen(false)
-      setTeamModalStep('choose')
-      router.push(`/hackathons/${id}/submit`)
+      queryClient.invalidateQueries({ queryKey: ["participations"] });
+      queryClient.invalidateQueries({ queryKey: ["teams"] });
+      queryClient.invalidateQueries({ queryKey: ["hackathons"] });
+      toast.success("Registered with team. Now submit your project.");
+      setTeamModalOpen(false);
+      setTeamModalStep("choose");
+      router.push(`/hackathons/${id}/submit`);
     },
     onError: (err: Error) => {
-      toast.error(err.message ?? 'Failed to register with team')
+      toast.error(err.message ?? "Failed to register with team");
     },
-  })
+  });
 
   const handleCreateTeam = (e: React.FormEvent) => {
-    e.preventDefault()
-    const name = teamName.trim()
+    e.preventDefault();
+    const name = teamName.trim();
     if (!name) {
-      toast.error('Please enter a team name.')
-      return
+      toast.error("Please enter a team name.");
+      return;
     }
-    if (!id) return
-    createMutation.mutate(name)
-  }
+    if (!id) return;
+    createMutation.mutate(name);
+  };
 
   const handleJoinTeam = (e: React.FormEvent) => {
-    e.preventDefault()
-    const code = inviteCode.trim()
+    e.preventDefault();
+    const code = inviteCode.trim();
     if (!code) {
-      toast.error('Please enter an invite code.')
-      return
+      toast.error("Please enter an invite code.");
+      return;
     }
-    joinMutation.mutate(code)
-  }
+    joinMutation.mutate(code);
+  };
 
   const openTeamModal = () => {
-    setTeamModalStep('choose')
-    setTeamName('')
-    setInviteCode('')
-    setTeamModalOpen(true)
-  }
+    setTeamModalStep("choose");
+    setTeamName("");
+    setInviteCode("");
+    setTeamModalOpen(true);
+  };
 
   if (!id) {
     return (
@@ -167,7 +180,7 @@ export default function HackathonApplyPage() {
           <Link href="/hackathons">Back to challenges</Link>
         </Button>
       </div>
-    )
+    );
   }
 
   if (hackathonLoading || !hackathon) {
@@ -176,10 +189,11 @@ export default function HackathonApplyPage() {
         <PageHeader title="Apply" description="Loading..." />
         <Skeleton className="h-64 w-full rounded-lg" />
       </div>
-    )
+    );
   }
 
-  const applyDeadlinePassed = new Date(hackathon.applyDeadline).getTime() < Date.now()
+  const applyDeadlinePassed =
+    new Date(hackathon.applyDeadline).getTime() < Date.now();
 
   return (
     <div>
@@ -198,11 +212,17 @@ export default function HackathonApplyPage() {
       <div className="mb-6 rounded-lg border border-cs-border bg-muted/50 p-4 text-sm text-muted-foreground">
         <p className="font-medium text-cs-heading mb-1">How it works</p>
         <ul className="list-inside list-disc space-y-0.5">
-          <li><strong>Solo:</strong> Enter alone and submit one project under your name.</li>
-          <li><strong>Team:</strong> Create a new team or join one with an invite code, then submit one project for the team.</li>
+          <li>
+            <strong>Solo:</strong> Enter alone and submit one project under your
+            name.
+          </li>
+          <li>
+            <strong>Team:</strong> Create a new team or join one with an invite
+            code, then submit one project for the team.
+          </li>
         </ul>
         <p className="mt-3 text-xs">
-          Apply deadline:{' '}
+          Apply deadline:{" "}
           <span className="font-medium text-foreground">
             {new Date(hackathon.applyDeadline).toLocaleString()}
           </span>
@@ -211,32 +231,38 @@ export default function HackathonApplyPage() {
 
       {applyDeadlinePassed ? (
         <div className="mb-6 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm">
-          <p className="font-medium text-destructive">Applications are closed</p>
+          <p className="font-medium text-destructive">
+            Applications are closed
+          </p>
           <p className="mt-1 text-muted-foreground">
-            The deadline to join this challenge has passed. You can still view the challenge details from
-            the list.
+            The deadline to join this challenge has passed. You can still view
+            the challenge details from the list.
           </p>
         </div>
       ) : null}
 
-      {hackathon.isPaid && hackathon.priceOfEntry != null && Number(hackathon.priceOfEntry) > 0 && (
-        <div className="mb-6 rounded-lg border border-cs-border bg-card p-6">
-          <h3 className="mb-3 flex items-center gap-2 font-medium text-cs-heading">
-            <CreditCard className="size-5" />
-            Entry fee
-          </h3>
-          <p className="mb-4 text-sm text-muted-foreground">
-            This challenge has an entry fee of ₹{Number(hackathon.priceOfEntry).toFixed(2)}. Pay to complete your registration.
-          </p>
-          <Button asChild>
-            <Link
-              href={`/payments/checkout?hackathonId=${id}&amount=${Number(hackathon.priceOfEntry)}`}
-            >
-              Pay ₹{Number(hackathon.priceOfEntry).toFixed(2)} with PhonePe
-            </Link>
-          </Button>
-        </div>
-      )}
+      {hackathon.isPaid &&
+        hackathon.priceOfEntry != null &&
+        Number(hackathon.priceOfEntry) > 0 && (
+          <div className="mb-6 rounded-lg border border-cs-border bg-card p-6">
+            <h3 className="mb-3 flex items-center gap-2 font-medium text-cs-heading">
+              <CreditCard className="size-5" />
+              Entry fee
+            </h3>
+            <p className="mb-4 text-sm text-muted-foreground">
+              This challenge has an entry fee of ₹
+              {Number(hackathon.priceOfEntry).toFixed(2)}. Pay to complete your
+              registration.
+            </p>
+            <Button asChild>
+              <Link
+                href={`/payments/checkout?hackathonId=${id}&amount=${Number(hackathon.priceOfEntry)}`}
+              >
+                Pay ₹{Number(hackathon.priceOfEntry).toFixed(2)} with PhonePe
+              </Link>
+            </Button>
+          </div>
+        )}
 
       <div className="mt-6 grid gap-6 md:grid-cols-2">
         <div className="rounded-lg border border-cs-border bg-card p-6">
@@ -245,7 +271,8 @@ export default function HackathonApplyPage() {
             Solo
           </h3>
           <p className="mb-4 text-sm text-muted-foreground">
-            Compete on your own. You’ll be enrolled and can submit your project before the deadline.
+            Compete on your own. You’ll be enrolled and can submit your project
+            before the deadline.
           </p>
           {hasTeamForHackathon ? (
             <>
@@ -257,7 +284,9 @@ export default function HackathonApplyPage() {
               </p>
               {firstTeam && (
                 <Button variant="default" className="mt-3 w-full" asChild>
-                  <Link href={`/hackathons/${id}/submit?teamId=${firstTeam.id}`}>
+                  <Link
+                    href={`/hackathons/${id}/submit?teamId=${firstTeam.id}`}
+                  >
                     Submit with your team
                   </Link>
                 </Button>
@@ -267,10 +296,14 @@ export default function HackathonApplyPage() {
             <Button
               variant="secondary"
               className="w-full"
-              disabled={applyDeadlinePassed || participateSoloMutation.isPending}
+              disabled={
+                applyDeadlinePassed || participateSoloMutation.isPending
+              }
               onClick={() => setSoloModalOpen(true)}
             >
-              {participateSoloMutation.isPending ? 'Enrolling…' : 'Enter as solo'}
+              {participateSoloMutation.isPending
+                ? "Enrolling…"
+                : "Enter as solo"}
             </Button>
           )}
         </div>
@@ -313,7 +346,9 @@ export default function HackathonApplyPage() {
           <DialogHeader>
             <DialogTitle>Enter as solo?</DialogTitle>
             <DialogDescription>
-              You’ll be enrolled in this hackathon as a solo participant. You can submit your project later from this hackathon’s page or My participations.
+              You’ll be enrolled in this hackathon as a solo participant. You
+              can submit your project later from this hackathon’s page or My
+              participations.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -324,50 +359,53 @@ export default function HackathonApplyPage() {
               disabled={participateSoloMutation.isPending}
               onClick={() => participateSoloMutation.mutate(id)}
             >
-              {participateSoloMutation.isPending ? 'Enrolling…' : 'Confirm'}
+              {participateSoloMutation.isPending ? "Enrolling…" : "Confirm"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Team modal: choose Create new | Join */}
-      <Dialog open={teamModalOpen} onOpenChange={(open) => {
-        setTeamModalOpen(open)
-        if (!open) setTeamModalStep('choose')
-      }}>
+      <Dialog
+        open={teamModalOpen}
+        onOpenChange={(open) => {
+          setTeamModalOpen(open);
+          if (!open) setTeamModalStep("choose");
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {teamModalStep === 'choose' && 'Enter as team'}
-              {teamModalStep === 'create' && 'Create new team'}
-              {teamModalStep === 'join' && 'Join with invite code'}
-              {teamModalStep === 'existing' && 'Use existing team'}
+              {teamModalStep === "choose" && "Enter as team"}
+              {teamModalStep === "create" && "Create new team"}
+              {teamModalStep === "join" && "Join with invite code"}
+              {teamModalStep === "existing" && "Use existing team"}
             </DialogTitle>
             <DialogDescription>
-              {teamModalStep === 'choose' &&
-                'Create a new team, join one with an invite code, or use a team you’re already in.'}
-              {teamModalStep === 'create' &&
-                'Choose a name for your team. You can use this team in multiple challenges.'}
-              {teamModalStep === 'join' &&
-                'Enter the invite code shared by your team lead.'}
-              {teamModalStep === 'existing' &&
-                'Select a team to register for this challenge.'}
+              {teamModalStep === "choose" &&
+                "Create a new team, join one with an invite code, or use a team you’re already in."}
+              {teamModalStep === "create" &&
+                "Choose a name for your team. You can use this team in multiple challenges."}
+              {teamModalStep === "join" &&
+                "Enter the invite code shared by your team lead."}
+              {teamModalStep === "existing" &&
+                "Select a team to register for this challenge."}
             </DialogDescription>
           </DialogHeader>
 
-          {teamModalStep === 'choose' && (
+          {teamModalStep === "choose" && (
             <div className="flex flex-col gap-2 py-2">
               <Button
                 variant="outline"
                 className="w-full justify-start"
-                onClick={() => setTeamModalStep('create')}
+                onClick={() => setTeamModalStep("create")}
               >
                 Create new team
               </Button>
               <Button
                 variant="outline"
                 className="w-full justify-start"
-                onClick={() => setTeamModalStep('join')}
+                onClick={() => setTeamModalStep("join")}
               >
                 Join with invite code
               </Button>
@@ -375,7 +413,7 @@ export default function HackathonApplyPage() {
                 <Button
                   variant="outline"
                   className="w-full justify-start"
-                  onClick={() => setTeamModalStep('existing')}
+                  onClick={() => setTeamModalStep("existing")}
                 >
                   Use existing team
                 </Button>
@@ -383,7 +421,7 @@ export default function HackathonApplyPage() {
             </div>
           )}
 
-          {teamModalStep === 'existing' && (
+          {teamModalStep === "existing" && (
             <div className="space-y-2 py-2">
               {teamsNotInThisHackathon.map((team) => (
                 <Button
@@ -397,17 +435,24 @@ export default function HackathonApplyPage() {
                 </Button>
               ))}
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setTeamModalStep('choose')}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setTeamModalStep("choose")}
+                >
                   Back
                 </Button>
               </DialogFooter>
             </div>
           )}
 
-          {teamModalStep === 'create' && (
+          {teamModalStep === "create" && (
             <form onSubmit={handleCreateTeam} className="space-y-4 py-2">
               <div>
-                <label htmlFor="modal-team-name" className="mb-1.5 block text-sm font-medium text-cs-heading">
+                <label
+                  htmlFor="modal-team-name"
+                  className="mb-1.5 block text-sm font-medium text-cs-heading"
+                >
                   Team name
                 </label>
                 <Input
@@ -420,20 +465,30 @@ export default function HackathonApplyPage() {
                 />
               </div>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setTeamModalStep('choose')}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setTeamModalStep("choose")}
+                >
                   Back
                 </Button>
-                <Button type="submit" disabled={createMutation.isPending || !teamName.trim()}>
-                  {createMutation.isPending ? 'Creating…' : 'Create team'}
+                <Button
+                  type="submit"
+                  disabled={createMutation.isPending || !teamName.trim()}
+                >
+                  {createMutation.isPending ? "Creating…" : "Create team"}
                 </Button>
               </DialogFooter>
             </form>
           )}
 
-          {teamModalStep === 'join' && (
+          {teamModalStep === "join" && (
             <form onSubmit={handleJoinTeam} className="space-y-4 py-2">
               <div>
-                <label htmlFor="modal-invite-code" className="mb-1.5 block text-sm font-medium text-cs-heading">
+                <label
+                  htmlFor="modal-invite-code"
+                  className="mb-1.5 block text-sm font-medium text-cs-heading"
+                >
                   Invite code
                 </label>
                 <Input
@@ -446,11 +501,19 @@ export default function HackathonApplyPage() {
                 />
               </div>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setTeamModalStep('choose')}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setTeamModalStep("choose")}
+                >
                   Back
                 </Button>
-                <Button type="submit" variant="secondary" disabled={joinMutation.isPending || !inviteCode.trim()}>
-                  {joinMutation.isPending ? 'Joining…' : 'Join team'}
+                <Button
+                  type="submit"
+                  variant="secondary"
+                  disabled={joinMutation.isPending || !inviteCode.trim()}
+                >
+                  {joinMutation.isPending ? "Joining…" : "Join team"}
                 </Button>
               </DialogFooter>
             </form>
@@ -458,5 +521,5 @@ export default function HackathonApplyPage() {
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }

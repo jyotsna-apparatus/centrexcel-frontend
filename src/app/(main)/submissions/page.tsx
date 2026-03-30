@@ -1,111 +1,115 @@
-'use client'
+"use client";
 
-import { useMemo, useState, useCallback, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import type { ColumnDef } from '@tanstack/react-table'
-import type { PaginationState } from '@tanstack/react-table'
-import { DataTable } from '@/components/ui/data-table'
-import { useSubmissions, type SubmissionListItem } from '@/hooks/use-submissions'
-import PageHeader from '@/components/pageHeader/PageHeader'
-import { useAuth } from '@/contexts/auth-context'
-import { canAccessPath } from '@/config/sidebar-nav'
-import { toast } from 'sonner'
+import type { ColumnDef, PaginationState } from "@tanstack/react-table";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import PageHeader from "@/components/pageHeader/PageHeader";
+import { DataTable } from "@/components/ui/data-table";
+import { canAccessPath } from "@/config/sidebar-nav";
+import { useAuth } from "@/contexts/auth-context";
+import {
+  type SubmissionListItem,
+  useSubmissions,
+} from "@/hooks/use-submissions";
 
 function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 export default function SubmissionsPage() {
-  const router = useRouter()
-  const { user } = useAuth()
+  const router = useRouter();
+  const { user } = useAuth();
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
-  })
+  });
 
   useEffect(() => {
-    if (user?.role && !canAccessPath('/submissions', user.role)) {
-      router.replace('/dashboard')
+    if (user?.role && !canAccessPath("/submissions", user.role)) {
+      router.replace("/dashboard");
     }
-  }, [user?.role, router])
+  }, [user?.role, router]);
 
   const { data, isLoading, isError, error, isFetching } = useSubmissions({
     page: pagination.pageIndex,
     pageSize: pagination.pageSize,
-  })
+  });
 
-  const submissionsRaw = data?.data
-  const submissions = Array.isArray(submissionsRaw) ? submissionsRaw : []
-  const totalCount = data?.pagination?.total ?? 0
+  const submissionsRaw = data?.data;
+  const submissions = Array.isArray(submissionsRaw) ? submissionsRaw : [];
+  const totalCount = data?.pagination?.total ?? 0;
 
   useEffect(() => {
     if (isError && error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to load submissions')
+      toast.error(
+        error instanceof Error ? error.message : "Failed to load submissions",
+      );
     }
-  }, [isError, error])
+  }, [isError, error]);
 
   const columns = useMemo<ColumnDef<SubmissionListItem, unknown>[]>(
     () => [
       {
-        accessorKey: 'title',
-        header: 'Title',
-        cell: (info) => (info.getValue() as string) ?? '—',
+        accessorKey: "title",
+        header: "Title",
+        cell: (info) => (info.getValue() as string) ?? "—",
       },
       {
-        id: 'hackathon',
-        header: 'Challenge',
+        id: "hackathon",
+        header: "Challenge",
         cell: (info) => {
-          const row = info.row.original
-          return row.hackathon?.title ?? '—'
+          const row = info.row.original;
+          return row.hackathon?.title ?? "—";
         },
       },
       {
-        id: 'team',
-        header: 'Team',
+        id: "team",
+        header: "Team",
         cell: (info) => {
-          const row = info.row.original
-          return row.team?.name ?? 'Solo'
+          const row = info.row.original;
+          return row.team?.name ?? "Solo";
         },
       },
       {
-        accessorKey: 'averageScore',
-        header: 'Avg score',
+        accessorKey: "averageScore",
+        header: "Avg score",
         cell: (info) => {
-          const val = info.getValue() as number | null | undefined
-          if (val == null) return '—'
-          return String(val)
+          const val = info.getValue() as number | null | undefined;
+          if (val == null) return "—";
+          return String(val);
         },
       },
       {
-        accessorKey: 'fileSize',
-        header: 'Size',
+        accessorKey: "fileSize",
+        header: "Size",
         cell: (info) => {
-          const val = info.getValue() as number | undefined
-          if (val == null) return '—'
-          return formatBytes(val)
+          const val = info.getValue() as number | undefined;
+          if (val == null) return "—";
+          return formatBytes(val);
         },
       },
       {
-        accessorKey: 'createdAt',
-        header: 'Submitted',
+        accessorKey: "createdAt",
+        header: "Submitted",
         cell: (info) => {
-          const raw = info.getValue() as string
-          if (!raw) return '—'
+          const raw = info.getValue() as string;
+          if (!raw) return "—";
           try {
             return new Date(raw).toLocaleString(undefined, {
-              dateStyle: 'short',
-              timeStyle: 'short',
-            })
+              dateStyle: "short",
+              timeStyle: "short",
+            });
           } catch {
-            return raw
+            return raw;
           }
         },
       },
     ],
-    []
-  )
+    [],
+  );
 
   return (
     <div>
@@ -130,9 +134,13 @@ export default function SubmissionsPage() {
         sorting={false}
         getRowId={(row) => row.id}
         emptyMessage={
-          isLoading ? 'Loading...' : isFetching ? 'Loading...' : 'No submissions found.'
+          isLoading
+            ? "Loading..."
+            : isFetching
+              ? "Loading..."
+              : "No submissions found."
         }
       />
     </div>
-  )
+  );
 }

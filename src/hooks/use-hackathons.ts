@@ -1,45 +1,54 @@
-'use client'
+"use client";
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getHackathons, getHackathon, getFeaturedHackathons, type Challenge, type HackathonListItem } from '@/lib/auth-api'
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  type Challenge,
+  getFeaturedHackathons,
+  getHackathon,
+  getHackathons,
+  type HackathonListItem,
+} from "@/lib/auth-api";
 
-const REFETCH_INTERVAL_MS = 30_000
-const FEATURED_LIMIT = 3
+const REFETCH_INTERVAL_MS = 30_000;
+const FEATURED_LIMIT = 3;
 
 export type UseHackathonsParams = {
-  page: number
-  pageSize: number
-  search?: string
-  status?: string
-  sponsorId?: string
-  forJudge?: 'me'
+  page: number;
+  pageSize: number;
+  search?: string;
+  status?: string;
+  sponsorId?: string;
+  forJudge?: "me";
   /** Admin-only */
-  approvalStatus?: string
-}
+  approvalStatus?: string;
+};
 
 /** Challenges assigned to the current user (judge). */
-export function useJudgeHackathons(params: { page?: number; pageSize?: number }) {
-  const page = params.page ?? 0
-  const pageSize = params.pageSize ?? 20
+export function useJudgeHackathons(params: {
+  page?: number;
+  pageSize?: number;
+}) {
+  const page = params.page ?? 0;
+  const pageSize = params.pageSize ?? 20;
   return useQuery({
-    queryKey: ['hackathons', 'judge', page, pageSize],
+    queryKey: ["hackathons", "judge", page, pageSize],
     queryFn: () =>
       getHackathons({
         page: page + 1,
         limit: pageSize,
-        forJudge: 'me',
+        forJudge: "me",
       }),
-    refetchOnMount: 'always',
-  })
+    refetchOnMount: "always",
+  });
 }
 
 /** Public: top 3 hackathons for landing page. No auth required. */
 export function useFeaturedHackathons(limit: number = FEATURED_LIMIT) {
   return useQuery({
-    queryKey: ['featured-hackathons', limit],
+    queryKey: ["featured-hackathons", limit],
     queryFn: () => getFeaturedHackathons(limit),
-    refetchOnMount: 'always',
-  })
+    refetchOnMount: "always",
+  });
 }
 
 export function useHackathons({
@@ -52,7 +61,16 @@ export function useHackathons({
   approvalStatus,
 }: UseHackathonsParams) {
   return useQuery({
-    queryKey: ['hackathons', page, pageSize, search, status, sponsorId, forJudge, approvalStatus],
+    queryKey: [
+      "hackathons",
+      page,
+      pageSize,
+      search,
+      status,
+      sponsorId,
+      forJudge,
+      approvalStatus,
+    ],
     queryFn: () =>
       getHackathons({
         page: page + 1,
@@ -64,25 +82,28 @@ export function useHackathons({
         approvalStatus,
       }),
     refetchInterval: REFETCH_INTERVAL_MS,
-    refetchOnMount: 'always',
-  })
+    refetchOnMount: "always",
+  });
 }
 
 export function useHackathon(id: string | null) {
   return useQuery({
-    queryKey: ['hackathon', id],
-    queryFn: () => getHackathon(id!),
+    queryKey: ["hackathon", id],
+    queryFn: () => {
+      if (id == null) throw new Error("Hackathon id required");
+      return getHackathon(id);
+    },
     enabled: !!id,
-  })
+  });
 }
 
 export function useInvalidateHackathons() {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
   return () => {
-    queryClient.invalidateQueries({ queryKey: ['hackathons'] })
-    queryClient.invalidateQueries({ queryKey: ['hackathon'] })
-    queryClient.invalidateQueries({ queryKey: ['hackathon-winners'] })
-  }
+    queryClient.invalidateQueries({ queryKey: ["hackathons"] });
+    queryClient.invalidateQueries({ queryKey: ["hackathon"] });
+    queryClient.invalidateQueries({ queryKey: ["hackathon-winners"] });
+  };
 }
 
-export type { Challenge, HackathonListItem }
+export type { Challenge, HackathonListItem };

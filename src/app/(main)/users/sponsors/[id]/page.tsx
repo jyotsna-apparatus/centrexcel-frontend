@@ -1,24 +1,29 @@
-'use client'
+"use client";
 
-import { use } from 'react'
-import Link from 'next/link'
-import { useQuery } from '@tanstack/react-query'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import PageHeader from '@/components/pageHeader/PageHeader'
-import { getUser } from '@/lib/auth-api'
-import { toast } from 'sonner'
+import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
+import { use } from "react";
+import { toast } from "sonner";
+import PageHeader from "@/components/pageHeader/PageHeader";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { getUser } from "@/lib/auth-api";
 
 export default function ViewSponsorPage({
   params,
 }: {
-  params: Promise<{ id: string }>
+  params: Promise<{ id: string }>;
 }) {
-  const { id } = use(params)
-  const { data: user, isLoading, isError, error } = useQuery({
-    queryKey: ['sponsor', id],
+  const { id } = use(params);
+  const {
+    data: user,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ["sponsor", id],
     queryFn: () => getUser(id),
-  })
+  });
 
   if (isLoading) {
     return (
@@ -26,12 +31,14 @@ export default function ViewSponsorPage({
         <PageHeader title="Sponsor" description="View sponsor details." />
         <p className="text-muted-foreground">Loading...</p>
       </div>
-    )
+    );
   }
 
   if (isError || !user) {
     if (isError && error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to load sponsor')
+      toast.error(
+        error instanceof Error ? error.message : "Failed to load sponsor",
+      );
     }
     return (
       <div>
@@ -40,22 +47,22 @@ export default function ViewSponsorPage({
           <Link href="/users/sponsors">Back to list</Link>
         </Button>
       </div>
-    )
+    );
   }
 
   const joinedDate = user.createdAt
     ? (() => {
         try {
           return new Date(user.createdAt).toLocaleDateString(undefined, {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          })
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          });
         } catch {
-          return user.createdAt
+          return user.createdAt;
         }
       })()
-    : '—'
+    : "—";
 
   return (
     <div>
@@ -71,19 +78,25 @@ export default function ViewSponsorPage({
       </PageHeader>
       <div className="mx-auto max-w-md space-y-4">
         <div>
-          <label htmlFor="view-username" className="text-muted-foreground mb-1 block text-sm font-medium">
+          <label
+            htmlFor="view-username"
+            className="text-muted-foreground mb-1 block text-sm font-medium"
+          >
             Username
           </label>
           <Input
             id="view-username"
-            value={user.username ?? '—'}
+            value={user.username ?? "—"}
             readOnly
             disabled
             className="bg-muted/50"
           />
         </div>
         <div>
-          <label htmlFor="view-email" className="text-muted-foreground mb-1 block text-sm font-medium">
+          <label
+            htmlFor="view-email"
+            className="text-muted-foreground mb-1 block text-sm font-medium"
+          >
             Email
           </label>
           <Input
@@ -96,7 +109,10 @@ export default function ViewSponsorPage({
           />
         </div>
         <div>
-          <label htmlFor="view-role" className="text-muted-foreground mb-1 block text-sm font-medium">
+          <label
+            htmlFor="view-role"
+            className="text-muted-foreground mb-1 block text-sm font-medium"
+          >
             Role
           </label>
           <Input
@@ -108,19 +124,25 @@ export default function ViewSponsorPage({
           />
         </div>
         <div>
-          <label htmlFor="view-verified" className="text-muted-foreground mb-1 block text-sm font-medium">
+          <label
+            htmlFor="view-verified"
+            className="text-muted-foreground mb-1 block text-sm font-medium"
+          >
             Email verified
           </label>
           <Input
             id="view-verified"
-            value={user.emailVerified ? 'Yes' : 'No'}
+            value={user.emailVerified ? "Yes" : "No"}
             readOnly
             disabled
             className="bg-muted/50"
           />
         </div>
         <div>
-          <label htmlFor="view-joined" className="text-muted-foreground mb-1 block text-sm font-medium">
+          <label
+            htmlFor="view-joined"
+            className="text-muted-foreground mb-1 block text-sm font-medium"
+          >
             Joined
           </label>
           <Input
@@ -133,5 +155,5 @@ export default function ViewSponsorPage({
         </div>
       </div>
     </div>
-  )
+  );
 }

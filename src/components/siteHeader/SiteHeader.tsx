@@ -1,9 +1,9 @@
 "use client";
-import Image from "next/image";
-import { Button } from "../ui/button";
-import Link from "next/link";
 import { MenuIcon, X } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
 import { useState } from "react";
+import { Button } from "../ui/button";
 
 const SiteHeader = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -21,7 +21,11 @@ const SiteHeader = () => {
     <>
       <header className="parent py-4 border-b border-cs-border fixed top-0 left-0 right-0 z-50 glass">
         <div className="container flex flex-wrap items-center justify-between gap-4">
-          <Link href="/" data-aos="fade-down" className="flex items-center gap-2">
+          <Link
+            href="/"
+            data-aos="fade-down"
+            className="flex items-center gap-2"
+          >
             <Image
               src="/logo-mark.svg"
               alt="Centrexcel"
@@ -30,7 +34,9 @@ const SiteHeader = () => {
               className="h-8 w-8"
               priority
             />
-            <span className="text-xl font-semibold text-cs-heading">centrexcel</span>
+            <span className="text-xl font-semibold text-cs-heading">
+              centrexcel
+            </span>
           </Link>
           <nav className="flex items-center gap-3">
             <Button size="sm" asChild data-aos="fade-down" data-aos-delay="100">
@@ -63,12 +69,16 @@ const SiteHeader = () => {
           </button>
 
           <div className="flex flex-col gap-2 items-center justify-center h-full">
-
-          {navItems.map((item) => (
-            <Link href={item.href} key={item.label} className="text-cs-text h2 w-full hover:bg-cs-primary hover:!text-cs-black p-4 rounded " onClick={() => setIsOpen(false)}>
-              {item.label}
-            </Link>
-          ))}
+            {navItems.map((item) => (
+              <Link
+                href={item.href}
+                key={item.label}
+                className="text-cs-text h2 w-full hover:bg-cs-primary hover:!text-cs-black p-4 rounded "
+                onClick={() => setIsOpen(false)}
+              >
+                {item.label}
+              </Link>
+            ))}
           </div>
         </div>
       </nav>

@@ -1,20 +1,20 @@
-'use client'
+"use client";
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { hackathonImageSrc } from '@/components/hackathon-card/HackathonCard'
-import type { UserListItem } from '@/lib/auth-api'
-import { userListInitials, userTablePrimaryLine } from '@/lib/user-display'
+import { hackathonImageSrc } from "@/components/hackathon-card/HackathonCard";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import type { UserListItem } from "@/lib/auth-api";
+import { userListInitials, userTablePrimaryLine } from "@/lib/user-display";
 
-const PROFILE_PLACEHOLDER = '/profile-placeholder.svg'
+const PROFILE_PLACEHOLDER = "/profile-placeholder.svg";
 
 type Props = {
-  user: UserListItem
-}
+  user: UserListItem;
+};
 
 export function UserTableProfileCell({ user }: Props) {
-  const src = hackathonImageSrc(user.profilePic ?? null)
-  const primary = userTablePrimaryLine(user)
-  const initials = userListInitials(user)
+  const src = hackathonImageSrc(user.profilePic ?? null);
+  const primary = userTablePrimaryLine(user);
+  const initials = userListInitials(user);
 
   return (
     <div className="flex max-w-[min(100%,320px)] items-center gap-3">
@@ -27,5 +27,5 @@ export function UserTableProfileCell({ user }: Props) {
         <p className="truncate text-xs text-muted-foreground">{user.email}</p>
       </div>
     </div>
-  )
+  );
 }

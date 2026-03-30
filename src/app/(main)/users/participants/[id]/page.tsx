@@ -1,60 +1,73 @@
-'use client'
+"use client";
 
-import { use } from 'react'
-import Link from 'next/link'
-import { useQuery } from '@tanstack/react-query'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import PageHeader from '@/components/pageHeader/PageHeader'
-import { getUser } from '@/lib/auth-api'
+import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
+import { use } from "react";
+import PageHeader from "@/components/pageHeader/PageHeader";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { getUser } from "@/lib/auth-api";
 
 export default function ViewParticipantPage({
   params,
 }: {
-  params: Promise<{ id: string }>
+  params: Promise<{ id: string }>;
 }) {
-  const { id } = use(params)
-  const { data: user, isLoading, isError, error } = useQuery({
-    queryKey: ['participant', id],
+  const { id } = use(params);
+  const {
+    data: user,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ["participant", id],
     queryFn: () => getUser(id),
-  })
+  });
 
   if (isLoading) {
     return (
       <div>
-        <PageHeader title="Participant" description="View participant details." />
+        <PageHeader
+          title="Participant"
+          description="View participant details."
+        />
         <p className="text-muted-foreground">Loading...</p>
       </div>
-    )
+    );
   }
 
   if (isError || !user) {
     return (
       <div>
-        <PageHeader title="Participant" description="View participant details." />
+        <PageHeader
+          title="Participant"
+          description="View participant details."
+        />
         <div className="rounded-lg border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm text-red-400">
-          {error instanceof Error ? error.message : 'Failed to load participant'}
+          {error instanceof Error
+            ? error.message
+            : "Failed to load participant"}
         </div>
         <Button variant="outline" asChild className="mt-4">
           <Link href="/users/participants">Back to list</Link>
         </Button>
       </div>
-    )
+    );
   }
 
   const joinedDate = user.createdAt
     ? (() => {
         try {
           return new Date(user.createdAt).toLocaleDateString(undefined, {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          })
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          });
         } catch {
-          return user.createdAt
+          return user.createdAt;
         }
       })()
-    : '—'
+    : "—";
 
   return (
     <div>
@@ -70,19 +83,25 @@ export default function ViewParticipantPage({
       </PageHeader>
       <div className="mx-auto max-w-md space-y-4">
         <div>
-          <label htmlFor="view-username" className="text-muted-foreground mb-1 block text-sm font-medium">
+          <label
+            htmlFor="view-username"
+            className="text-muted-foreground mb-1 block text-sm font-medium"
+          >
             Username
           </label>
           <Input
             id="view-username"
-            value={user.username ?? '—'}
+            value={user.username ?? "—"}
             readOnly
             disabled
             className="bg-muted/50"
           />
         </div>
         <div>
-          <label htmlFor="view-email" className="text-muted-foreground mb-1 block text-sm font-medium">
+          <label
+            htmlFor="view-email"
+            className="text-muted-foreground mb-1 block text-sm font-medium"
+          >
             Email
           </label>
           <Input
@@ -95,7 +114,10 @@ export default function ViewParticipantPage({
           />
         </div>
         <div>
-          <label htmlFor="view-role" className="text-muted-foreground mb-1 block text-sm font-medium">
+          <label
+            htmlFor="view-role"
+            className="text-muted-foreground mb-1 block text-sm font-medium"
+          >
             Role
           </label>
           <Input
@@ -107,19 +129,25 @@ export default function ViewParticipantPage({
           />
         </div>
         <div>
-          <label htmlFor="view-verified" className="text-muted-foreground mb-1 block text-sm font-medium">
+          <label
+            htmlFor="view-verified"
+            className="text-muted-foreground mb-1 block text-sm font-medium"
+          >
             Email verified
           </label>
           <Input
             id="view-verified"
-            value={user.emailVerified ? 'Yes' : 'No'}
+            value={user.emailVerified ? "Yes" : "No"}
             readOnly
             disabled
             className="bg-muted/50"
           />
         </div>
         <div>
-          <label htmlFor="view-joined" className="text-muted-foreground mb-1 block text-sm font-medium">
+          <label
+            htmlFor="view-joined"
+            className="text-muted-foreground mb-1 block text-sm font-medium"
+          >
             Joined
           </label>
           <Input
@@ -132,5 +160,5 @@ export default function ViewParticipantPage({
         </div>
       </div>
     </div>
-  )
+  );
 }

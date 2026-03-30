@@ -1,86 +1,100 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { useMutation } from '@tanstack/react-query'
-import { createPayment } from '@/lib/auth-api'
-import { useAuth } from '@/contexts/auth-context'
-import { canAccessPath } from '@/config/sidebar-nav'
-import PageHeader from '@/components/pageHeader/PageHeader'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { ArrowLeft, CreditCard } from 'lucide-react'
-import { toast } from 'sonner'
+import { useMutation } from "@tanstack/react-query";
+import { ArrowLeft, CreditCard } from "lucide-react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import PageHeader from "@/components/pageHeader/PageHeader";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { canAccessPath } from "@/config/sidebar-nav";
+import { useAuth } from "@/contexts/auth-context";
+import { createPayment } from "@/lib/auth-api";
 
-const MIN_AMOUNT_RS = 1
-const MAX_AMOUNT_RS = 999999
+const MIN_AMOUNT_RS = 1;
+const MAX_AMOUNT_RS = 999999;
 
 export default function PaymentCheckoutPage() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const { user } = useAuth()
-  const hackathonId = searchParams.get('hackathonId') ?? undefined
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { user } = useAuth();
+  const hackathonId = searchParams.get("hackathonId") ?? undefined;
 
   useEffect(() => {
-    if (user?.role && !canAccessPath('/payments', user.role)) {
-      router.replace('/dashboard')
+    if (user?.role && !canAccessPath("/payments", user.role)) {
+      router.replace("/dashboard");
     }
-  }, [user?.role, router])
-  const presetAmount = searchParams.get('amount')
+  }, [user?.role, router]);
+  const presetAmount = searchParams.get("amount");
   const [amountRs, setAmountRs] = useState(() => {
-    const n = presetAmount ? Number(presetAmount) : NaN
-    return Number.isFinite(n) && n >= MIN_AMOUNT_RS ? String(n) : ''
-  })
+    const n = presetAmount ? Number(presetAmount) : NaN;
+    return Number.isFinite(n) && n >= MIN_AMOUNT_RS ? String(n) : "";
+  });
 
   const createMutation = useMutation({
     mutationFn: (amountPaisa: number) =>
       createPayment({
         amount: amountPaisa,
-        redirectPath: '/payment/return',
+        redirectPath: "/payment/return",
         userId: user?.id,
         hackathonId,
       }),
     onSuccess: (data) => {
-      const url = data?.data?.redirectUrl
+      const url = data?.data?.redirectUrl;
       if (url) {
-        window.location.href = url
+        window.location.href = url;
       } else {
-        toast.error('No redirect URL received')
+        toast.error("No redirect URL received");
       }
     },
     onError: (err: Error) => {
-      toast.error(err.message ?? 'Failed to initiate payment')
+      toast.error(err.message ?? "Failed to initiate payment");
     },
-  })
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const rs = Number.parseFloat(amountRs)
+    e.preventDefault();
+    const rs = Number.parseFloat(amountRs);
     if (Number.isNaN(rs) || rs < MIN_AMOUNT_RS || rs > MAX_AMOUNT_RS) {
-      toast.error(`Enter an amount between ₹${MIN_AMOUNT_RS} and ₹${MAX_AMOUNT_RS}`)
-      return
+      toast.error(
+        `Enter an amount between ₹${MIN_AMOUNT_RS} and ₹${MAX_AMOUNT_RS}`,
+      );
+      return;
     }
-    const paisa = Math.round(rs * 100)
+    const paisa = Math.round(rs * 100);
     if (paisa < 100) {
-      toast.error('Minimum amount is ₹1 (100 paisa)')
-      return
+      toast.error("Minimum amount is ₹1 (100 paisa)");
+      return;
     }
-    createMutation.mutate(paisa)
-  }
+    createMutation.mutate(paisa);
+  };
 
-  const isAdmin = user?.role === 'admin'
+  const isAdmin = user?.role === "admin";
 
   return (
     <div>
       <PageHeader
         title="Pay with PhonePe"
-        description={isAdmin ? 'Admins do not make payments here.' : 'Enter the amount and you will be redirected to PhonePe to complete the payment.'}
+        description={
+          isAdmin
+            ? "Admins do not make payments here."
+            : "Enter the amount and you will be redirected to PhonePe to complete the payment."
+        }
       >
         <Button variant="outline" size="sm" asChild>
-          <Link href={isAdmin ? '/payments' : hackathonId ? `/hackathons/${hackathonId}` : '/dashboard'}>
+          <Link
+            href={
+              isAdmin
+                ? "/payments"
+                : hackathonId
+                  ? `/hackathons/${hackathonId}`
+                  : "/dashboard"
+            }
+          >
             <ArrowLeft className="mr-2 size-4" />
-            {isAdmin ? 'View transactions' : 'Back'}
+            {isAdmin ? "View transactions" : "Back"}
           </Link>
         </Button>
       </PageHeader>
@@ -89,7 +103,8 @@ export default function PaymentCheckoutPage() {
         <div className="mt-6 max-w-md">
           <div className="rounded-lg border border-cs-border bg-card p-6">
             <p className="text-cs-text mb-4">
-              Admins do not make payments here. View all transactions on the Transactions page.
+              Admins do not make payments here. View all transactions on the
+              Transactions page.
             </p>
             <Button asChild>
               <Link href="/payments">View all transactions</Link>
@@ -105,7 +120,10 @@ export default function PaymentCheckoutPage() {
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label htmlFor="amount" className="mb-1.5 block text-sm font-medium text-cs-heading">
+                <label
+                  htmlFor="amount"
+                  className="mb-1.5 block text-sm font-medium text-cs-heading"
+                >
                   Amount (₹)
                 </label>
                 <Input
@@ -121,16 +139,23 @@ export default function PaymentCheckoutPage() {
                   className="w-full"
                 />
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Minimum ₹{MIN_AMOUNT_RS}. You will be redirected to PhonePe to pay securely.
+                  Minimum ₹{MIN_AMOUNT_RS}. You will be redirected to PhonePe to
+                  pay securely.
                 </p>
               </div>
-              <Button type="submit" disabled={createMutation.isPending} className="w-full">
-                {createMutation.isPending ? 'Redirecting to PhonePe...' : 'Pay with PhonePe'}
+              <Button
+                type="submit"
+                disabled={createMutation.isPending}
+                className="w-full"
+              >
+                {createMutation.isPending
+                  ? "Redirecting to PhonePe..."
+                  : "Pay with PhonePe"}
               </Button>
             </form>
           </div>
         </div>
       )}
     </div>
-  )
+  );
 }

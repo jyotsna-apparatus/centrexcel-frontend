@@ -1,29 +1,25 @@
-'use client'
+"use client";
 
-import { useQuery } from '@tanstack/react-query'
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { getTeams, getSubmissions } from '@/lib/auth-api'
-import {
-  Users,
-  FileUp,
-  Trophy,
-  ArrowRight,
-  Plus,
-} from 'lucide-react'
-import { useAuth } from '@/contexts/auth-context'
+import { useQuery } from "@tanstack/react-query";
+import { ArrowRight, FileUp, Plus, Trophy, Users } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/auth-context";
+import { getSubmissions, getTeams } from "@/lib/auth-api";
 
 type StatCardProps = {
-  title: string
-  value: string | number
-  icon: React.ReactNode
-  href?: string
-  className?: string
-}
+  title: string;
+  value: string | number;
+  icon: React.ReactNode;
+  href?: string;
+  className?: string;
+};
 
-function StatCard({ title, value, icon, href, className = '' }: StatCardProps) {
+function StatCard({ title, value, icon, href, className = "" }: StatCardProps) {
   const content = (
-    <div className={`glass cs-card rounded-lg border border-cs-border p-6 shadow-sm transition-all hover:shadow-md ${className}`}>
+    <div
+      className={`glass cs-card rounded-lg border border-cs-border p-6 shadow-sm transition-all hover:shadow-md ${className}`}
+    >
       <div className="flex items-center justify-between">
         <div>
           <p className="text-muted-foreground text-sm font-medium">{title}</p>
@@ -34,38 +30,39 @@ function StatCard({ title, value, icon, href, className = '' }: StatCardProps) {
         </div>
       </div>
     </div>
-  )
+  );
 
   if (href) {
     return (
       <Link href={href} className="block">
         {content}
       </Link>
-    )
+    );
   }
 
-  return content
+  return content;
 }
 
 export default function ParticipantDashboard() {
-  const { user } = useAuth()
+  const { user } = useAuth();
 
   // Fetch user's teams
   const { data: teamsData } = useQuery({
-    queryKey: ['dashboard', 'participant-teams'],
+    queryKey: ["dashboard", "participant-teams"],
     queryFn: () => getTeams({ page: 1, limit: 10 }),
-  })
+  });
 
   // Fetch user's submissions
   const { data: submissionsData } = useQuery({
-    queryKey: ['dashboard', 'participant-submissions'],
+    queryKey: ["dashboard", "participant-submissions"],
     queryFn: () => getSubmissions({ page: 1, limit: 5 }),
-  })
+  });
 
-  const myTeams = teamsData?.data?.filter((team) =>
-    team.members?.some((member) => member.userId === user?.id)
-  ) ?? []
-  const mySubmissions = submissionsData?.data ?? []
+  const myTeams =
+    teamsData?.data?.filter((team) =>
+      team.members?.some((member) => member.userId === user?.id),
+    ) ?? [];
+  const mySubmissions = submissionsData?.data ?? [];
 
   return (
     <div className="space-y-8">
@@ -146,7 +143,7 @@ export default function ParticipantDashboard() {
                       <p className="text-muted-foreground text-sm">
                         {team.participations?.length
                           ? `${team.participations.length} hackathon(s)`
-                          : 'Not in any challenge yet'}
+                          : "Not in any challenge yet"}
                       </p>
                     </div>
                   </div>
@@ -160,7 +157,9 @@ export default function ParticipantDashboard() {
             </div>
           ) : (
             <div className="space-y-3">
-              <p className="text-muted-foreground text-center py-4 text-sm">No teams yet</p>
+              <p className="text-muted-foreground text-center py-4 text-sm">
+                No teams yet
+              </p>
               <Button variant="outline" className="w-full" asChild>
                 <Link href="/hackathons">
                   <Plus className="mr-2 size-4" />
@@ -197,7 +196,7 @@ export default function ParticipantDashboard() {
                     <div>
                       <p className="font-medium">{submission.title}</p>
                       <p className="text-muted-foreground text-sm">
-                        {submission.hackathon?.title ?? 'Unknown challenge'}
+                        {submission.hackathon?.title ?? "Unknown challenge"}
                       </p>
                     </div>
                   </div>
@@ -210,7 +209,7 @@ export default function ParticipantDashboard() {
                     <p className="text-muted-foreground text-xs">
                       {submission.createdAt
                         ? new Date(submission.createdAt).toLocaleDateString()
-                        : '—'}
+                        : "—"}
                     </p>
                   </div>
                 </Link>
@@ -218,7 +217,9 @@ export default function ParticipantDashboard() {
             </div>
           ) : (
             <div className="space-y-3">
-              <p className="text-muted-foreground text-center py-4 text-sm">No submissions yet</p>
+              <p className="text-muted-foreground text-center py-4 text-sm">
+                No submissions yet
+              </p>
               <Button variant="outline" className="w-full" asChild>
                 <Link href="/hackathons">
                   <Plus className="mr-2 size-4" />
@@ -229,7 +230,6 @@ export default function ParticipantDashboard() {
           )}
         </div>
       </div>
-
     </div>
-  )
+  );
 }

@@ -1,29 +1,34 @@
-import React from 'react'
-import Image from 'next/image'
+import Image from "next/image";
 
 const FEATURED_HACKATHONS = [
   {
-    number: '1',
-    title: 'AI Frontier Challenge',
-    description: 'Build the next generation of AI-powered products. From agents to automation—48 hours to ship something that matters.',
-    image: '/third/1.avif',
-    gradient: 'linear-gradient(135deg, rgba(0, 106, 255, 0.25) 0%, transparent 50%, rgba(255, 89, 0, 0.2) 100%)',
+    number: "1",
+    title: "AI Frontier Challenge",
+    description:
+      "Build the next generation of AI-powered products. From agents to automation—48 hours to ship something that matters.",
+    image: "/third/1.avif",
+    gradient:
+      "linear-gradient(135deg, rgba(0, 106, 255, 0.25) 0%, transparent 50%, rgba(255, 89, 0, 0.2) 100%)",
   },
   {
-    number: '2',
-    title: 'Sustainable Tech Challenge',
-    description: 'Tackle climate and impact with tech. Partner with NGOs and judges who care about real-world outcomes.',
-    image: '/third/2.avif',
-    gradient: 'linear-gradient(135deg, rgba(0, 106, 255, 0.2) 0%, transparent 70%)',
+    number: "2",
+    title: "Sustainable Tech Challenge",
+    description:
+      "Tackle climate and impact with tech. Partner with NGOs and judges who care about real-world outcomes.",
+    image: "/third/2.avif",
+    gradient:
+      "linear-gradient(135deg, rgba(0, 106, 255, 0.2) 0%, transparent 70%)",
   },
   {
-    number: '3',
-    title: 'Build in Public Showcase',
-    description: 'Ship live in 72 hours and get feedback from the community. Best demos win prizes and visibility.',
-    image: '/third/3.avif',
-    gradient: 'linear-gradient(135deg, transparent 30%, rgba(255, 89, 0, 0.25) 100%)',
+    number: "3",
+    title: "Build in Public Showcase",
+    description:
+      "Ship live in 72 hours and get feedback from the community. Best demos win prizes and visibility.",
+    image: "/third/3.avif",
+    gradient:
+      "linear-gradient(135deg, transparent 30%, rgba(255, 89, 0, 0.25) 100%)",
   },
-]
+];
 
 export default function SixthSection() {
   return (
@@ -34,7 +39,8 @@ export default function SixthSection() {
           Three hackathons you don’t want to miss
         </h2>
         <p className="p1 text-center max-w-xl mb-14 text-(--cs-text)/90">
-          From AI to impact to building in public—pick your track and ship something in a weekend.
+          From AI to impact to building in public—pick your track and ship
+          something in a weekend.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 w-full gap-6 w-full">
@@ -65,5 +71,5 @@ export default function SixthSection() {
         </div>
       </div>
     </section>
-  )
+  );
 }

@@ -1,29 +1,29 @@
-'use client'
+"use client";
 
-import { useQuery } from '@tanstack/react-query'
-import { getUsers, type UserListItem } from '@/lib/auth-api'
+import { useQuery } from "@tanstack/react-query";
+import { getUsers, type UserListItem } from "@/lib/auth-api";
 
-const REFETCH_INTERVAL_MS = 20_000
+const REFETCH_INTERVAL_MS = 20_000;
 
 export type UseJudgesParams = {
-  page: number
-  pageSize: number
-  search: string
-}
+  page: number;
+  pageSize: number;
+  search: string;
+};
 
 export function useJudges({ page, pageSize, search }: UseJudgesParams) {
   return useQuery({
-    queryKey: ['judges', page, pageSize, search],
+    queryKey: ["judges", page, pageSize, search],
     queryFn: () =>
       getUsers({
         page: page + 1,
         limit: pageSize,
         search: search.trim() || undefined,
-        role: 'judge',
+        role: "judge",
       }),
     refetchInterval: REFETCH_INTERVAL_MS,
-    refetchOnMount: 'always',
-  })
+    refetchOnMount: "always",
+  });
 }
 
-export type { UserListItem }
+export type { UserListItem };

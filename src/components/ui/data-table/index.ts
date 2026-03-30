@@ -1,9 +1,12 @@
-export { DataTable } from "./DataTable"
+export { DataTable } from "./DataTable";
 export type {
-  DataTableProps,
+  ColumnDef,
   DataTablePaginationConfig,
+  DataTableProps,
   DataTableSortingConfig,
   DynamicSearchConfig,
+  PaginationState,
+  RowData,
   SearchMode,
-} from "./types"
-export type { ColumnDef, PaginationState, SortingState, RowData } from "./types"
+  SortingState,
+} from "./types";

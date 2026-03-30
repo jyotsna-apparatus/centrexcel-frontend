@@ -1,6 +1,10 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { ChevronDown } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
 import {
   Sidebar,
   SidebarContent,
@@ -12,16 +16,15 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
-} from '@/components/ui/sidebar';
-import { getSidebarItemsForRole, ONBOARDING_ONLY_NAV } from '@/config/sidebar-nav';
-import { useAuth } from '@/contexts/auth-context';
-import { canAccessPath } from '@/config/sidebar-nav';
-import { ChevronDown } from 'lucide-react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { cn } from "@/lib/utils"
-import { isRole, type Role } from '@/types/roles'
+} from "@/components/ui/sidebar";
+import {
+  canAccessPath,
+  getSidebarItemsForRole,
+  ONBOARDING_ONLY_NAV,
+} from "@/config/sidebar-nav";
+import { useAuth } from "@/contexts/auth-context";
+import { cn } from "@/lib/utils";
+import { isRole, type Role } from "@/types/roles";
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -30,15 +33,24 @@ export function AppSidebar() {
   const needsOnboarding = user != null && user.isOnboarded !== true;
   const visibleItems =
     needsOnboarding && user?.role && isRole(user.role)
-      ? ONBOARDING_ONLY_NAV.filter((item) => item.roles.includes(user.role as Role))
+      ? ONBOARDING_ONLY_NAV.filter((item) =>
+          item.roles.includes(user.role as Role),
+        )
       : sidebarItems;
-  const [usersOpen, setUsersOpen] = useState(() => pathname.startsWith('/users'));
+  const [usersOpen, setUsersOpen] = useState(() =>
+    pathname.startsWith("/users"),
+  );
 
   const isActive = (path: string) =>
-    pathname === path || pathname.startsWith(path + '/');
+    pathname === path || pathname.startsWith(`${path}/`);
 
-  const isItemActive = (item: { href?: string; children?: { href: string }[] }) =>
-    item.href ? isActive(item.href) : (item.children?.some((c) => isActive(c.href)) ?? false);
+  const isItemActive = (item: {
+    href?: string;
+    children?: { href: string }[];
+  }) =>
+    item.href
+      ? isActive(item.href)
+      : (item.children?.some((c) => isActive(c.href)) ?? false);
 
   return (
     <Sidebar className="bg-cs-card border-r border-cs-border">
@@ -67,16 +79,16 @@ export function AppSidebar() {
                       onClick={() => setUsersOpen((o) => !o)}
                       className={cn(
                         canAccessPath(item.children[0].href, user?.role)
-                          ? 'text-cs-primary'
-                          : 'text-cs-text'
+                          ? "text-cs-primary"
+                          : "text-cs-text",
                       )}
                     >
                       <item.icon className="size-4" />
                       <span>{item.label}</span>
                       <ChevronDown
                         className={cn(
-                          'ml-auto size-4 shrink-0 transition-transform',
-                          usersOpen && 'rotate-180'
+                          "ml-auto size-4 shrink-0 transition-transform",
+                          usersOpen && "rotate-180",
                         )}
                       />
                     </SidebarMenuButton>
@@ -89,10 +101,10 @@ export function AppSidebar() {
                               isActive={isActive(child.href)}
                               className={cn(
                                 isActive(child.href)
-                                  ? ''
+                                  ? ""
                                   : canAccessPath(child.href, user?.role)
-                                    ? 'text-cs-primary'
-                                    : 'text-cs-text'
+                                    ? "text-cs-primary"
+                                    : "text-cs-text",
                               )}
                             >
                               <Link href={child.href}>{child.label}</Link>
@@ -102,22 +114,22 @@ export function AppSidebar() {
                       </SidebarMenuSub>
                     )}
                   </>
-                ) : (
+                ) : item.href ? (
                   <SidebarMenuButton
                     asChild
-                    isActive={item.href ? isActive(item.href) : false}
+                    isActive={isActive(item.href)}
                     className={cn(
-                      item.href && canAccessPath(item.href, user?.role)
-                        ? '!text-cs-primary'
-                        : 'text-cs-text'
+                      canAccessPath(item.href, user?.role)
+                        ? "!text-cs-primary"
+                        : "text-cs-text",
                     )}
                   >
-                    <Link href={item.href!}>
+                    <Link href={item.href}>
                       <item.icon className="size-4" />
                       <span>{item.label}</span>
                     </Link>
                   </SidebarMenuButton>
-                )}
+                ) : null}
               </SidebarMenuItem>
             ))}
           </SidebarMenu>

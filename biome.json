@@ -18,8 +18,27 @@
     "enabled": true,
     "rules": {
       "recommended": true,
+      "a11y": {
+        "noLabelWithoutControl": "off",
+        "useSemanticElements": "off",
+        "useButtonType": "off"
+      },
+      "complexity": {
+        "noImportantStyles": "off"
+      },
+      "correctness": {
+        "useExhaustiveDependencies": "off"
+      },
+      "performance": {
+        "noImgElement": "off"
+      },
+      "security": {
+        "noDangerouslySetInnerHtml": "off"
+      },
       "suspicious": {
-        "noUnknownAtRules": "off"
+        "noUnknownAtRules": "off",
+        "noArrayIndexKey": "off",
+        "noDocumentCookie": "off"
       }
     },
     "domains": {

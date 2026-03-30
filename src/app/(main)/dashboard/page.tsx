@@ -1,30 +1,29 @@
-'use client'
+"use client";
 
-import { useAuth } from '@/contexts/auth-context'
-import AdminDashboard from '@/components/dashboard/AdminDashboard'
-import ParticipantDashboard from '@/components/dashboard/ParticipantDashboard'
-import JudgeDashboard from '@/components/dashboard/JudgeDashboard'
-import SponsorDashboard from '@/components/dashboard/SponsorDashboard'
+import AdminDashboard from "@/components/dashboard/AdminDashboard";
+import JudgeDashboard from "@/components/dashboard/JudgeDashboard";
+import ParticipantDashboard from "@/components/dashboard/ParticipantDashboard";
+import SponsorDashboard from "@/components/dashboard/SponsorDashboard";
+import { useAuth } from "@/contexts/auth-context";
 
 export default function DashboardPage() {
-  const { user } = useAuth()
-  const role = user?.role
+  const { user } = useAuth();
+  const role = user?.role;
 
- 
-  if (role === 'admin') {
-    return <AdminDashboard />
+  if (role === "admin") {
+    return <AdminDashboard />;
   }
 
-  if (role === 'participant') {
-    return <ParticipantDashboard />
+  if (role === "participant") {
+    return <ParticipantDashboard />;
   }
 
-  if (role === 'judge') {
-    return <JudgeDashboard />
+  if (role === "judge") {
+    return <JudgeDashboard />;
   }
 
-  if (role === 'sponsor') {
-    return <SponsorDashboard />
+  if (role === "sponsor") {
+    return <SponsorDashboard />;
   }
 
   // Fallback
@@ -35,5 +34,5 @@ export default function DashboardPage() {
         <p className="p1 mt-1 text-cs-text">Loading...</p>
       </div>
     </div>
-  )
+  );
 }

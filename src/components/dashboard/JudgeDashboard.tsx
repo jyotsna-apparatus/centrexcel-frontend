@@ -1,28 +1,25 @@
-'use client'
+"use client";
 
-import { useQuery } from '@tanstack/react-query'
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { getHackathons } from '@/lib/auth-api'
-import {
-  Trophy,
-  FileUp,
-  Gavel,
-  CheckCircle2,
-} from 'lucide-react'
-import { useAuth } from '@/contexts/auth-context'
+import { useQuery } from "@tanstack/react-query";
+import { CheckCircle2, FileUp, Gavel, Trophy } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/auth-context";
+import { getHackathons } from "@/lib/auth-api";
 
 type StatCardProps = {
-  title: string
-  value: string | number
-  icon: React.ReactNode
-  href?: string
-  className?: string
-}
+  title: string;
+  value: string | number;
+  icon: React.ReactNode;
+  href?: string;
+  className?: string;
+};
 
-function StatCard({ title, value, icon, href, className = '' }: StatCardProps) {
+function StatCard({ title, value, icon, href, className = "" }: StatCardProps) {
   const content = (
-    <div className={`glass cs-card rounded-lg border border-cs-border p-6 shadow-sm transition-all hover:shadow-md ${className}`}>
+    <div
+      className={`glass cs-card rounded-lg border border-cs-border p-6 shadow-sm transition-all hover:shadow-md ${className}`}
+    >
       <div className="flex items-center justify-between">
         <div>
           <p className="text-muted-foreground text-sm font-medium">{title}</p>
@@ -33,30 +30,30 @@ function StatCard({ title, value, icon, href, className = '' }: StatCardProps) {
         </div>
       </div>
     </div>
-  )
+  );
 
   if (href) {
     return (
       <Link href={href} className="block">
         {content}
       </Link>
-    )
+    );
   }
 
-  return content
+  return content;
 }
 
 export default function JudgeDashboard() {
-  const { user } = useAuth()
+  const { user } = useAuth();
 
   // Fetch hackathons assigned to this judge
   const { data: hackathonsData } = useQuery({
-    queryKey: ['dashboard', 'judge-hackathons'],
-    queryFn: () => getHackathons({ page: 1, limit: 10, forJudge: 'me' }),
-  })
+    queryKey: ["dashboard", "judge-hackathons"],
+    queryFn: () => getHackathons({ page: 1, limit: 10, forJudge: "me" }),
+  });
 
-  const hackathons = hackathonsData?.data ?? []
-  const openHackathons = hackathons.filter((h) => h.status === 'open')
+  const hackathons = hackathonsData?.data ?? [];
+  const openHackathons = hackathons.filter((h) => h.status === "open");
 
   return (
     <div className="space-y-8">
@@ -109,12 +106,14 @@ export default function JudgeDashboard() {
           <div>
             <h3 className="font-semibold text-blue-500">Judging Guidelines</h3>
             <p className="text-muted-foreground mt-2 text-sm">
-              As a judge, you can view and score submissions for hackathons you're assigned to.
-              Use &quot;View and score submissions&quot; or the sidebar &quot;Score submissions&quot; to open your assigned hackathons and submit scores.
+              As a judge, you can view and score submissions for hackathons
+              you're assigned to. Use &quot;View and score submissions&quot; or
+              the sidebar &quot;Score submissions&quot; to open your assigned
+              hackathons and submit scores.
             </p>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }
