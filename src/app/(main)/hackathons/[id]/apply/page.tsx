@@ -145,6 +145,40 @@ export default function HackathonApplyPage() {
     },
   });
 
+  const applyDeadlinePassed =
+    hackathon != null &&
+    new Date(hackathon.applyDeadline).getTime() < Date.now();
+
+  const requiresEntryFee =
+    hackathon != null &&
+    Boolean(hackathon.isPaid) &&
+    hackathon.priceOfEntry != null &&
+    Number(hackathon.priceOfEntry) > 0;
+
+  const expectedEntryFeePaisa = requiresEntryFee
+    ? Math.round(Number(hackathon?.priceOfEntry) * 100)
+    : 0;
+
+  const { data: completedPayments } = useQuery({
+    queryKey: ["payments", "completed", user?.id],
+    queryFn: () => getTransactions({ page: 1, limit: 100, state: "COMPLETED" }),
+    enabled: !!user && !!id && requiresEntryFee,
+  });
+
+  const hasPaidEntryFee = useMemo(() => {
+    if (!requiresEntryFee) return true;
+    const rows = completedPayments?.data ?? [];
+    return rows.some(
+      (p) =>
+        p.hackathonId === id &&
+        p.state === "COMPLETED" &&
+        p.amount === expectedEntryFeePaisa,
+    );
+  }, [requiresEntryFee, completedPayments?.data, id, expectedEntryFeePaisa]);
+
+  const participationBlockedByPayment =
+    requiresEntryFee && !hasPaidEntryFee && !applyDeadlinePassed;
+
   const handleCreateTeam = (e: React.FormEvent) => {
     e.preventDefault();
     const name = teamName.trim();
@@ -192,37 +226,6 @@ export default function HackathonApplyPage() {
       </div>
     );
   }
-
-  const applyDeadlinePassed =
-    new Date(hackathon.applyDeadline).getTime() < Date.now();
-
-  const requiresEntryFee =
-    Boolean(hackathon.isPaid) &&
-    hackathon.priceOfEntry != null &&
-    Number(hackathon.priceOfEntry) > 0;
-  const expectedEntryFeePaisa = requiresEntryFee
-    ? Math.round(Number(hackathon.priceOfEntry) * 100)
-    : 0;
-
-  const { data: completedPayments } = useQuery({
-    queryKey: ["payments", "completed", user?.id],
-    queryFn: () => getTransactions({ page: 1, limit: 100, state: "COMPLETED" }),
-    enabled: !!user && requiresEntryFee,
-  });
-
-  const hasPaidEntryFee = useMemo(() => {
-    if (!requiresEntryFee) return true;
-    const rows = completedPayments?.data ?? [];
-    return rows.some(
-      (p) =>
-        p.hackathonId === id &&
-        p.state === "COMPLETED" &&
-        p.amount === expectedEntryFeePaisa,
-    );
-  }, [requiresEntryFee, completedPayments?.data, id, expectedEntryFeePaisa]);
-
-  const participationBlockedByPayment =
-    requiresEntryFee && !hasPaidEntryFee && !applyDeadlinePassed;
 
   return (
     <div>

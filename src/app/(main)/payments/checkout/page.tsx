@@ -38,7 +38,6 @@ export default function PaymentCheckoutPage() {
       createPayment({
         amount: amountPaisa,
         redirectPath: "/payment/return",
-        userId: user?.id,
         hackathonId,
       }),
     onSuccess: (data) => {

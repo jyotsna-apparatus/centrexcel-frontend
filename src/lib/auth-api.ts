@@ -3095,7 +3095,7 @@ export async function createPayment(
 ): Promise<CreatePaymentResponse> {
   const baseUrl = getBaseUrl();
   if (!baseUrl) throw new Error("NEXT_PUBLIC_BACKEND_BASE_URL is not set");
-  const res = await authFetch(`${baseUrl}/payments/create`, {
+  const res = await authenticatedFetch(`${baseUrl}/payments/create`, {
     method: "POST",
     headers: { accept: "application/json", "Content-Type": "application/json" },
     body: JSON.stringify(body),
