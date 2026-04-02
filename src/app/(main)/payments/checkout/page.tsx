@@ -23,7 +23,7 @@ export default function PaymentCheckoutPage() {
   const hackathonId = searchParams.get("hackathonId") ?? undefined;
 
   useEffect(() => {
-    if (user?.role && !canAccessPath("/payments", user.role)) {
+    if (user?.role && !canAccessPath("/payments/checkout", user.role)) {
       router.replace("/dashboard");
     }
   }, [user?.role, router]);

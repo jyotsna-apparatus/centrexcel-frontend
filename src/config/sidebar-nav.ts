@@ -82,7 +82,7 @@ export const SIDEBAR_NAV_CONFIG: SidebarNavItem[] = [
     label: "Transactions",
     href: "/payments",
     icon: CreditCard,
-    roles: [ROLES.ADMIN, ROLES.PARTICIPANT],
+    roles: [ROLES.ADMIN],
   },
   {
     label: "Users",
@@ -139,6 +139,8 @@ export function getRouteRolesMap(): Map<string, Role[]> {
       map.set(child.href, item.roles);
     }
   }
+  // Entry-fee checkout (e.g. from /hackathons/[id]/apply); list page is admin-only above.
+  map.set("/payments/checkout", [ROLES.ADMIN, ROLES.PARTICIPANT]);
   return map;
 }
 

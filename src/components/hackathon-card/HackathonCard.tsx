@@ -307,6 +307,18 @@ export function HackathonCard({
               </Link>
             </Button>
           )}
+        {isParticipant &&
+          !hasParticipated &&
+          applyClosed &&
+          hackathon.approvalStatus === "approved" &&
+          hackathon.status !== "closed" &&
+          hackathon.status !== "cancelled" && (
+            <p className="w-full text-xs text-muted-foreground">
+              Applications closed — the apply-by date has passed. Open
+              indicates the challenge may still be running for existing
+              participants.
+            </p>
+          )}
       </div>
     </div>
   );
