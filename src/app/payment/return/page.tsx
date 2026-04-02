@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { CheckCircle, Loader2, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -19,6 +20,7 @@ type Status =
   | "error";
 
 function PaymentReturnPage() {
+  const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const merchantOrderId = searchParams.get("merchantOrderId");
   const [status, setStatus] = useState<Status>("loading");
@@ -76,6 +78,12 @@ function PaymentReturnPage() {
       cancelled = true;
     };
   }, [merchantOrderId]);
+
+  useEffect(() => {
+    if (status === "COMPLETED") {
+      queryClient.invalidateQueries({ queryKey: ["payments", "completed"] });
+    }
+  }, [status, queryClient]);
 
   const amountDisplay = amount !== null ? `₹${(amount / 100).toFixed(2)}` : "";
 

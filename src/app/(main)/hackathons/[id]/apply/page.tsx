@@ -1,10 +1,10 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, CreditCard, User, Users } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import PageHeader from "@/components/pageHeader/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ import {
   type CreateTeamResponse,
   createParticipation,
   createTeam,
+  getTransactions,
   joinTeam,
 } from "@/lib/auth-api";
 
@@ -195,6 +196,34 @@ export default function HackathonApplyPage() {
   const applyDeadlinePassed =
     new Date(hackathon.applyDeadline).getTime() < Date.now();
 
+  const requiresEntryFee =
+    Boolean(hackathon.isPaid) &&
+    hackathon.priceOfEntry != null &&
+    Number(hackathon.priceOfEntry) > 0;
+  const expectedEntryFeePaisa = requiresEntryFee
+    ? Math.round(Number(hackathon.priceOfEntry) * 100)
+    : 0;
+
+  const { data: completedPayments } = useQuery({
+    queryKey: ["payments", "completed", user?.id],
+    queryFn: () => getTransactions({ page: 1, limit: 100, state: "COMPLETED" }),
+    enabled: !!user && requiresEntryFee,
+  });
+
+  const hasPaidEntryFee = useMemo(() => {
+    if (!requiresEntryFee) return true;
+    const rows = completedPayments?.data ?? [];
+    return rows.some(
+      (p) =>
+        p.hackathonId === id &&
+        p.state === "COMPLETED" &&
+        p.amount === expectedEntryFeePaisa,
+    );
+  }, [requiresEntryFee, completedPayments?.data, id, expectedEntryFeePaisa]);
+
+  const participationBlockedByPayment =
+    requiresEntryFee && !hasPaidEntryFee && !applyDeadlinePassed;
+
   return (
     <div>
       <PageHeader
@@ -241,19 +270,22 @@ export default function HackathonApplyPage() {
         </div>
       ) : null}
 
-      {hackathon.isPaid &&
-        hackathon.priceOfEntry != null &&
-        Number(hackathon.priceOfEntry) > 0 && (
-          <div className="mb-6 rounded-lg border border-cs-border bg-card p-6">
-            <h3 className="mb-3 flex items-center gap-2 font-medium text-cs-heading">
-              <CreditCard className="size-5" />
-              Entry fee
-            </h3>
-            <p className="mb-4 text-sm text-muted-foreground">
-              This challenge has an entry fee of ₹
-              {Number(hackathon.priceOfEntry).toFixed(2)}. Pay to complete your
-              registration.
+      {requiresEntryFee && (
+        <div className="mb-6 rounded-lg border border-cs-border bg-card p-6">
+          <h3 className="mb-3 flex items-center gap-2 font-medium text-cs-heading">
+            <CreditCard className="size-5" />
+            Entry fee
+          </h3>
+          <p className="mb-4 text-sm text-muted-foreground">
+            This challenge has an entry fee of ₹
+            {Number(hackathon.priceOfEntry).toFixed(2)}. You must complete
+            payment before you can register as solo or team.
+          </p>
+          {hasPaidEntryFee ? (
+            <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
+              Payment received — you can register below.
             </p>
+          ) : (
             <Button asChild>
               <Link
                 href={`/payments/checkout?hackathonId=${id}&amount=${Number(hackathon.priceOfEntry)}`}
@@ -261,8 +293,9 @@ export default function HackathonApplyPage() {
                 Pay ₹{Number(hackathon.priceOfEntry).toFixed(2)} with PhonePe
               </Link>
             </Button>
-          </div>
-        )}
+          )}
+        </div>
+      )}
 
       <div className="mt-6 grid gap-6 md:grid-cols-2">
         <div className="rounded-lg border border-cs-border bg-card p-6">
@@ -297,7 +330,9 @@ export default function HackathonApplyPage() {
               variant="secondary"
               className="w-full"
               disabled={
-                applyDeadlinePassed || participateSoloMutation.isPending
+                applyDeadlinePassed ||
+                participateSoloMutation.isPending ||
+                participationBlockedByPayment
               }
               onClick={() => setSoloModalOpen(true)}
             >
@@ -331,7 +366,7 @@ export default function HackathonApplyPage() {
             <Button
               variant="secondary"
               className="w-full"
-              disabled={applyDeadlinePassed}
+              disabled={applyDeadlinePassed || participationBlockedByPayment}
               onClick={openTeamModal}
             >
               Enter as team
@@ -339,6 +374,12 @@ export default function HackathonApplyPage() {
           )}
         </div>
       </div>
+
+      {participationBlockedByPayment ? (
+        <p className="mt-4 text-center text-sm text-destructive">
+          Pay the entry fee above to unlock solo and team registration.
+        </p>
+      ) : null}
 
       {/* Solo confirmation modal */}
       <Dialog open={soloModalOpen} onOpenChange={setSoloModalOpen}>
