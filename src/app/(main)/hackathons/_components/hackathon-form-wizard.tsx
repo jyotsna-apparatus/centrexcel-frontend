@@ -31,6 +31,40 @@ export function buildHackathonFormSteps(
   return steps;
 }
 
+/** Stable DOM id for anchor links and scroll-into-view on validation errors. */
+export function hackathonFormSectionId(step: HackathonFormStepId): string {
+  return `hackathon-section-${step}`;
+}
+
+/** Jump links for the single-page challenge form layout. */
+export function HackathonFormSectionNav({
+  steps,
+  className,
+}: {
+  steps: HackathonFormStepId[];
+  className?: string;
+}) {
+  return (
+    <nav
+      aria-label="Form sections"
+      className={cn(
+        "mb-8 flex flex-wrap gap-x-4 gap-y-2 border-b border-cs-border pb-4",
+        className,
+      )}
+    >
+      {steps.map((id) => (
+        <a
+          key={id}
+          href={`#${hackathonFormSectionId(id)}`}
+          className="text-sm font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+        >
+          {HACKATHON_FORM_STEP_LABELS[id]}
+        </a>
+      ))}
+    </nav>
+  );
+}
+
 export function stripHtmlToPlain(html: string): string {
   return html
     .replace(/<[^>]*>/g, "")
@@ -254,6 +288,8 @@ type StepPanelProps = {
   description?: string;
   children: ReactNode;
   className?: string;
+  /** Section anchor id (use `hackathonFormSectionId`). */
+  id?: string;
 };
 
 export function HackathonFormStepPanel({
@@ -261,11 +297,13 @@ export function HackathonFormStepPanel({
   description,
   children,
   className,
+  id,
 }: StepPanelProps) {
   return (
     <div
+      id={id}
       className={cn(
-        "rounded-xl border border-cs-border bg-card p-4 shadow-xs sm:p-6",
+        "scroll-mt-24 rounded-xl border border-cs-border bg-card p-4 shadow-xs sm:p-6",
         className,
       )}
     >

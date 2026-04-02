@@ -1,12 +1,7 @@
 "use client";
 
 import { useMutation, useQuery } from "@tanstack/react-query";
-import {
-  ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
-  IndianRupee,
-} from "lucide-react";
+import { ArrowLeft, IndianRupee } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -14,7 +9,6 @@ import {
   useEffect,
   useLayoutEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import { toast } from "sonner";
@@ -50,9 +44,10 @@ import {
 import { cn } from "@/lib/utils";
 import {
   buildHackathonFormSteps,
+  HackathonFormSectionNav,
   type HackathonFormStepId,
-  HackathonFormStepIndicator,
   HackathonFormStepPanel,
+  hackathonFormSectionId,
   stripHtmlToPlain,
 } from "../../_components/hackathon-form-wizard";
 
@@ -73,6 +68,11 @@ function sortWithFavoritesFirst<T extends { isFavorite?: boolean }>(
   return [...options].sort(
     (a, b) => (b.isFavorite ? 1 : 0) - (a.isFavorite ? 1 : 0),
   );
+}
+
+function scrollToHackathonSection(step: HackathonFormStepId) {
+  const el = document.getElementById(hackathonFormSectionId(step));
+  el?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 export default function EditHackathonPage() {
@@ -100,41 +100,11 @@ export default function EditHackathonPage() {
   const [status, setStatus] = useState("");
   const [image, setImage] = useState<File | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [stepIndex, setStepIndex] = useState(0);
 
   const stepOrder = useMemo(
     () => buildHackathonFormSteps(submissionMode),
     [submissionMode],
   );
-
-  const stepOrderKey = useMemo(() => stepOrder.join("|"), [stepOrder]);
-  const prevOrderKeyRef = useRef<string | null>(null);
-  const prevStepsRef = useRef<HackathonFormStepId[]>(stepOrder);
-  const stepIndexRef = useRef(stepIndex);
-  stepIndexRef.current = stepIndex;
-
-  useEffect(() => {
-    if (prevOrderKeyRef.current === null) {
-      prevOrderKeyRef.current = stepOrderKey;
-      prevStepsRef.current = stepOrder;
-      return;
-    }
-    if (prevOrderKeyRef.current === stepOrderKey) return;
-    const prev = prevStepsRef.current;
-    prevOrderKeyRef.current = stepOrderKey;
-    prevStepsRef.current = stepOrder;
-    const i = stepIndexRef.current;
-    const oldId = prev[Math.min(i, prev.length - 1)] ?? "basics";
-    const newIdx = stepOrder.indexOf(oldId);
-    if (newIdx >= 0) {
-      setStepIndex(newIdx);
-    } else if (oldId === "daily") {
-      const r = stepOrder.indexOf("rules");
-      setStepIndex(r >= 0 ? r : 0);
-    } else {
-      setStepIndex((idx) => Math.min(idx, stepOrder.length - 1));
-    }
-  }, [stepOrderKey, stepOrder]);
 
   const {
     data: hackathon,
@@ -420,25 +390,6 @@ export default function EditHackathonPage() {
     },
   });
 
-  const currentStepId = stepOrder[stepIndex] ?? "basics";
-  const isLastStep = stepIndex >= stepOrder.length - 1;
-
-  const goNext = () => {
-    const stepErrors = validateStepFields(currentStepId);
-    setErrors(stepErrors);
-    if (Object.keys(stepErrors).length > 0) {
-      toast.error("Please fix the highlighted fields before continuing.");
-      return;
-    }
-    setErrors({});
-    setStepIndex((i) => Math.min(i + 1, stepOrder.length - 1));
-  };
-
-  const goBack = () => {
-    setErrors({});
-    setStepIndex((i) => Math.max(0, i - 1));
-  };
-
   const handleFinalSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const next = validateAllSteps();
@@ -448,10 +399,11 @@ export default function EditHackathonPage() {
         (s) => Object.keys(validateStepFields(s)).length > 0,
       );
       if (firstProblemStep) {
-        const idx = stepOrder.indexOf(firstProblemStep);
-        if (idx >= 0) setStepIndex(idx);
+        requestAnimationFrame(() =>
+          scrollToHackathonSection(firstProblemStep),
+        );
       }
-      toast.error("Please fix the errors on the highlighted step.");
+      toast.error("Please fix the highlighted sections below.");
       return;
     }
 
@@ -541,6 +493,7 @@ export default function EditHackathonPage() {
       <form
         onSubmit={handleFinalSubmit}
         className="mx-auto max-w-3xl pb-[calc(6rem+env(safe-area-inset-bottom,0px))]"
+        noValidate
       >
         {!isAdmin && hackathon.adminFeedback ? (
           <div className="mb-6 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
@@ -558,17 +511,11 @@ export default function EditHackathonPage() {
           </div>
         ) : null}
 
-        <HackathonFormStepIndicator
-          steps={stepOrder}
-          currentIndex={stepIndex}
-          onStepClick={(i) => {
-            setErrors({});
-            setStepIndex(i);
-          }}
-        />
+        <HackathonFormSectionNav steps={stepOrder} />
 
-        {currentStepId === "basics" ? (
+        <div className="flex flex-col gap-10">
           <HackathonFormStepPanel
+            id={hackathonFormSectionId("basics")}
             title="Challenge basics"
             description="Name and short summary — this is what participants see first in the list."
           >
@@ -608,10 +555,9 @@ export default function EditHackathonPage() {
               )}
             </div>
           </HackathonFormStepPanel>
-        ) : null}
 
-        {currentStepId === "timeline" ? (
           <HackathonFormStepPanel
+            id={hackathonFormSectionId("timeline")}
             title="Schedule & submission type"
             description="Choose how participants submit work and set deadlines in order: apply → final submissions → scoring."
           >
@@ -705,17 +651,17 @@ export default function EditHackathonPage() {
               )}
             </div>
           </HackathonFormStepPanel>
-        ) : null}
 
-        {currentStepId === "daily" ? (
-          <HackathonFormStepPanel
-            title="Daily briefs (UTC)"
-            description={
-              expectedDailyCount > 0
-                ? `Day 1 is the UTC calendar day after the apply deadline. Add rich text for each of the ${expectedDailyCount} day(s) in this challenge window.`
-                : "Set apply and final deadlines on the previous step so we know how many daily briefs you need."
-            }
-          >
+          {submissionMode === SUBMISSION_MODE.DAILY_UPDATE ? (
+            <HackathonFormStepPanel
+              id={hackathonFormSectionId("daily")}
+              title="Daily briefs (UTC)"
+              description={
+                expectedDailyCount > 0
+                  ? `Day 1 is the UTC calendar day after the apply deadline. Add rich text for each of the ${expectedDailyCount} day(s) in this challenge window.`
+                  : "Set apply and final deadlines under Schedule so we know how many daily briefs you need."
+              }
+            >
             {errors.dailyInstructions && (
               <p className="text-sm text-destructive">
                 {errors.dailyInstructions}
@@ -746,16 +692,15 @@ export default function EditHackathonPage() {
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">
-                Go back to <strong>Schedule</strong> and choose deadlines so the
-                first daily day falls on or before the final submission day
-                (UTC).
+                Under <strong>Schedule</strong>, choose deadlines so the first
+                daily day falls on or before the final submission day (UTC).
               </p>
             )}
-          </HackathonFormStepPanel>
-        ) : null}
+            </HackathonFormStepPanel>
+          ) : null}
 
-        {currentStepId === "rules" ? (
           <HackathonFormStepPanel
+            id={hackathonFormSectionId("rules")}
             title="Participant rules"
             description="Full rules, judging criteria, and links — shown on the challenge page."
           >
@@ -771,10 +716,9 @@ export default function EditHackathonPage() {
               <p className="text-sm text-destructive">{errors.instructions}</p>
             )}
           </HackathonFormStepPanel>
-        ) : null}
 
-        {currentStepId === "people" ? (
           <HackathonFormStepPanel
+            id={hackathonFormSectionId("people")}
             title="Sponsor & judges"
             description="Who owns the challenge and who scores submissions."
           >
@@ -824,10 +768,9 @@ export default function EditHackathonPage() {
               )}
             </div>
           </HackathonFormStepPanel>
-        ) : null}
 
-        {currentStepId === "extras" ? (
           <HackathonFormStepPanel
+            id={hackathonFormSectionId("extras")}
             title="Status, fee & banner"
             description={
               isAdmin
@@ -923,55 +866,28 @@ export default function EditHackathonPage() {
               )}
             </div>
           </HackathonFormStepPanel>
-        ) : null}
+        </div>
 
-        <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex w-full gap-2 sm:w-auto">
-            {stepIndex > 0 ? (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={goBack}
-                className="min-h-11 flex-1 sm:min-h-10 sm:flex-initial"
-              >
-                <ChevronLeft className="mr-1 size-4" />
-                Back
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                variant="ghost"
-                asChild
-                className="min-h-11 flex-1 sm:min-h-10 sm:flex-initial"
-              >
-                <Link href={`/hackathons/${id}`}>Cancel</Link>
-              </Button>
-            )}
-          </div>
-          <div className="flex w-full gap-2 sm:w-auto">
-            {!isLastStep ? (
-              <Button
-                type="button"
-                onClick={goNext}
-                className="min-h-11 w-full sm:min-h-10 sm:w-auto"
-              >
-                Continue
-                <ChevronRight className="ml-1 size-4" />
-              </Button>
-            ) : (
-              <Button
-                type="submit"
-                disabled={mutation.isPending}
-                className="min-h-11 w-full sm:min-h-10 sm:w-auto"
-              >
-                {mutation.isPending
-                  ? "Saving..."
-                  : isAdmin
-                    ? "Save changes"
-                    : "Save & resubmit for review"}
-              </Button>
-            )}
-          </div>
+        <div className="mt-10 flex flex-col-reverse gap-3 border-t border-cs-border pt-8 sm:flex-row sm:items-center sm:justify-between">
+          <Button
+            type="button"
+            variant="ghost"
+            asChild
+            className="min-h-11 w-full sm:min-h-10 sm:w-auto"
+          >
+            <Link href={`/hackathons/${id}`}>Cancel</Link>
+          </Button>
+          <Button
+            type="submit"
+            disabled={mutation.isPending}
+            className="min-h-11 w-full sm:min-h-10 sm:w-auto"
+          >
+            {mutation.isPending
+              ? "Saving..."
+              : isAdmin
+                ? "Save changes"
+                : "Save & resubmit for review"}
+          </Button>
         </div>
       </form>
     </div>
