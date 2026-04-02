@@ -473,9 +473,10 @@ export default function HackathonSubmitPage() {
                           </span>
                         </div>
 
-                        <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">
-                          {instruction}
-                        </p>
+                        <div
+                          className="prose prose-sm mt-2 max-w-none text-muted-foreground dark:prose-invert"
+                          dangerouslySetInnerHTML={{ __html: instruction }}
+                        />
 
                         {status === "upcoming" ? (
                           <p className="mt-3 text-sm text-muted-foreground">
