@@ -271,23 +271,19 @@ export function HackathonCard({
             </Link>
           </Button>
         )}
-        {isSponsor &&
-          hackathon.sponsorId &&
-          ["pending_review", "changes_requested", "rejected"].includes(
-            hackathon.approvalStatus ?? "",
-          ) && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1 min-w-0"
-              asChild
-            >
-              <Link href={`/hackathons/${hackathon.id}/edit`}>
-                <Pencil className="mr-1.5 size-4 shrink-0" />
-                Edit
-              </Link>
-            </Button>
-          )}
+        {isSponsor && hackathon.sponsorId && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 min-w-0"
+            asChild
+          >
+            <Link href={`/hackathons/${hackathon.id}/edit`}>
+              <Pencil className="mr-1.5 size-4 shrink-0" />
+              Edit
+            </Link>
+          </Button>
+        )}
         {isParticipant &&
           !hasParticipated &&
           !applyClosed &&

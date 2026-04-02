@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import PageHeader from "@/components/pageHeader/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -95,9 +95,34 @@ export default function NewHackathonPage() {
     [submissionMode],
   );
 
+  const stepOrderKey = useMemo(() => stepOrder.join("|"), [stepOrder]);
+  const prevOrderKeyRef = useRef<string | null>(null);
+  const prevStepsRef = useRef<HackathonFormStepId[]>(stepOrder);
+  const stepIndexRef = useRef(stepIndex);
+  stepIndexRef.current = stepIndex;
+
   useEffect(() => {
-    setStepIndex((i) => Math.min(i, Math.max(0, stepOrder.length - 1)));
-  }, [stepOrder.length]);
+    if (prevOrderKeyRef.current === null) {
+      prevOrderKeyRef.current = stepOrderKey;
+      prevStepsRef.current = stepOrder;
+      return;
+    }
+    if (prevOrderKeyRef.current === stepOrderKey) return;
+    const prev = prevStepsRef.current;
+    prevOrderKeyRef.current = stepOrderKey;
+    prevStepsRef.current = stepOrder;
+    const i = stepIndexRef.current;
+    const oldId = prev[Math.min(i, prev.length - 1)] ?? "basics";
+    const newIdx = stepOrder.indexOf(oldId);
+    if (newIdx >= 0) {
+      setStepIndex(newIdx);
+    } else if (oldId === "daily") {
+      const r = stepOrder.indexOf("rules");
+      setStepIndex(r >= 0 ? r : 0);
+    } else {
+      setStepIndex((idx) => Math.min(idx, stepOrder.length - 1));
+    }
+  }, [stepOrderKey, stepOrder]);
 
   useEffect(() => {
     if (!user) return;
@@ -413,6 +438,10 @@ export default function NewHackathonPage() {
         <HackathonFormStepIndicator
           steps={stepOrder}
           currentIndex={stepIndex}
+          onStepClick={(i) => {
+            setErrors({});
+            setStepIndex(i);
+          }}
         />
 
         {currentStepId === "basics" ? (

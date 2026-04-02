@@ -70,12 +70,7 @@ export default function TransactionsPage() {
         }
       >
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/payments/checkout">
-              <CreditCard className="mr-2 size-4" />
-              {isAdmin ? "New payment" : "Pay with PhonePe"}
-            </Link>
-          </Button>
+         
           <Button variant="outline" size="sm" asChild>
             <Link href="/dashboard">
               <ArrowLeft className="mr-2 size-4" />

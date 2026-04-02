@@ -14,6 +14,7 @@ import {
   useEffect,
   useLayoutEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { toast } from "sonner";
@@ -106,9 +107,34 @@ export default function EditHackathonPage() {
     [submissionMode],
   );
 
+  const stepOrderKey = useMemo(() => stepOrder.join("|"), [stepOrder]);
+  const prevOrderKeyRef = useRef<string | null>(null);
+  const prevStepsRef = useRef<HackathonFormStepId[]>(stepOrder);
+  const stepIndexRef = useRef(stepIndex);
+  stepIndexRef.current = stepIndex;
+
   useEffect(() => {
-    setStepIndex((i) => Math.min(i, Math.max(0, stepOrder.length - 1)));
-  }, [stepOrder.length]);
+    if (prevOrderKeyRef.current === null) {
+      prevOrderKeyRef.current = stepOrderKey;
+      prevStepsRef.current = stepOrder;
+      return;
+    }
+    if (prevOrderKeyRef.current === stepOrderKey) return;
+    const prev = prevStepsRef.current;
+    prevOrderKeyRef.current = stepOrderKey;
+    prevStepsRef.current = stepOrder;
+    const i = stepIndexRef.current;
+    const oldId = prev[Math.min(i, prev.length - 1)] ?? "basics";
+    const newIdx = stepOrder.indexOf(oldId);
+    if (newIdx >= 0) {
+      setStepIndex(newIdx);
+    } else if (oldId === "daily") {
+      const r = stepOrder.indexOf("rules");
+      setStepIndex(r >= 0 ? r : 0);
+    } else {
+      setStepIndex((idx) => Math.min(idx, stepOrder.length - 1));
+    }
+  }, [stepOrderKey, stepOrder]);
 
   const {
     data: hackathon,
@@ -140,11 +166,8 @@ export default function EditHackathonPage() {
   const allowEdit =
     user?.role === "admin" ||
     (user?.role === "sponsor" &&
-      hackathon &&
-      hackathon.sponsorId === user?.id &&
-      ["pending_review", "changes_requested", "rejected"].includes(
-        hackathon.approvalStatus ?? "",
-      ));
+      !!hackathon &&
+      hackathon.sponsorId === user?.id);
 
   useEffect(() => {
     if (!user || isLoading || !hackathon) return;
@@ -222,7 +245,9 @@ export default function EditHackathonPage() {
       return;
     }
     if (expectedDailyCount <= 0) {
-      setDailyInstructionTexts([]);
+      if (applyDeadline && finalSubmissionDeadline) {
+        setDailyInstructionTexts([]);
+      }
       return;
     }
     setDailyInstructionTexts((prev) => {
@@ -230,7 +255,12 @@ export default function EditHackathonPage() {
       while (next.length < expectedDailyCount) next.push("");
       return next;
     });
-  }, [expectedDailyCount, submissionMode]);
+  }, [
+    expectedDailyCount,
+    submissionMode,
+    applyDeadline,
+    finalSubmissionDeadline,
+  ]);
 
   const sponsors: UserListItem[] = sponsorsData?.data ?? [];
   const judges: UserListItem[] = judgesData ?? [];
@@ -531,6 +561,10 @@ export default function EditHackathonPage() {
         <HackathonFormStepIndicator
           steps={stepOrder}
           currentIndex={stepIndex}
+          onStepClick={(i) => {
+            setErrors({});
+            setStepIndex(i);
+          }}
         />
 
         {currentStepId === "basics" ? (

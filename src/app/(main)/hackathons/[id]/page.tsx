@@ -291,10 +291,7 @@ export default function HackathonDetailPage() {
   };
 
   const approval = hackathon.approvalStatus;
-  const canSponsorEdit =
-    isOwnSponsorHackathon &&
-    approval &&
-    ["pending_review", "changes_requested", "rejected"].includes(approval);
+  const canEditChallenge = isAdmin || isOwnSponsorHackathon;
   const canParticipateFlow =
     isParticipant && hackathon.approvalStatus === "approved";
 
@@ -321,19 +318,11 @@ export default function HackathonDetailPage() {
         description={hackathon.shortDescription}
       >
         <div className="flex items-center gap-2">
-          {isAdmin && (
+          {canEditChallenge && (
             <Button variant="outline" size="sm" asChild>
               <Link href={`/hackathons/${id}/edit`}>
                 <Pencil className="mr-2 size-4" />
-                Edit
-              </Link>
-            </Button>
-          )}
-          {canSponsorEdit && (
-            <Button variant="outline" size="sm" asChild>
-              <Link href={`/hackathons/${id}/edit`}>
-                <Pencil className="mr-2 size-4" />
-                Edit submission
+                {isAdmin ? "Edit" : "Edit challenge"}
               </Link>
             </Button>
           )}

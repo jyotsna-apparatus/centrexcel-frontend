@@ -26,14 +26,27 @@ export type DailyInstructionRow = { dayNumber: number; instruction: string };
 export function parseDailyInstructionsFromApi(
   raw: unknown,
 ): DailyInstructionRow[] {
+  if (typeof raw === "string") {
+    try {
+      return parseDailyInstructionsFromApi(JSON.parse(raw) as unknown);
+    } catch {
+      return [];
+    }
+  }
   if (!Array.isArray(raw)) return [];
   const out: DailyInstructionRow[] = [];
   for (const row of raw) {
     if (!row || typeof row !== "object") continue;
     const r = row as Record<string, unknown>;
-    if (typeof r.dayNumber !== "number" || typeof r.instruction !== "string")
+    const dayNum =
+      typeof r.dayNumber === "number"
+        ? r.dayNumber
+        : typeof r.dayNumber === "string"
+          ? Number(r.dayNumber)
+          : NaN;
+    if (!Number.isFinite(dayNum) || typeof r.instruction !== "string")
       continue;
-    out.push({ dayNumber: r.dayNumber, instruction: r.instruction });
+    out.push({ dayNumber: dayNum, instruction: r.instruction });
   }
   return out.sort((x, y) => x.dayNumber - y.dayNumber);
 }
