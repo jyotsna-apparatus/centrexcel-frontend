@@ -3,6 +3,8 @@ import {
   countInclusiveUtcDays,
   getCurrentDailyDayNumber,
   getDailyTimelineStartUtc,
+  getUtcCalendarDateKey,
+  getUtcDateForDailyDayNumber,
   parseDailyInstructionsFromApi,
   utcDayStart,
 } from "./hackathon-deadlines";
@@ -68,5 +70,33 @@ describe("getCurrentDailyDayNumber", () => {
     const finalD = new Date(Date.UTC(2024, 0, 10));
     const now = new Date(Date.UTC(2024, 0, 2, 12, 0, 0));
     expect(getCurrentDailyDayNumber(apply, finalD, now)).toBe(1);
+  });
+});
+
+describe("getUtcCalendarDateKey", () => {
+  it("returns YYYY-MM-DD in UTC", () => {
+    expect(getUtcCalendarDateKey(new Date("2024-06-15T14:30:00.000Z"))).toBe(
+      "2024-06-15",
+    );
+  });
+});
+
+describe("getUtcDateForDailyDayNumber", () => {
+  it("maps across month boundaries", () => {
+    // apply day is Jan 31 (UTC) → day 1 should be Feb 1 (UTC)
+    const apply = new Date(Date.UTC(2024, 0, 31, 23, 0, 0));
+    expect(getUtcDateForDailyDayNumber(apply, 1).toISOString()).toBe(
+      "2024-02-01T00:00:00.000Z",
+    );
+    expect(getUtcDateForDailyDayNumber(apply, 2).toISOString()).toBe(
+      "2024-02-02T00:00:00.000Z",
+    );
+  });
+
+  it("matches entryDate to the correct daily day key", () => {
+    const apply = new Date(Date.UTC(2024, 0, 31, 23, 0, 0));
+    const day2 = getUtcDateForDailyDayNumber(apply, 2);
+    const entryDate = new Date("2024-02-02T00:00:00.000Z");
+    expect(getUtcCalendarDateKey(entryDate)).toBe(getUtcCalendarDateKey(day2));
   });
 });

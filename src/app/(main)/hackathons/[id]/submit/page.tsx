@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, CheckCircle2, Download, FileUp } from "lucide-react";
+import { ArrowLeft, Download, FileUp } from "lucide-react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -27,7 +27,9 @@ import {
 } from "@/lib/auth-api";
 import {
   getCurrentDailyDayNumber,
-  getInstructionForDay,
+  getUtcCalendarDateKey,
+  getUtcDateForDailyDayNumber,
+  parseDailyInstructionsFromApi,
 } from "@/lib/hackathon-deadlines";
 
 export default function HackathonSubmitPage() {
@@ -72,22 +74,16 @@ export default function HackathonSubmitPage() {
   });
 
   const threadEntries = thread?.entries ?? [];
-  const sortedThreadEntries = [...threadEntries].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  );
+
+  const entriesByDayKey = new Map<string, (typeof threadEntries)[number]>();
+  for (const entry of threadEntries) {
+    entriesByDayKey.set(getUtcCalendarDateKey(entry.entryDate), entry);
+  }
+  const todayUtcKey = getUtcCalendarDateKey(new Date());
   const hasFinalSubmitted = Boolean(participation?.hasSubmitted);
 
   const hasSubmittedToday =
-    !hasFinalSubmitted &&
-    Boolean(
-      threadEntries.some((entry) => {
-        const submittedDay = new Date(entry.entryDate)
-          .toISOString()
-          .slice(0, 10);
-        const today = new Date().toISOString().slice(0, 10);
-        return submittedDay === today;
-      }),
-    );
+    !hasFinalSubmitted && entriesByDayKey.has(todayUtcKey);
 
   const resetUploadProgress = () => {
     setUploadPercent(0);
@@ -308,15 +304,22 @@ export default function HackathonSubmitPage() {
   }
 
   const isDailyMode = hackathon.submissionMode === SUBMISSION_MODE.DAILY_UPDATE;
+  const dailyInstructionRows = isDailyMode
+    ? parseDailyInstructionsFromApi(hackathon.dailyInstructions)
+    : [];
+
   const dailyDayNumber = isDailyMode
     ? getCurrentDailyDayNumber(
         hackathon.applyDeadline,
         hackathon.finalSubmissionDeadline,
       )
     : null;
-  const dailyInstructionToday =
-    dailyDayNumber != null
-      ? getInstructionForDay(hackathon.dailyInstructions, dailyDayNumber)
+
+  const currentDailyDayNumber =
+    dailyDayNumber != null &&
+    dailyDayNumber >= 1 &&
+    dailyDayNumber <= dailyInstructionRows.length
+      ? dailyDayNumber
       : null;
 
   const dailyFormDisabled = isUploading || hasSubmittedToday;
@@ -391,201 +394,251 @@ export default function HackathonSubmitPage() {
 
       <div className="mx-auto max-w-3xl">
         {isDailyMode ? (
-          <div className="space-y-6">
-            <form
-              onSubmit={handleSubmit}
-              className="space-y-6 rounded-lg border border-cs-border bg-card p-4"
-            >
+          <div className="space-y-4">
+            <div className="space-y-4 rounded-lg border border-cs-border bg-card p-4">
               <h3 className="font-medium text-cs-heading">
-                Post today&apos;s update
+                Daily instructions & progress
               </h3>
-              {dailyDayNumber === null ? (
-                <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
-                  Daily updates are only available from the first UTC day after
-                  the apply deadline through the final submission deadline.
-                </p>
-              ) : dailyInstructionToday ? (
-                <div className="rounded-md border border-cs-primary/25 bg-cs-primary/5 p-3 text-sm">
-                  <p className="font-medium text-cs-heading">
-                    Day {dailyDayNumber}
-                  </p>
-                  <p className="mt-1 whitespace-pre-wrap text-muted-foreground">
-                    {dailyInstructionToday}
-                  </p>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  No organizer instruction is set for day {dailyDayNumber}; you
-                  can still post your update.
-                </p>
-              )}
-              <div>
-                <label
-                  htmlFor="submit-feedback"
-                  className="mb-1.5 block text-sm font-medium text-cs-heading"
-                >
-                  Daily feedback message
-                </label>
-                <textarea
-                  id="submit-feedback"
-                  value={feedbackMessage}
-                  onChange={(e) => setFeedbackMessage(e.target.value)}
-                  placeholder="Share today's progress, blockers, and next steps"
-                  disabled={dailyFormDisabled}
-                  className="border-cs-border placeholder:text-muted-foreground w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus:ring-2 focus:ring-cs-primary/20"
-                  rows={4}
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="submit-file"
-                  className="mb-1.5 block text-sm font-medium text-cs-heading"
-                >
-                  <FileUp className="mr-1.5 inline size-4" />
-                  Upload file (required)
-                </label>
-                <Input
-                  id="submit-file"
-                  type="file"
-                  accept=".zip,.tar.gz,.pdf"
-                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                  disabled={dailyFormDisabled}
-                  className="w-full"
-                />
-                <p className="mt-1 text-xs text-muted-foreground">
-                  One update per UTC day until the final submission deadline (
-                  {new Date(hackathon.finalSubmissionDeadline).toLocaleString()}
-                  ).
-                </p>
-              </div>
-              {hasSubmittedToday ? (
-                <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-300">
-                  Today&apos;s update is already posted. Come back tomorrow for
-                  the next update.
-                </p>
-              ) : null}
-              {isUploading ? (
-                <div className="space-y-2 rounded-md border border-cs-border bg-muted/30 p-3">
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                    <div
-                      className="h-full bg-primary transition-all"
-                      style={{
-                        width: `${Math.max(0, Math.min(uploadPercent, 100))}%`,
-                      }}
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Uploading {uploadPercent}% ({currentChunk}/{totalChunks}{" "}
-                    chunks)
-                  </p>
-                </div>
-              ) : null}
-              {uploadError ? (
-                <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm !text-red-500">
-                  Upload failed and partial data was cleaned up. Retry upload. (
-                  {uploadError})
-                </p>
-              ) : null}
-              <div className="flex gap-2">
-                <Button
-                  type="submit"
-                  disabled={isUploading || !file || dailyFormDisabled}
-                >
-                  {isUploading ? "Uploading..." : "Post daily update"}
-                </Button>
-                <Button type="button" variant="outline" asChild>
-                  <Link href={`/hackathons/${id}`}>Cancel</Link>
-                </Button>
-              </div>
-            </form>
 
-            <div className="rounded-lg border border-cs-border bg-card p-4">
-              <h3 className="mb-4 font-medium text-cs-heading">
-                Submission thread
-              </h3>
-              {sortedThreadEntries.length === 0 ? (
+              {dailyInstructionRows.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  No updates posted yet.
+                  Daily instructions are not configured for this challenge.
                 </p>
               ) : (
-                <ol className="relative m-0 list-none space-y-5 p-0">
-                  <div className="pointer-events-none absolute left-3 top-3 bottom-3 w-px bg-cs-border" />
-                  {sortedThreadEntries.map((entry, idx) => {
-                    const lines = entry.feedbackMessage
+                <div className="space-y-4">
+                  {dailyInstructionRows.map(({ dayNumber, instruction }) => {
+                    const dayDate = getUtcDateForDailyDayNumber(
+                      hackathon.applyDeadline,
+                      dayNumber,
+                    );
+                    const dayDateKey = getUtcCalendarDateKey(dayDate);
+                    const entry = entriesByDayKey.get(dayDateKey);
+                    const isToday = currentDailyDayNumber === dayNumber;
+                    const canUploadToday =
+                      isToday && !hasFinalSubmitted && !entry;
+
+                    const status: "uploaded" | "today" | "missed" | "upcoming" =
+                      entry
+                        ? "uploaded"
+                        : canUploadToday
+                          ? "today"
+                          : dayDateKey > todayUtcKey
+                            ? "upcoming"
+                            : "missed";
+
+                    const badgeClass =
+                      status === "uploaded"
+                        ? "border-cs-primary/30 bg-cs-primary/10 text-cs-primary"
+                        : status === "today"
+                          ? "border-cs-primary/25 bg-cs-primary/5 text-cs-primary"
+                          : status === "upcoming"
+                            ? "border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-200"
+                            : "border-destructive/30 bg-destructive/10 text-destructive";
+
+                    const statusLabel =
+                      status === "uploaded"
+                        ? "Uploaded"
+                        : status === "today"
+                          ? "Today"
+                          : status === "upcoming"
+                            ? "Upcoming"
+                            : "Missed";
+
+                    const feedbackLines = entry?.feedbackMessage
                       .split("\n")
                       .map((line) => line.trim())
                       .filter(Boolean);
-                    const title = lines[0] ?? "Update";
-                    const body = lines.slice(1).join("\n");
-                    const isLatest = idx === 0;
+                    const feedbackBody = feedbackLines
+                      ? feedbackLines.slice(1).join("\n")
+                      : "";
 
                     return (
-                      <li
-                        key={entry.id}
-                        className="relative grid grid-cols-[1.5rem_minmax(0,1fr)] items-start gap-4"
+                      <div
+                        key={dayNumber}
+                        className="rounded-md border border-cs-border bg-muted/10 p-4"
                       >
-                        <span
-                          className={`z-10 mt-0.5 inline-flex size-6 items-center justify-center justify-self-center rounded-full border ${
-                            isLatest
-                              ? "border-cs-primary bg-cs-primary/15 text-cs-primary"
-                              : "border-cs-border bg-card text-muted-foreground"
-                          }`}
-                        >
-                          {isLatest ? (
-                            <CheckCircle2 className="size-3.5" />
-                          ) : (
-                            <span className="size-2 rounded-full bg-current" />
-                          )}
-                        </span>
-                        <div className="rounded-md border border-cs-border bg-muted/20 p-3">
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(entry.createdAt).toLocaleString()}
-                          </p>
-                          <p className="mt-1 text-sm font-semibold text-cs-heading">
-                            {title}
-                          </p>
-                          {body ? (
-                            <p className="mt-1 whitespace-pre-wrap text-sm text-cs-text">
-                              {body}
-                            </p>
-                          ) : null}
-                          <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div>
                             <p className="text-xs text-muted-foreground">
-                              by{" "}
-                              {entry.submittedByUser?.username ??
-                                entry.submittedByUser?.email ??
-                                "Participant"}
+                              UTC {dayDateKey}
                             </p>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              disabled={downloadingEntryId === entry.id}
-                              onClick={async () => {
-                                setDownloadingEntryId(entry.id);
-                                try {
-                                  await downloadThreadEntry(entry.id);
-                                } catch (err) {
-                                  toast.error(
-                                    err instanceof Error
-                                      ? err.message
-                                      : "Download failed",
-                                  );
-                                } finally {
-                                  setDownloadingEntryId(null);
-                                }
-                              }}
-                            >
-                              <Download className="mr-2 size-4" />
-                              {downloadingEntryId === entry.id
-                                ? "Downloading..."
-                                : "Download"}
-                            </Button>
+                            <p className="mt-1 text-sm font-semibold text-cs-heading">
+                              Day {dayNumber}
+                            </p>
                           </div>
+                          <span
+                            className={`inline-flex items-center rounded-md border px-2 py-1 text-xs ${badgeClass}`}
+                          >
+                            {statusLabel}
+                          </span>
                         </div>
-                      </li>
+
+                        <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">
+                          {instruction}
+                        </p>
+
+                        {status === "upcoming" ? (
+                          <p className="mt-3 text-sm text-muted-foreground">
+                            Opens on {dayDateKey} (UTC).
+                          </p>
+                        ) : null}
+
+                        {status === "missed" ? (
+                          <p className="mt-3 text-sm text-muted-foreground">
+                            No update submitted for this day.
+                          </p>
+                        ) : null}
+
+                        {status === "uploaded" && entry ? (
+                          <div className="mt-3 space-y-3 rounded-md border border-cs-border bg-muted/20 p-3">
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(entry.createdAt).toLocaleString()}
+                            </p>
+                            {feedbackBody ? (
+                              <p className="whitespace-pre-wrap text-sm text-cs-text">
+                                {feedbackBody}
+                              </p>
+                            ) : (
+                              <p className="text-sm text-muted-foreground">
+                                No feedback provided.
+                              </p>
+                            )}
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <p className="text-xs text-muted-foreground">
+                                by{" "}
+                                {entry.submittedByUser?.username ??
+                                  entry.submittedByUser?.email ??
+                                  "Participant"}
+                              </p>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={downloadingEntryId === entry.id}
+                                onClick={async () => {
+                                  setDownloadingEntryId(entry.id);
+                                  try {
+                                    await downloadThreadEntry(entry.id);
+                                  } catch (err) {
+                                    toast.error(
+                                      err instanceof Error
+                                        ? err.message
+                                        : "Download failed",
+                                    );
+                                  } finally {
+                                    setDownloadingEntryId(null);
+                                  }
+                                }}
+                              >
+                                <Download className="mr-2 size-4" />
+                                {downloadingEntryId === entry.id
+                                  ? "Downloading..."
+                                  : "Download"}
+                              </Button>
+                            </div>
+                          </div>
+                        ) : null}
+
+                        {status === "today" ? (
+                          <form
+                            onSubmit={handleSubmit}
+                            className="mt-3 space-y-4"
+                          >
+                            <div>
+                              <label
+                                htmlFor="submit-feedback"
+                                className="mb-1.5 block text-sm font-medium text-cs-heading"
+                              >
+                                Daily feedback message
+                              </label>
+                              <textarea
+                                id="submit-feedback"
+                                value={feedbackMessage}
+                                onChange={(e) =>
+                                  setFeedbackMessage(e.target.value)
+                                }
+                                placeholder="Share today's progress, blockers, and next steps"
+                                disabled={dailyFormDisabled}
+                                className="border-cs-border placeholder:text-muted-foreground w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus:ring-2 focus:ring-cs-primary/20"
+                                rows={4}
+                              />
+                            </div>
+
+                            <div>
+                              <label
+                                htmlFor="submit-file"
+                                className="mb-1.5 block text-sm font-medium text-cs-heading"
+                              >
+                                <FileUp className="mr-1.5 inline size-4" />
+                                Upload file (required)
+                              </label>
+                              <Input
+                                id="submit-file"
+                                type="file"
+                                accept=".zip,.tar.gz,.pdf"
+                                onChange={(e) =>
+                                  setFile(e.target.files?.[0] ?? null)
+                                }
+                                disabled={dailyFormDisabled}
+                                className="w-full"
+                              />
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                One update per UTC day until the final
+                                submission deadline (
+                                {new Date(
+                                  hackathon.finalSubmissionDeadline,
+                                ).toLocaleString()}
+                                ).
+                              </p>
+                            </div>
+
+                            {isUploading ? (
+                              <div className="space-y-2 rounded-md border border-cs-border bg-muted/30 p-3">
+                                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                                  <div
+                                    className="h-full bg-primary transition-all"
+                                    style={{
+                                      width: `${Math.max(
+                                        0,
+                                        Math.min(uploadPercent, 100),
+                                      )}%`,
+                                    }}
+                                  />
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  Uploading {uploadPercent}% ({currentChunk}/
+                                  {totalChunks} chunks)
+                                </p>
+                              </div>
+                            ) : null}
+
+                            {uploadError ? (
+                              <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm !text-red-500">
+                                Upload failed and partial data was cleaned up.
+                                Retry upload. ({uploadError})
+                              </p>
+                            ) : null}
+
+                            <div className="flex gap-2">
+                              <Button
+                                type="submit"
+                                disabled={
+                                  isUploading || !file || dailyFormDisabled
+                                }
+                              >
+                                {isUploading
+                                  ? "Uploading..."
+                                  : "Post daily update"}
+                              </Button>
+                              <Button type="button" variant="outline" asChild>
+                                <Link href={`/hackathons/${id}`}>Cancel</Link>
+                              </Button>
+                            </div>
+                          </form>
+                        ) : null}
+                      </div>
                     );
                   })}
-                </ol>
+                </div>
               )}
             </div>
           </div>

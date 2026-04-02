@@ -5,12 +5,35 @@ export function utcDayStart(date: Date): Date {
   );
 }
 
+/**
+ * UTC calendar day key in the format `YYYY-MM-DD`.
+ * Useful for matching stored `entryDate` values to configured daily days.
+ */
+export function getUtcCalendarDateKey(date: Date | string): string {
+  const d = typeof date === "string" ? new Date(date) : date;
+  return utcDayStart(d).toISOString().slice(0, 10);
+}
+
 /** First daily-update day: UTC calendar day after the UTC calendar day of `applyDeadline`. */
 export function getDailyTimelineStartUtc(applyDeadline: Date): Date {
   const y = applyDeadline.getUTCFullYear();
   const m = applyDeadline.getUTCMonth();
   const d = applyDeadline.getUTCDate();
   return new Date(Date.UTC(y, m, d + 1));
+}
+
+/** UTC midnight date for the given 1-based daily day number. */
+export function getUtcDateForDailyDayNumber(
+  applyDeadline: Date | string,
+  dayNumber: number,
+): Date {
+  const apply =
+    typeof applyDeadline === "string" ? new Date(applyDeadline) : applyDeadline;
+  // dayNumber=1 should correspond to the configured timeline start.
+  const timelineStart = utcDayStart(getDailyTimelineStartUtc(apply));
+  return new Date(
+    timelineStart.getTime() + (dayNumber - 1) * 24 * 60 * 60 * 1000,
+  );
 }
 
 /** Inclusive count of UTC calendar days from `from` through `to`. */
