@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { setTokens } from "@/lib/auth";
 import { type LoginResponse, login } from "@/lib/auth-api";
+import { FIELD_ERROR_INPUT_CLASS } from "@/lib/utils";
 import { validateEmail } from "@/lib/validate";
 
 type LoginFormData = {
@@ -97,10 +98,10 @@ const LoginPage = () => {
                 }}
                 required
                 aria-invalid={!!emailError}
-                className={emailError ? "border-destructive" : ""}
+                className={emailError ? FIELD_ERROR_INPUT_CLASS : ""}
               />
               {emailError && (
-                <p className="text-sm text-destructive">{emailError}</p>
+                <p className="text-sm !text-red-500">{emailError}</p>
               )}
               <div className="flex flex-col gap-1 w-full">
                 <PasswordInput

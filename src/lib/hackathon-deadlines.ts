@@ -44,8 +44,7 @@ export function parseDailyInstructionsFromApi(
         : typeof r.dayNumber === "string"
           ? Number(r.dayNumber)
           : NaN;
-    if (!Number.isFinite(dayNum) || typeof r.instruction !== "string")
-      continue;
+    if (!Number.isFinite(dayNum) || typeof r.instruction !== "string") continue;
     out.push({ dayNumber: dayNum, instruction: r.instruction });
   }
   return out.sort((x, y) => x.dayNumber - y.dayNumber);

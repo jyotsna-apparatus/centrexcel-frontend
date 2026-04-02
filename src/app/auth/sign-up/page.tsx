@@ -16,7 +16,7 @@ import {
   type RegisterCredentials,
   register,
 } from "@/lib/auth-api";
-import { cn } from "@/lib/utils";
+import { cn, FIELD_ERROR_INPUT_CLASS } from "@/lib/utils";
 import {
   validateEmail,
   validatePassword,
@@ -212,7 +212,7 @@ const SignUpPage = () => {
                       className={cn(
                         "flex flex-col items-center justify-center gap-1.5 rounded-md border bg-transparent px-3 py-3 text-sm font-medium transition-all outline-none focus-visible:ring-2 focus-visible:ring-cs-primary/50 min-w-0",
                         fieldErrors.role
-                          ? "border-destructive text-cs-text"
+                          ? cn(FIELD_ERROR_INPUT_CLASS, "text-cs-text")
                           : formData.role === value
                             ? "border border-cs-primary bg-cs-primary/10 text-cs-primary"
                             : "border border-cs-border text-cs-text hover:border-cs-border/80 hover:bg-white/3",
@@ -224,7 +224,7 @@ const SignUpPage = () => {
                   ))}
                 </div>
                 {fieldErrors.role && (
-                  <p className="text-sm text-destructive">{fieldErrors.role}</p>
+                  <p className="text-sm !text-red-500">{fieldErrors.role}</p>
                 )}
               </div>
               <Input
@@ -242,7 +242,7 @@ const SignUpPage = () => {
                 aria-invalid={!!fieldErrors.name || usernameStatus === "taken"}
                 className={
                   fieldErrors.name || usernameStatus === "taken"
-                    ? "border-destructive"
+                    ? FIELD_ERROR_INPUT_CLASS
                     : ""
                 }
               />
@@ -256,12 +256,12 @@ const SignUpPage = () => {
                 </p>
               )}
               {usernameStatus === "taken" && (
-                <p className="text-sm text-destructive">
+                <p className="text-sm !text-red-500">
                   This username is already taken
                 </p>
               )}
               {fieldErrors.name && (
-                <p className="text-sm text-destructive">{fieldErrors.name}</p>
+                <p className="text-sm !text-red-500">{fieldErrors.name}</p>
               )}
               <Input
                 type="email"
@@ -276,10 +276,10 @@ const SignUpPage = () => {
                   });
                 }}
                 aria-invalid={!!fieldErrors.email}
-                className={fieldErrors.email ? "border-destructive" : ""}
+                className={fieldErrors.email ? FIELD_ERROR_INPUT_CLASS : ""}
               />
               {fieldErrors.email && (
-                <p className="text-sm text-destructive">{fieldErrors.email}</p>
+                <p className="text-sm !text-red-500">{fieldErrors.email}</p>
               )}
               <Input
                 type="tel"
@@ -294,10 +294,10 @@ const SignUpPage = () => {
                   });
                 }}
                 aria-invalid={!!fieldErrors.mobile}
-                className={fieldErrors.mobile ? "border-destructive" : ""}
+                className={fieldErrors.mobile ? FIELD_ERROR_INPUT_CLASS : ""}
               />
               {fieldErrors.mobile && (
-                <p className="text-sm text-destructive">{fieldErrors.mobile}</p>
+                <p className="text-sm !text-red-500">{fieldErrors.mobile}</p>
               )}
               <div>
                 <PasswordInput
@@ -312,11 +312,13 @@ const SignUpPage = () => {
                     });
                   }}
                   aria-invalid={!!fieldErrors.password}
-                  className={fieldErrors.password ? "border-destructive" : ""}
+                  className={
+                    fieldErrors.password ? FIELD_ERROR_INPUT_CLASS : ""
+                  }
                 />
 
                 {fieldErrors.password && (
-                  <p className="text-sm text-destructive mt-1">
+                  <p className="mt-1 text-sm !text-red-500">
                     {fieldErrors.password}
                   </p>
                 )}
@@ -338,11 +340,11 @@ const SignUpPage = () => {
                   }}
                   aria-invalid={!!fieldErrors.confirmPassword}
                   className={
-                    fieldErrors.confirmPassword ? "border-destructive" : ""
+                    fieldErrors.confirmPassword ? FIELD_ERROR_INPUT_CLASS : ""
                   }
                 />
                 {fieldErrors.confirmPassword && (
-                  <p className="text-sm text-destructive mt-1">
+                  <p className="mt-1 text-sm !text-red-500">
                     {fieldErrors.confirmPassword}
                   </p>
                 )}

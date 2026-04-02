@@ -104,7 +104,7 @@ export default function HackathonApprovalsPage() {
       </div>
 
       {isError && (
-        <p className="text-destructive text-sm">
+        <p className="text-sm !text-red-500">
           {error instanceof Error ? error.message : "Failed to load"}
         </p>
       )}

@@ -65,7 +65,7 @@ export default function HackathonSubmitPage() {
   const { data: thread, isLoading: threadLoading } = useMySubmissionThread(
     id || null,
   );
-  const { data: participation } = useQuery({
+  const { data: participation, isLoading: participationLoading } = useQuery({
     queryKey: ["participation", "hackathon", id],
     queryFn: () => getParticipationForHackathon(id),
     enabled: !!id,
@@ -298,7 +298,7 @@ export default function HackathonSubmitPage() {
     );
   }
 
-  if (hackathonLoading || threadLoading || !hackathon) {
+  if (hackathonLoading || threadLoading || participationLoading || !hackathon) {
     return (
       <div>
         <PageHeader title="Submit" description="Loading..." />
@@ -320,6 +320,48 @@ export default function HackathonSubmitPage() {
       : null;
 
   const dailyFormDisabled = isUploading || hasSubmittedToday;
+
+  const shouldGateEntryFee =
+    hackathon.isPaid && participation?.entryFeeSatisfied === false;
+
+  if (shouldGateEntryFee) {
+    const checkoutHref = `/payments/checkout?hackathonId=${id}&amount=${Number(
+      hackathon.priceOfEntry,
+    )}`;
+    const entryFeeRupees = Number(hackathon.priceOfEntry);
+
+    return (
+      <div className="mx-auto max-w-3xl py-10">
+        <PageHeader
+          title="Submit"
+          description={`This challenge requires an entry fee of ₹${entryFeeRupees.toFixed(
+            2,
+          )}. Pay to unlock uploading and submission.`}
+        >
+          <Button variant="outline" size="sm" asChild>
+            <Link href={`/hackathons/${id}/apply`}>Back</Link>
+          </Button>
+        </PageHeader>
+
+        <div className="mt-6 rounded-lg border border-cs-border bg-card p-6">
+          <p className="text-sm text-muted-foreground">
+            You can join the hackathon anytime, but payment must be completed
+            before you can upload your project.
+          </p>
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Button asChild>
+              <Link href={checkoutHref}>
+                Pay ₹{entryFeeRupees.toFixed(2)} with PhonePe
+              </Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href={`/hackathons/${id}`}>View details</Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const pageDescription = isDailyMode
     ? solo
@@ -439,7 +481,7 @@ export default function HackathonSubmitPage() {
                 </div>
               ) : null}
               {uploadError ? (
-                <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm !text-red-500">
                   Upload failed and partial data was cleaned up. Retry upload. (
                   {uploadError})
                 </p>
@@ -617,7 +659,7 @@ export default function HackathonSubmitPage() {
               </div>
             ) : null}
             {finalUploadError ? (
-              <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm !text-red-500">
                 Final upload failed and partial data was cleaned up. Retry
                 upload. ({finalUploadError})
               </p>

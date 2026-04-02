@@ -31,7 +31,7 @@ import {
   countInclusiveUtcDays,
   getDailyTimelineStartUtc,
 } from "@/lib/hackathon-deadlines";
-import { cn } from "@/lib/utils";
+import { cn, FIELD_ERROR_INPUT_CLASS } from "@/lib/utils";
 import {
   buildHackathonFormSteps,
   HackathonFormSectionNav,
@@ -405,10 +405,11 @@ export default function NewHackathonPage() {
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Challenge title"
                 maxLength={HACKATHON_CONSTANTS.TEXT_LIMITS.TITLE}
-                className={errors.title ? "border-destructive" : ""}
+                aria-invalid={!!errors.title}
+                className={errors.title ? FIELD_ERROR_INPUT_CLASS : ""}
               />
               {errors.title && (
-                <p className="text-sm text-destructive">{errors.title}</p>
+                <p className="text-sm !text-red-500">{errors.title}</p>
               )}
             </div>
             <div className="space-y-2">
@@ -422,10 +423,14 @@ export default function NewHackathonPage() {
                 placeholder="Brief description"
                 rows={4}
                 maxLength={HACKATHON_CONSTANTS.TEXT_LIMITS.SHORT_DESCRIPTION}
-                className="border-cs-border placeholder:text-muted-foreground w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus:ring-2 focus:ring-cs-primary/20"
+                aria-invalid={!!errors.shortDescription}
+                className={cn(
+                  "border-cs-border placeholder:text-muted-foreground w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus:ring-2 focus:ring-cs-primary/20",
+                  errors.shortDescription && FIELD_ERROR_INPUT_CLASS,
+                )}
               />
               {errors.shortDescription && (
-                <p className="text-sm text-destructive">
+                <p className="text-sm !text-red-500">
                   {errors.shortDescription}
                 </p>
               )}
@@ -482,11 +487,10 @@ export default function NewHackathonPage() {
                   value={applyDeadline}
                   onChange={setApplyDeadline}
                   placeholder="Last moment to join"
-                  className={errors.applyDeadline ? "border-destructive" : ""}
                   aria-invalid={!!errors.applyDeadline}
                 />
                 {errors.applyDeadline && (
-                  <p className="text-sm text-destructive">
+                  <p className="text-sm !text-red-500">
                     {errors.applyDeadline}
                   </p>
                 )}
@@ -499,13 +503,10 @@ export default function NewHackathonPage() {
                   value={finalSubmissionDeadline}
                   onChange={setFinalSubmissionDeadline}
                   placeholder="Last day to submit"
-                  className={
-                    errors.finalSubmissionDeadline ? "border-destructive" : ""
-                  }
                   aria-invalid={!!errors.finalSubmissionDeadline}
                 />
                 {errors.finalSubmissionDeadline && (
-                  <p className="text-sm text-destructive">
+                  <p className="text-sm !text-red-500">
                     {errors.finalSubmissionDeadline}
                   </p>
                 )}
@@ -517,11 +518,10 @@ export default function NewHackathonPage() {
                 value={scoringDeadline}
                 onChange={setScoringDeadline}
                 placeholder="Judging ends"
-                className={errors.scoringDeadline ? "border-destructive" : ""}
                 aria-invalid={!!errors.scoringDeadline}
               />
               {errors.scoringDeadline && (
-                <p className="text-sm text-destructive">
+                <p className="text-sm !text-red-500">
                   {errors.scoringDeadline}
                 </p>
               )}
@@ -539,7 +539,7 @@ export default function NewHackathonPage() {
               }
             >
               {errors.dailyInstructions && (
-                <p className="text-sm text-destructive">
+                <p className="text-sm !text-red-500">
                   {errors.dailyInstructions}
                 </p>
               )}
@@ -585,11 +585,11 @@ export default function NewHackathonPage() {
               onChange={setInstructions}
               placeholder="Rules and instructions for participants"
               maxLength={HACKATHON_CONSTANTS.TEXT_LIMITS.INSTRUCTIONS}
-              className={errors.instructions ? "border-destructive" : ""}
+              className={errors.instructions ? FIELD_ERROR_INPUT_CLASS : ""}
               aria-invalid={!!errors.instructions}
             />
             {errors.instructions && (
-              <p className="text-sm text-destructive">{errors.instructions}</p>
+              <p className="text-sm !text-red-500">{errors.instructions}</p>
             )}
           </HackathonFormStepPanel>
 
@@ -608,11 +608,10 @@ export default function NewHackathonPage() {
                   placeholder="Select sponsor"
                   searchPlaceholder="Search sponsors..."
                   emptyText="No sponsor found."
-                  className={errors.sponsorId ? "border-destructive" : ""}
                   aria-invalid={!!errors.sponsorId}
                 />
                 {errors.sponsorId && (
-                  <p className="text-sm text-destructive">{errors.sponsorId}</p>
+                  <p className="text-sm !text-red-500">{errors.sponsorId}</p>
                 )}
               </div>
             ) : (
@@ -633,14 +632,13 @@ export default function NewHackathonPage() {
                 searchPlaceholder="Search judges..."
                 emptyText="No judge found."
                 max={HACKATHON_CONSTANTS.JUDGE_COUNT.MAX}
-                className={errors.judgeIds ? "border-destructive" : ""}
                 aria-invalid={!!errors.judgeIds}
               />
               <p className="text-xs text-muted-foreground">
                 Favorites appear first.
               </p>
               {errors.judgeIds && (
-                <p className="text-sm text-destructive">{errors.judgeIds}</p>
+                <p className="text-sm !text-red-500">{errors.judgeIds}</p>
               )}
             </div>
           </HackathonFormStepPanel>
@@ -689,16 +687,18 @@ export default function NewHackathonPage() {
                       placeholder="Amount"
                       value={priceOfEntry}
                       onChange={(e) => setPriceOfEntry(e.target.value)}
-                      className="w-32"
+                      aria-invalid={!!errors.priceOfEntry}
+                      className={cn(
+                        "w-32",
+                        errors.priceOfEntry && FIELD_ERROR_INPUT_CLASS,
+                      )}
                     />
                     <span className="text-sm text-muted-foreground">INR</span>
                   </div>
                 )}
               </div>
               {errors.priceOfEntry && (
-                <p className="text-sm text-destructive">
-                  {errors.priceOfEntry}
-                </p>
+                <p className="text-sm !text-red-500">{errors.priceOfEntry}</p>
               )}
             </div>
             <div className="space-y-2">
@@ -710,9 +710,11 @@ export default function NewHackathonPage() {
                 type="file"
                 accept=".webp,.png,.jpg,.jpeg,image/webp,image/png,image/jpeg,image/jpg"
                 onChange={(e) => setImage(e.target.files?.[0] ?? null)}
+                aria-invalid={!!errors.image}
+                className={errors.image ? FIELD_ERROR_INPUT_CLASS : ""}
               />
               {errors.image && (
-                <p className="text-sm text-destructive">{errors.image}</p>
+                <p className="text-sm !text-red-500">{errors.image}</p>
               )}
             </div>
           </HackathonFormStepPanel>

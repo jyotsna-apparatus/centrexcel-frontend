@@ -125,7 +125,7 @@ export default function EditJudgePage({
             aria-invalid={!!errors.email}
           />
           {errors.email && (
-            <p className="mt-1 text-sm text-red-500">{errors.email}</p>
+            <p className="mt-1 text-sm !text-red-500">{errors.email}</p>
           )}
         </div>
         <div>
@@ -144,7 +144,7 @@ export default function EditJudgePage({
             aria-invalid={!!errors.username}
           />
           {errors.username && (
-            <p className="mt-1 text-sm text-red-500">{errors.username}</p>
+            <p className="mt-1 text-sm !text-red-500">{errors.username}</p>
           )}
         </div>
         <div className="flex items-center gap-2">

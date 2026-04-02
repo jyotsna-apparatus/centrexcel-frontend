@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { PasswordInput } from "@/components/ui/password-input";
 import { getAccessToken } from "@/lib/auth";
 import { changePassword } from "@/lib/auth-api";
+import { cn, FIELD_ERROR_INPUT_CLASS } from "@/lib/utils";
 import { validatePassword } from "@/lib/validate";
 
 type ChangePasswordFormData = {
@@ -111,10 +112,12 @@ const ChangePasswordPage = () => {
                 setPasswordError(null);
               }}
               required
+              aria-invalid={!!passwordError}
+              className={cn(passwordError && FIELD_ERROR_INPUT_CLASS)}
             />
 
             {passwordError && (
-              <p className="text-sm text-destructive">{passwordError}</p>
+              <p className="text-sm !text-red-500">{passwordError}</p>
             )}
             <PasswordInput
               placeholder="Confirm new password"

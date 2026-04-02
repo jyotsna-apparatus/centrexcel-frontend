@@ -249,6 +249,16 @@ export function HackathonCard({
             <Users className="size-3.5" />
             {hackathon._count?.teams ?? 0} teams
           </span>
+          {hackathon.isPaid && hackathon.priceOfEntry != null ? (
+            <span>
+              Entry:{" "}
+              <span className="text-cs-primary">
+                ₹{Number(hackathon.priceOfEntry).toLocaleString()}
+              </span>
+            </span>
+          ) : (
+            <span>Participate for free</span>
+          )}
         </div>
       </div>
       <div className="flex flex-wrap gap-2 border-t border-cs-border p-4">
@@ -310,9 +320,8 @@ export function HackathonCard({
           hackathon.status !== "closed" &&
           hackathon.status !== "cancelled" && (
             <p className="w-full text-xs text-muted-foreground">
-              Applications closed — the apply-by date has passed. Open
-              indicates the challenge may still be running for existing
-              participants.
+              Applications closed — the apply-by date has passed. Open indicates
+              the challenge may still be running for existing participants.
             </p>
           )}
       </div>

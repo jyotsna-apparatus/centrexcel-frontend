@@ -18,7 +18,7 @@ import {
   updateProfile,
   updateProfilePicture,
 } from "@/lib/auth-api";
-import { cn } from "@/lib/utils";
+import { cn, FIELD_ERROR_INPUT_CLASS } from "@/lib/utils";
 import {
   validateEmail,
   validatePassword,
@@ -415,11 +415,15 @@ export default function SettingsPage() {
                 setUsername(e.target.value);
                 setUsernameError(null);
               }}
-              className="max-w-md"
+              aria-invalid={!!usernameError}
+              className={cn(
+                "max-w-md",
+                usernameError && FIELD_ERROR_INPUT_CLASS,
+              )}
               maxLength={30}
             />
             {usernameError && (
-              <p className="text-sm text-destructive mt-1">{usernameError}</p>
+              <p className="mt-1 text-sm !text-red-500">{usernameError}</p>
             )}
           </div>
           <div>
@@ -620,10 +624,14 @@ export default function SettingsPage() {
                   setNewPassword(e.target.value);
                   setPasswordError(null);
                 }}
-                className="max-w-md"
+                aria-invalid={!!passwordError}
+                className={cn(
+                  "max-w-md",
+                  passwordError && FIELD_ERROR_INPUT_CLASS,
+                )}
               />
               {passwordError && (
-                <p className="text-sm text-destructive mt-1">{passwordError}</p>
+                <p className="mt-1 text-sm !text-red-500">{passwordError}</p>
               )}
             </div>
             <div>

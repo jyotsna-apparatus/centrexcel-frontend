@@ -176,9 +176,6 @@ export default function HackathonApplyPage() {
     );
   }, [requiresEntryFee, completedPayments?.data, id, expectedEntryFeePaisa]);
 
-  const participationBlockedByPayment =
-    requiresEntryFee && !hasPaidEntryFee && !applyDeadlinePassed;
-
   const handleCreateTeam = (e: React.FormEvent) => {
     e.preventDefault();
     const name = teamName.trim();
@@ -263,9 +260,7 @@ export default function HackathonApplyPage() {
 
       {applyDeadlinePassed ? (
         <div className="mb-6 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm">
-          <p className="font-medium text-destructive">
-            Applications are closed
-          </p>
+          <p className="font-medium !text-red-500">Applications are closed</p>
           <p className="mt-1 text-muted-foreground">
             The deadline to join this challenge has passed. You can still view
             the challenge details from the list.
@@ -282,11 +277,11 @@ export default function HackathonApplyPage() {
           <p className="mb-4 text-sm text-muted-foreground">
             This challenge has an entry fee of ₹
             {Number(hackathon.priceOfEntry).toFixed(2)}. You must complete
-            payment before you can register as solo or team.
+            payment before you can submit your project.
           </p>
           {hasPaidEntryFee ? (
             <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
-              Payment received — you can register below.
+              Payment received — you're ready to submit.
             </p>
           ) : (
             <Button asChild>
@@ -333,9 +328,7 @@ export default function HackathonApplyPage() {
               variant="secondary"
               className="w-full"
               disabled={
-                applyDeadlinePassed ||
-                participateSoloMutation.isPending ||
-                participationBlockedByPayment
+                applyDeadlinePassed || participateSoloMutation.isPending
               }
               onClick={() => setSoloModalOpen(true)}
             >
@@ -369,7 +362,7 @@ export default function HackathonApplyPage() {
             <Button
               variant="secondary"
               className="w-full"
-              disabled={applyDeadlinePassed || participationBlockedByPayment}
+              disabled={applyDeadlinePassed}
               onClick={openTeamModal}
             >
               Enter as team
@@ -377,12 +370,6 @@ export default function HackathonApplyPage() {
           )}
         </div>
       </div>
-
-      {participationBlockedByPayment ? (
-        <p className="mt-4 text-center text-sm text-destructive">
-          Pay the entry fee above to unlock solo and team registration.
-        </p>
-      ) : null}
 
       {/* Solo confirmation modal */}
       <Dialog open={soloModalOpen} onOpenChange={setSoloModalOpen}>

@@ -92,7 +92,7 @@ export default function EditParticipantPage({
           title="Edit Participant"
           description="Update participant details."
         />
-        <div className="rounded-lg border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+        <div className="rounded-lg border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm !text-red-500">
           {error instanceof Error
             ? error.message
             : "Failed to load participant"}
@@ -134,7 +134,7 @@ export default function EditParticipantPage({
             aria-invalid={!!errors.email}
           />
           {errors.email && (
-            <p className="mt-1 text-sm text-red-500">{errors.email}</p>
+            <p className="mt-1 text-sm !text-red-500">{errors.email}</p>
           )}
         </div>
         <div>
@@ -153,7 +153,7 @@ export default function EditParticipantPage({
             aria-invalid={!!errors.username}
           />
           {errors.username && (
-            <p className="mt-1 text-sm text-red-500">{errors.username}</p>
+            <p className="mt-1 text-sm !text-red-500">{errors.username}</p>
           )}
         </div>
         <div className="flex items-center gap-2">

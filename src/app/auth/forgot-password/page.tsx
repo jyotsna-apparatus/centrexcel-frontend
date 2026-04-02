@@ -10,6 +10,7 @@ import { RedirectIfAuthenticated } from "@/components/redirect-if-authenticated"
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { forgotPassword } from "@/lib/auth-api";
+import { cn, FIELD_ERROR_INPUT_CLASS } from "@/lib/utils";
 import { validateEmail } from "@/lib/validate";
 
 const ForgotPasswordPage = () => {
@@ -76,9 +77,10 @@ const ForgotPasswordPage = () => {
                 }}
                 required
                 aria-invalid={!!emailError}
+                className={cn(emailError && FIELD_ERROR_INPUT_CLASS)}
               />
               {emailError && (
-                <p className="text-sm text-destructive">{emailError}</p>
+                <p className="text-sm !text-red-500">{emailError}</p>
               )}
               <Button
                 type="submit"

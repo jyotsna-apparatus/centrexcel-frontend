@@ -41,7 +41,7 @@ import {
   getDailyTimelineStartUtc,
   parseDailyInstructionsFromApi,
 } from "@/lib/hackathon-deadlines";
-import { cn } from "@/lib/utils";
+import { cn, FIELD_ERROR_INPUT_CLASS } from "@/lib/utils";
 import {
   buildHackathonFormSteps,
   HackathonFormSectionNav,
@@ -399,9 +399,7 @@ export default function EditHackathonPage() {
         (s) => Object.keys(validateStepFields(s)).length > 0,
       );
       if (firstProblemStep) {
-        requestAnimationFrame(() =>
-          scrollToHackathonSection(firstProblemStep),
-        );
+        requestAnimationFrame(() => scrollToHackathonSection(firstProblemStep));
       }
       toast.error("Please fix the highlighted sections below.");
       return;
@@ -529,10 +527,11 @@ export default function EditHackathonPage() {
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Challenge title"
                 maxLength={HACKATHON_CONSTANTS.TEXT_LIMITS.TITLE}
-                className={errors.title ? "border-destructive" : ""}
+                aria-invalid={!!errors.title}
+                className={errors.title ? FIELD_ERROR_INPUT_CLASS : ""}
               />
               {errors.title && (
-                <p className="text-sm text-destructive">{errors.title}</p>
+                <p className="text-sm !text-red-500">{errors.title}</p>
               )}
             </div>
             <div className="space-y-2">
@@ -546,10 +545,14 @@ export default function EditHackathonPage() {
                 placeholder="Brief description"
                 rows={4}
                 maxLength={HACKATHON_CONSTANTS.TEXT_LIMITS.SHORT_DESCRIPTION}
-                className="border-cs-border placeholder:text-muted-foreground w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus:ring-2 focus:ring-cs-primary/20"
+                aria-invalid={!!errors.shortDescription}
+                className={cn(
+                  "border-cs-border placeholder:text-muted-foreground w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus:ring-2 focus:ring-cs-primary/20",
+                  errors.shortDescription && FIELD_ERROR_INPUT_CLASS,
+                )}
               />
               {errors.shortDescription && (
-                <p className="text-sm text-destructive">
+                <p className="text-sm !text-red-500">
                   {errors.shortDescription}
                 </p>
               )}
@@ -606,11 +609,10 @@ export default function EditHackathonPage() {
                   value={applyDeadline}
                   onChange={setApplyDeadline}
                   placeholder="Last moment to join"
-                  className={errors.applyDeadline ? "border-destructive" : ""}
                   aria-invalid={!!errors.applyDeadline}
                 />
                 {errors.applyDeadline && (
-                  <p className="text-sm text-destructive">
+                  <p className="text-sm !text-red-500">
                     {errors.applyDeadline}
                   </p>
                 )}
@@ -623,13 +625,10 @@ export default function EditHackathonPage() {
                   value={finalSubmissionDeadline}
                   onChange={setFinalSubmissionDeadline}
                   placeholder="Last day to submit"
-                  className={
-                    errors.finalSubmissionDeadline ? "border-destructive" : ""
-                  }
                   aria-invalid={!!errors.finalSubmissionDeadline}
                 />
                 {errors.finalSubmissionDeadline && (
-                  <p className="text-sm text-destructive">
+                  <p className="text-sm !text-red-500">
                     {errors.finalSubmissionDeadline}
                   </p>
                 )}
@@ -641,11 +640,10 @@ export default function EditHackathonPage() {
                 value={scoringDeadline}
                 onChange={setScoringDeadline}
                 placeholder="Judging ends"
-                className={errors.scoringDeadline ? "border-destructive" : ""}
                 aria-invalid={!!errors.scoringDeadline}
               />
               {errors.scoringDeadline && (
-                <p className="text-sm text-destructive">
+                <p className="text-sm !text-red-500">
                   {errors.scoringDeadline}
                 </p>
               )}
@@ -662,40 +660,40 @@ export default function EditHackathonPage() {
                   : "Set apply and final deadlines under Schedule so we know how many daily briefs you need."
               }
             >
-            {errors.dailyInstructions && (
-              <p className="text-sm text-destructive">
-                {errors.dailyInstructions}
-              </p>
-            )}
-            {expectedDailyCount > 0 ? (
-              <div className="space-y-8">
-                {dailyInstructionTexts.map((html, idx) => (
-                  <div key={`day-${idx}`} className="space-y-2">
-                    <label className="text-sm font-semibold text-cs-heading">
-                      Day {idx + 1}
-                    </label>
-                    <TiptapEditor
-                      value={html}
-                      onChange={(v) => {
-                        setDailyInstructionTexts((prev) => {
-                          const copy = [...prev];
-                          copy[idx] = v;
-                          return copy;
-                        });
-                      }}
-                      placeholder={`What should participants focus on on day ${idx + 1}?`}
-                      maxLength={HACKATHON_CONSTANTS.TEXT_LIMITS.INSTRUCTIONS}
-                      editorContentClassName="min-h-[100px]"
-                    />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Under <strong>Schedule</strong>, choose deadlines so the first
-                daily day falls on or before the final submission day (UTC).
-              </p>
-            )}
+              {errors.dailyInstructions && (
+                <p className="text-sm !text-red-500">
+                  {errors.dailyInstructions}
+                </p>
+              )}
+              {expectedDailyCount > 0 ? (
+                <div className="space-y-8">
+                  {dailyInstructionTexts.map((html, idx) => (
+                    <div key={`day-${idx}`} className="space-y-2">
+                      <label className="text-sm font-semibold text-cs-heading">
+                        Day {idx + 1}
+                      </label>
+                      <TiptapEditor
+                        value={html}
+                        onChange={(v) => {
+                          setDailyInstructionTexts((prev) => {
+                            const copy = [...prev];
+                            copy[idx] = v;
+                            return copy;
+                          });
+                        }}
+                        placeholder={`What should participants focus on on day ${idx + 1}?`}
+                        maxLength={HACKATHON_CONSTANTS.TEXT_LIMITS.INSTRUCTIONS}
+                        editorContentClassName="min-h-[100px]"
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Under <strong>Schedule</strong>, choose deadlines so the first
+                  daily day falls on or before the final submission day (UTC).
+                </p>
+              )}
             </HackathonFormStepPanel>
           ) : null}
 
@@ -709,11 +707,11 @@ export default function EditHackathonPage() {
               onChange={setInstructions}
               placeholder="Rules and instructions for participants"
               maxLength={HACKATHON_CONSTANTS.TEXT_LIMITS.INSTRUCTIONS}
-              className={errors.instructions ? "border-destructive" : ""}
+              className={errors.instructions ? FIELD_ERROR_INPUT_CLASS : ""}
               aria-invalid={!!errors.instructions}
             />
             {errors.instructions && (
-              <p className="text-sm text-destructive">{errors.instructions}</p>
+              <p className="text-sm !text-red-500">{errors.instructions}</p>
             )}
           </HackathonFormStepPanel>
 
@@ -732,11 +730,10 @@ export default function EditHackathonPage() {
                   placeholder="Select sponsor"
                   searchPlaceholder="Search sponsors..."
                   emptyText="No sponsor found."
-                  className={errors.sponsorId ? "border-destructive" : ""}
                   aria-invalid={!!errors.sponsorId}
                 />
                 {errors.sponsorId && (
-                  <p className="text-sm text-destructive">{errors.sponsorId}</p>
+                  <p className="text-sm !text-red-500">{errors.sponsorId}</p>
                 )}
               </div>
             ) : (
@@ -757,14 +754,13 @@ export default function EditHackathonPage() {
                 searchPlaceholder="Search judges..."
                 emptyText="No judge found."
                 max={HACKATHON_CONSTANTS.JUDGE_COUNT.MAX}
-                className={errors.judgeIds ? "border-destructive" : ""}
                 aria-invalid={!!errors.judgeIds}
               />
               <p className="text-xs text-muted-foreground">
                 Favorites appear first.
               </p>
               {errors.judgeIds && (
-                <p className="text-sm text-destructive">{errors.judgeIds}</p>
+                <p className="text-sm !text-red-500">{errors.judgeIds}</p>
               )}
             </div>
           </HackathonFormStepPanel>
@@ -838,16 +834,18 @@ export default function EditHackathonPage() {
                       placeholder="Amount"
                       value={priceOfEntry}
                       onChange={(e) => setPriceOfEntry(e.target.value)}
-                      className="w-32"
+                      aria-invalid={!!errors.priceOfEntry}
+                      className={cn(
+                        "w-32",
+                        errors.priceOfEntry && FIELD_ERROR_INPUT_CLASS,
+                      )}
                     />
                     <span className="text-sm text-muted-foreground">INR</span>
                   </div>
                 )}
               </div>
               {errors.priceOfEntry && (
-                <p className="text-sm text-destructive">
-                  {errors.priceOfEntry}
-                </p>
+                <p className="text-sm !text-red-500">{errors.priceOfEntry}</p>
               )}
             </div>
             <div className="space-y-2">
@@ -860,9 +858,11 @@ export default function EditHackathonPage() {
                 type="file"
                 accept=".webp,.png,.jpg,.jpeg,image/webp,image/png,image/jpeg,image/jpg"
                 onChange={(e) => setImage(e.target.files?.[0] ?? null)}
+                aria-invalid={!!errors.image}
+                className={errors.image ? FIELD_ERROR_INPUT_CLASS : ""}
               />
               {errors.image && (
-                <p className="text-sm text-destructive">{errors.image}</p>
+                <p className="text-sm !text-red-500">{errors.image}</p>
               )}
             </div>
           </HackathonFormStepPanel>

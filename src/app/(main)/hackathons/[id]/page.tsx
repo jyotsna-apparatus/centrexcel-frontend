@@ -404,7 +404,7 @@ export default function HackathonDetailPage() {
 
       {canParticipateFlow && !hasAnyParticipation && applyDeadlinePassed ? (
         <div className="mt-6 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm">
-          <p className="font-medium text-destructive">
+          <p className="font-medium !text-red-500">
             You can no longer join this challenge.
           </p>
           <p className="mt-1 text-muted-foreground">
@@ -500,7 +500,7 @@ export default function HackathonDetailPage() {
                   {hackathon.isPaid && hackathon.priceOfEntry != null && (
                     <div className="flex items-center gap-2">
                       <span className="text-muted-foreground">Entry fee</span>
-                      <span>${Number(hackathon.priceOfEntry).toFixed(2)}</span>
+                      <span>₹{Number(hackathon.priceOfEntry).toFixed(2)}</span>
                     </div>
                   )}
                 </dl>

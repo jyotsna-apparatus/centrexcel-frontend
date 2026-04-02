@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { resendResetOtp, resetPassword, verifyResetOtp } from "@/lib/auth-api";
+import { cn, FIELD_ERROR_INPUT_CLASS } from "@/lib/utils";
 import { validatePassword } from "@/lib/validate-password";
 
 const RESET_TOKEN_KEY = "auth_reset_token";
@@ -213,10 +214,12 @@ const ResetPasswordPage = () => {
                   setPasswordError(null);
                 }}
                 required
+                aria-invalid={!!passwordError}
+                className={cn(passwordError && FIELD_ERROR_INPUT_CLASS)}
               />
 
               {passwordError && (
-                <p className="text-sm text-destructive">{passwordError}</p>
+                <p className="text-sm !text-red-500">{passwordError}</p>
               )}
               <PasswordInput
                 placeholder="Confirm password"

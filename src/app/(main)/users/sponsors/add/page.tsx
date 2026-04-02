@@ -14,6 +14,7 @@ import {
   createUser,
   type RegisterCredentials,
 } from "@/lib/auth-api";
+import { FIELD_ERROR_INPUT_CLASS } from "@/lib/utils";
 import {
   validateEmail,
   validatePassword,
@@ -126,7 +127,7 @@ export default function AddSponsorPage() {
             aria-invalid={!!errors.email}
           />
           {errors.email && (
-            <p className="mt-1 text-sm text-red-500">{errors.email}</p>
+            <p className="mt-1 text-sm !text-red-500">{errors.email}</p>
           )}
         </div>
         <div>
@@ -145,7 +146,7 @@ export default function AddSponsorPage() {
             aria-invalid={!!errors.username || usernameStatus === "taken"}
             className={
               errors.username || usernameStatus === "taken"
-                ? "border-destructive"
+                ? FIELD_ERROR_INPUT_CLASS
                 : ""
             }
           />
@@ -160,12 +161,12 @@ export default function AddSponsorPage() {
             </p>
           )}
           {usernameStatus === "taken" && (
-            <p className="mt-1 text-sm text-destructive">
+            <p className="mt-1 text-sm !text-red-500">
               This username is already taken
             </p>
           )}
           {errors.username && usernameStatus !== "taken" && (
-            <p className="mt-1 text-sm text-red-500">{errors.username}</p>
+            <p className="mt-1 text-sm !text-red-500">{errors.username}</p>
           )}
         </div>
         <div>
@@ -184,7 +185,7 @@ export default function AddSponsorPage() {
             aria-invalid={!!errors.password}
           />
           {errors.password && (
-            <p className="mt-1 text-sm text-red-500">{errors.password}</p>
+            <p className="mt-1 text-sm !text-red-500">{errors.password}</p>
           )}
         </div>
         <div>
@@ -203,7 +204,7 @@ export default function AddSponsorPage() {
             aria-invalid={!!errors.confirmPassword}
           />
           {errors.confirmPassword && (
-            <p className="mt-1 text-sm text-red-500">
+            <p className="mt-1 text-sm !text-red-500">
               {errors.confirmPassword}
             </p>
           )}

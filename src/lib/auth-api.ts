@@ -2222,6 +2222,7 @@ export type ParticipationListItem = {
     submissionMode: string;
   };
   team: { id: string; name: string } | null;
+  entryFeeSatisfied?: boolean;
   hasSubmitted: boolean;
   submission: { id: string; title: string; createdAt: string } | null;
 };
