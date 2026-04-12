@@ -18,9 +18,7 @@ type StatCardProps = {
 
 function StatCard({ title, value, icon, href, className = "" }: StatCardProps) {
   const content = (
-    <div
-      className={`glass cs-card rounded-lg border border-cs-border p-6 shadow-sm transition-all hover:shadow-md ${className}`}
-    >
+    <div className={`app-glass-surface rounded-lg p-6 ${className}`}>
       <div className="flex items-center justify-between">
         <div>
           <p className="text-muted-foreground text-sm font-medium">{title}</p>
@@ -103,7 +101,7 @@ export default function SponsorDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="glass cs-card rounded-lg border border-cs-border p-6">
+      <div className="app-glass-surface rounded-lg p-6">
         <h2 className="mb-4 text-lg font-semibold">Quick Actions</h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Button variant="outline" className="justify-start" asChild>
@@ -122,7 +120,7 @@ export default function SponsorDashboard() {
       </div>
 
       {/* My Challenges */}
-      <div className="glass cs-card rounded-lg border border-cs-border p-6">
+      <div className="app-glass-surface rounded-lg p-6">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold">My Challenges</h2>
           <Button variant="ghost" size="sm" asChild>

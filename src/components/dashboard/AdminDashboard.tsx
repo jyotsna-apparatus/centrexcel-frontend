@@ -37,9 +37,7 @@ function StatCard({
   className = "",
 }: StatCardProps) {
   const content = (
-    <div
-      className={`glass cs-card rounded-lg border border-cs-border p-6 shadow-sm transition-all hover:shadow-md ${className}`}
-    >
+    <div className={`app-glass-surface rounded-lg p-6 ${className}`}>
       <div className="flex items-center justify-between">
         <div>
           <p className="text-muted-foreground text-sm font-medium">{title}</p>
@@ -149,7 +147,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="glass cs-card rounded-lg border border-cs-border p-6">
+      <div className="app-glass-surface rounded-lg p-6">
         <h2 className="mb-4 text-lg font-semibold">Quick Actions</h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Button variant="outline" className="justify-start" asChild>
@@ -182,7 +180,7 @@ export default function AdminDashboard() {
       {/* Recent Activity */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Recent Participants */}
-        <div className="glass cs-card rounded-lg border border-cs-border p-6">
+        <div className="app-glass-surface rounded-lg p-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold">Recent Participants</h2>
             <Button variant="ghost" size="sm" asChild>
@@ -198,7 +196,7 @@ export default function AdminDashboard() {
                 <Link
                   key={participant.id}
                   href={`/users/participants/${participant.id}`}
-                  className="flex items-center justify-between rounded-md border border-cs-border bg-cs-card/50 p-3 transition-colors hover:bg-accent/50"
+                  className="app-glass-surface flex items-center justify-between rounded-md p-3 transition-colors hover:bg-white/[0.08]"
                 >
                   <div className="flex items-center gap-3">
                     <Avatar className="size-10 shrink-0 border border-cs-border">

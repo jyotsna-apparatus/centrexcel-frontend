@@ -16,7 +16,7 @@ export default function MainLayout({
           <AppSidebar />
           <main className="w-full h-full">
             <Header />
-            <section className="p-4  w-full h-[calc(100dvh-4rem)]">
+            <section className="h-[calc(100dvh-4rem)] w-full overflow-auto bg-transparent px-4 py-6 md:px-8 md:py-8">
               {children}
             </section>
           </main>

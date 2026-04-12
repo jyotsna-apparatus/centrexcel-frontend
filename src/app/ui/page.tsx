@@ -33,7 +33,7 @@ const page = () => {
           aspernatur culpa, magni illo reprehenderit quidem earum nesciunt,
           ratione accusantium. Ab.
         </p>
-        <div className="card glass cs-card">
+        <div className="card">
           <h3 className="h3"> card title</h3>
 
           <p className="p1">

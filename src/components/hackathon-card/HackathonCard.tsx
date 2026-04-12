@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { GlassCard } from "@/components/ui/glass-card";
 import {
   HACKATHON_APPROVAL_LABELS,
   HACKATHON_STATUS_LABELS,
@@ -131,9 +132,9 @@ export function HackathonCard({
 
   if (variant === "featured") {
     return (
-      <div
+      <GlassCard
         className={cn(
-          "card cs-card glass flex flex-col overflow-hidden !p-0 gap-0",
+          "flex flex-col overflow-hidden gap-0 rounded-xl p-0",
           className,
         )}
         {...(dataAos && { "data-aos": dataAos })}
@@ -159,9 +160,9 @@ export function HackathonCard({
             aria-hidden
           />
         )}
-        <div className="flex flex-1 flex-col gap-3 p-4">
-          <h3 className="h4">{hackathon.title}</h3>
-          <p className="p1 text-cs-text">
+        <div className="flex flex-1 flex-col gap-4 p-5">
+          <h3 className="h4 leading-relaxed">{hackathon.title}</h3>
+          <p className="p1 text-cs-text leading-relaxed">
             Apply by {applyBy} · Submit by {submitBy}
           </p>
           {hackathon.isPaid && hackathon.priceOfEntry != null ? (
@@ -180,7 +181,7 @@ export function HackathonCard({
             <Link href={`/hackathons/${hackathon.id}`}>View details</Link>
           </Button>
         </div>
-      </div>
+      </GlassCard>
     );
   }
 
@@ -188,7 +189,7 @@ export function HackathonCard({
   return (
     <div
       className={cn(
-        "flex w-full min-w-[300px] max-w-[400px] flex-col rounded-lg border border-cs-border bg-card shadow-xs transition-shadow hover:shadow-sm",
+        "flex w-full min-w-[300px] max-w-[400px] flex-col rounded-xl border border-cs-border/80 bg-card shadow-xs transition-shadow hover:shadow-md",
         className,
       )}
       {...(dataAos && { "data-aos": dataAos })}
@@ -214,57 +215,67 @@ export function HackathonCard({
           aria-hidden
         />
       )}
-      <div className="flex flex-1 flex-col p-4">
-        <div className="mb-2 flex items-start justify-between gap-2">
-          <h3 className="font-semibold text-cs-heading line-clamp-2">
-            {hackathon.title}
-          </h3>
-          <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+      <div className="flex flex-1 flex-col px-5 pb-4 pt-5">
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <h3 className="line-clamp-2 text-base font-semibold leading-relaxed text-cs-heading sm:text-[1.05rem]">
+              {hackathon.title}
+            </h3>
+            {hackathon.category?.trim() ? (
+              <p className="text-xs font-medium text-cs-primary">
+                {hackathon.category.trim()}
+              </p>
+            ) : null}
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
             {showApprovalBadge && hackathon.approvalStatus ? (
               <ApprovalBadge status={hackathon.approvalStatus} />
             ) : null}
             <StatusBadge status={hackathon.status} />
           </div>
         </div>
-        <p className="mb-4 line-clamp-3 flex-1 text-sm text-muted-foreground">
+        <p className="mb-5 line-clamp-3 flex-1 text-sm leading-relaxed text-muted-foreground">
           {hackathon.shortDescription || "—"}
         </p>
-        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-          <span className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-2">
-            <span className="flex items-center gap-1">
-              <Calendar className="size-3.5 shrink-0" />
-              Apply {applyBy}
-            </span>
-            <span className="hidden sm:inline">·</span>
-            <span className="flex items-center gap-1">
-              <FileUp className="size-3.5 shrink-0" />
-              Submit {submitBy}
+        <div className="flex flex-col gap-2.5 text-xs text-muted-foreground">
+          <span className="flex items-start gap-2.5">
+            <Calendar className="mt-0.5 size-4 shrink-0 text-cs-primary" />
+            <span className="min-w-0 leading-relaxed">Apply by {applyBy}</span>
+          </span>
+          <span className="flex items-start gap-2.5">
+            <FileUp className="mt-0.5 size-4 shrink-0 text-cs-primary" />
+            <span className="min-w-0 leading-relaxed">
+              Submit by {submitBy}
             </span>
           </span>
-          <span className="flex items-center gap-1">
-            <FileText className="size-3.5" />
-            {hackathon._count?.submissions ?? 0} entries
+          <span className="flex items-start gap-2.5">
+            <FileText className="mt-0.5 size-4 shrink-0 text-cs-primary" />
+            <span className="leading-relaxed">
+              {hackathon._count?.submissions ?? 0} entries
+            </span>
           </span>
-          <span className="flex items-center gap-1">
-            <Users className="size-3.5" />
-            {hackathon._count?.teams ?? 0} teams
+          <span className="flex items-start gap-2.5">
+            <Users className="mt-0.5 size-4 shrink-0 text-cs-primary" />
+            <span className="leading-relaxed">
+              {hackathon._count?.teams ?? 0} teams
+            </span>
           </span>
           {hackathon.isPaid && hackathon.priceOfEntry != null ? (
-            <span>
+            <span className="leading-relaxed">
               Entry:{" "}
               <span className="text-cs-primary">
                 ₹{Number(hackathon.priceOfEntry).toLocaleString()}
               </span>
             </span>
           ) : (
-            <span>Participate for free</span>
+            <span className="leading-relaxed">Participate for free</span>
           )}
         </div>
       </div>
-      <div className="flex flex-wrap gap-2 border-t border-cs-border p-4">
-        <Button variant="outline" size="sm" className="flex-1 min-w-0" asChild>
+      <div className="mt-1 flex flex-wrap gap-3 border-t border-cs-border/40 px-5 pb-5 pt-5">
+        <Button variant="outline" size="sm" className="min-w-0 flex-1" asChild>
           <Link href={`/hackathons/${hackathon.id}`}>
-            <Eye className="mr-1.5 size-4 shrink-0" />
+            <Eye className="mr-1.5 size-4 shrink-0 text-cs-primary" />
             View
           </Link>
         </Button>
@@ -272,11 +283,11 @@ export function HackathonCard({
           <Button
             variant="outline"
             size="sm"
-            className="flex-1 min-w-0"
+            className="min-w-0 flex-1"
             asChild
           >
             <Link href={`/hackathons/${hackathon.id}/edit`}>
-              <Pencil className="mr-1.5 size-4 shrink-0" />
+              <Pencil className="mr-1.5 size-4 shrink-0 text-cs-primary" />
               Edit
             </Link>
           </Button>
@@ -285,11 +296,11 @@ export function HackathonCard({
           <Button
             variant="outline"
             size="sm"
-            className="flex-1 min-w-0"
+            className="min-w-0 flex-1"
             asChild
           >
             <Link href={`/hackathons/${hackathon.id}/edit`}>
-              <Pencil className="mr-1.5 size-4 shrink-0" />
+              <Pencil className="mr-1.5 size-4 shrink-0 text-cs-primary" />
               Edit
             </Link>
           </Button>
@@ -304,7 +315,7 @@ export function HackathonCard({
             <Button
               variant="default"
               size="sm"
-              className="flex-1 min-w-0"
+              className="min-w-0 flex-1"
               asChild
             >
               <Link href={`/hackathons/${hackathon.id}/apply`}>
@@ -319,7 +330,7 @@ export function HackathonCard({
           hackathon.approvalStatus === "approved" &&
           hackathon.status !== "closed" &&
           hackathon.status !== "cancelled" && (
-            <p className="w-full text-xs text-muted-foreground">
+            <p className="w-full text-xs leading-relaxed text-muted-foreground">
               Applications closed — the apply-by date has passed. Open indicates
               the challenge may still be running for existing participants.
             </p>

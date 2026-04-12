@@ -65,7 +65,7 @@ const Header = () => {
 
   return (
     <>
-      <div className="flex items-center justify-between w-full h-16 bg-cs-card border-b border-cs-border p-4">
+      <div className="app-glass-surface flex h-16 w-full items-center justify-between rounded-none border-x-0 border-t-0 p-4">
         <SidebarTrigger />
         <div className="flex items-center gap-2">
           {user && (
@@ -91,7 +91,7 @@ const Header = () => {
                     <p className="!text-xs font-medium text-cs-heading truncate ml-2 ">
                       {displayName(user)}
                     </p>
-                    <p className="text-xs text-muted-foreground truncate bg-white/10 p-1 px-2 rounded-md">
+                    <p className="text-xs text-muted-foreground truncate rounded-md border border-white/10 bg-black/55 p-1 px-2">
                       {user.email}
                     </p>
                   </div>

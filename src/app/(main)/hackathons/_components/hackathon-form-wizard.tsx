@@ -48,7 +48,7 @@ export function HackathonFormSectionNav({
     <nav
       aria-label="Form sections"
       className={cn(
-        "mb-8 flex flex-wrap gap-x-4 gap-y-2 border-b border-cs-border pb-4",
+        "mb-10 flex flex-wrap gap-x-5 gap-y-3 border-b border-cs-border/70 pb-6",
         className,
       )}
     >
@@ -303,21 +303,21 @@ export function HackathonFormStepPanel({
     <div
       id={id}
       className={cn(
-        "scroll-mt-24 rounded-xl border border-cs-border bg-card p-4 shadow-xs sm:p-6",
+        "scroll-mt-24 rounded-xl border border-cs-border/80 bg-card p-6 shadow-xs sm:p-8",
         className,
       )}
     >
-      <div className="mb-4 border-b border-cs-border pb-3 sm:mb-5 sm:pb-4">
+      <div className="mb-6 border-b border-cs-border/60 pb-5 sm:mb-8 sm:pb-6">
         <h2 className="text-base font-semibold tracking-tight text-cs-heading sm:text-lg">
           {title}
         </h2>
         {description ? (
-          <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+          <p className="mt-2.5 text-sm leading-relaxed text-muted-foreground sm:mt-3">
             {description}
           </p>
         ) : null}
       </div>
-      <div className="space-y-4 sm:space-y-5">{children}</div>
+      <div className="space-y-7 sm:space-y-9">{children}</div>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { GlassCard } from "@/components/ui/glass-card";
 
 const FAQ_ITEMS = [
   {
@@ -37,7 +38,7 @@ export default function FifthSection() {
     <section id="faq" className="parent py-[100px] flex items-center">
       <div className="container flex flex-col lg:flex-row gap-12 lg:gap-16 items-start">
         {/* Left column: header */}
-        <div className="w-full lg:max-w-[40%] flex flex-col gap-6">
+        <div className="w-full lg:max-w-[40%] flex flex-col gap-6 p-6 lg:p-8">
           <span className="chip w-fit uppercase">FAQ</span>
           <h2 className="h2 font-semibold text-cs-heading leading-tight">
             Frequently
@@ -64,14 +65,11 @@ export default function FifthSection() {
           {FAQ_ITEMS.map((item, index) => {
             const isOpen = openIndex === index;
             return (
-              <div
-                key={index}
-                className="rounded-xl border border-cs-border bg-cs-card overflow-hidden transition-colors"
-              >
+              <GlassCard key={index} className="overflow-hidden rounded-xl p-0">
                 <button
                   type="button"
                   onClick={() => setOpenIndex(isOpen ? null : index)}
-                  className="w-full flex items-center justify-between gap-4 text-left px-5 py-4 hover:bg-white/3 transition-colors"
+                  className="w-full flex items-center justify-between gap-4 text-left px-5 py-4 hover:bg-white/[0.08] transition-colors"
                   aria-expanded={isOpen}
                   aria-controls={`faq-answer-${index}`}
                   id={`faq-question-${index}`}
@@ -101,7 +99,7 @@ export default function FifthSection() {
                     </p>
                   </div>
                 </div>
-              </div>
+              </GlassCard>
             );
           })}
         </div>

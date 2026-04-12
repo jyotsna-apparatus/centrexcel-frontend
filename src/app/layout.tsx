@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Poppins } from "next/font/google";
+import { GlobalVideoShell } from "@/components/layout/global-video-shell";
 import { Providers } from "@/components/providers";
 import { PWARegister } from "@/components/pwa-register";
 import "./globals.css";
@@ -39,12 +40,7 @@ export default function RootLayout({
       <body className={`${poppins.variable} antialiased`}>
         <Providers>
           <PWARegister />
-          {/* <div className='pattern' aria-hidden /> */}
-          {/* <div className="relative z-2"> */}
-          {/* <SiteHeader /> */}
-          {children}
-          {/* <Footer /> */}
-          {/* </div> */}
+          <GlobalVideoShell>{children}</GlobalVideoShell>
         </Providers>
       </body>
     </html>

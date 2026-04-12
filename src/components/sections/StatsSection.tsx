@@ -1,6 +1,7 @@
 "use client";
 
 import CountUp from "react-countup";
+import { GlassCard } from "@/components/ui/glass-card";
 
 function CountUpSection({
   end,
@@ -29,22 +30,26 @@ function CountUpSection({
 
 export default function StatsSection() {
   return (
-    <section className="parent py-12 bg-white/3">
-      <div className="container px-4">
-        <div className="flex items-center justify-center gap-50 flex-wrap">
+    <section className="parent py-12">
+      <div className="container px-4 flex flex-wrap items-center justify-center gap-6 md:gap-10">
+        <GlassCard className="flex w-full justify-center px-8 py-6 sm:w-auto sm:min-w-[200px] sm:max-w-[280px] sm:flex-1">
           <CountUpSection
             end={100}
             description="Active Challenges"
             symbol="+"
           />
+        </GlassCard>
+        <GlassCard className="flex w-full justify-center px-8 py-6 sm:w-auto sm:min-w-[200px] sm:max-w-[280px] sm:flex-1">
           <CountUpSection end={1000} description="Participants" symbol="+" />
+        </GlassCard>
+        <GlassCard className="flex w-full justify-center px-8 py-6 sm:w-auto sm:min-w-[200px] sm:max-w-[280px] sm:flex-1">
           <CountUpSection
             end={100}
             description="Prize upto"
             symbol="K"
             before="₹"
           />
-        </div>
+        </GlassCard>
       </div>
     </section>
   );

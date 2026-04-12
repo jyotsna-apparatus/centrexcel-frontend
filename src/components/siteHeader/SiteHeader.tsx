@@ -55,7 +55,7 @@ const SiteHeader = () => {
       </header>
 
       <nav
-        className={`h-screen w-screen fixed top-0 left-0 bg-cs-card z-50 p-8 transition parent ${
+        className={`parent glass fixed left-0 top-0 z-50 h-screen w-screen p-8 transition ${
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
         inert={!isOpen}

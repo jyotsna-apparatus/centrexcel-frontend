@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { GlassCard } from "@/components/ui/glass-card";
 
 const footerSections = [
   {
@@ -28,8 +29,8 @@ const footerSections = [
 
 const FooterSection = () => {
   return (
-    <footer className="parent border-t border-cs-border pt-8 bg-cs-card">
-      <div className="container px-4">
+    <footer className="parent border-t border-white/10 pt-8 pb-8">
+      <div className="container px-6 py-8 mx-4 sm:mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-8">
           <div className="flex flex-col gap-3 min-w-[200px]">
             <Link href="/">
@@ -69,7 +70,7 @@ const FooterSection = () => {
             ))}
           </div>
         </div>
-        <div className="pt-6 border-t border-cs-border">
+        <div className="pt-6 border-t border-white/10">
           <p className="p1 text-sm text-cs-text text-center">
             © {new Date().getFullYear()} CentreExcel. All rights reserved.
           </p>

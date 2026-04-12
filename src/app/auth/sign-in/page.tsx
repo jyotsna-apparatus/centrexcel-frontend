@@ -70,8 +70,8 @@ const LoginPage = () => {
   return (
     <RedirectIfAuthenticated>
       <div className="parent h-dvh">
-        <div className="container flex flex-col gap-4 items-center justify-center">
-          <div className="card flex flex-col gap-4 items-center justify-center">
+        <div className="container flex flex-col items-center justify-center gap-6">
+          <div className="card flex flex-col items-center justify-center gap-6">
             <Image
               src="/logo-full.svg"
               alt="Centrexcel"
@@ -80,13 +80,15 @@ const LoginPage = () => {
               className="h-9 w-auto"
               priority
             />
-            <div className="flex flex-col items-center justify-center gap-2 my-5">
+            <div className="my-6 flex flex-col items-center justify-center gap-3">
               <h1 className="h3">Login</h1>
-              <p className="p1">Enter your email and password to login</p>
+              <p className="p1 text-center leading-relaxed">
+                Enter your email and password to login
+              </p>
             </div>
             <form
               onSubmit={handleSubmit}
-              className="flex flex-col gap-4 w-full"
+              className="flex w-full flex-col gap-5"
             >
               <Input
                 type="email"
@@ -103,7 +105,7 @@ const LoginPage = () => {
               {emailError && (
                 <p className="text-sm !text-red-500">{emailError}</p>
               )}
-              <div className="flex flex-col gap-1 w-full">
+              <div className="flex w-full flex-col gap-2">
                 <PasswordInput
                   placeholder="Password"
                   value={formData.password}

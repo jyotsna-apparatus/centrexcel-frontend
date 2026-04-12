@@ -121,7 +121,7 @@ export default function HackathonsPage() {
           {isAdmin && (
             <Button variant="outline" asChild>
               <Link href="/hackathons/approvals">
-                <ClipboardCheck className="mr-2 size-4" />
+                <ClipboardCheck className="mr-2 size-4 text-cs-primary" />
                 Approvals
               </Link>
             </Button>
@@ -139,7 +139,7 @@ export default function HackathonsPage() {
         </div>
       </PageHeader>
 
-      <div className="mb-6 flex flex-wrap items-center gap-4">
+      <div className="mb-8 flex flex-wrap items-center gap-4 md:gap-5">
         <Input
           type="search"
           placeholder="Search by title or description..."
@@ -181,7 +181,7 @@ export default function HackathonsPage() {
       </div>
 
       {isLoading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
           {Array.from({ length: 6 }).map((_, i) => (
             <div
               key={i}
@@ -190,7 +190,7 @@ export default function HackathonsPage() {
           ))}
         </div>
       ) : hackathons.length === 0 ? (
-        <div className="rounded-lg border border-cs-border bg-card py-16 text-center">
+        <div className="rounded-xl border border-cs-border/80 bg-card px-4 py-16 text-center">
           <p className="text-muted-foreground mb-4">
             {isFetching && debouncedSearch
               ? "Searching..."
@@ -217,7 +217,7 @@ export default function HackathonsPage() {
       ) : (
         <>
           <div
-            className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+            className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8"
             style={{
               gridTemplateColumns: "repeat(auto-fill, minmax(300px, 400px))",
             }}
@@ -245,7 +245,7 @@ export default function HackathonsPage() {
             ))}
           </div>
 
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-cs-border pt-6">
+          <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-cs-border/50 pt-8">
             <p className="text-sm text-muted-foreground">
               {totalCount === 0
                 ? "No challenges"

@@ -1500,6 +1500,8 @@ export type HackathonJudge = {
 export type Challenge = {
   id: string;
   title: string;
+  /** When the API sends a label (e.g. event kind), render only — no client-side categorization. */
+  category?: string | null;
   shortDescription: string;
   image: string | null;
   applyDeadline: string;
