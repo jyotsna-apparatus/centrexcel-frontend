@@ -44,9 +44,9 @@ export default function ParticipationsPage() {
       {isLoading ? (
         <Skeleton className="h-64 w-full rounded-lg" />
       ) : participations.length === 0 ? (
-        <div className="rounded-lg border border-cs-border bg-card p-8 text-center">
-          <UserCheck className="mx-auto size-12 text-muted-foreground" />
-          <p className="mt-4 text-muted-foreground">
+        <div className="rounded-xl border border-cs-border/80 bg-card px-6 py-12 text-center sm:px-10">
+          <UserCheck className="mx-auto size-12 text-cs-primary" />
+          <p className="mt-5 text-muted-foreground leading-relaxed">
             You haven’t participated in any hackathon yet.
           </p>
           <Button className="mt-4" asChild>
@@ -55,17 +55,17 @@ export default function ParticipationsPage() {
         </div>
       ) : (
         <>
-          <div className="space-y-4">
+          <div className="space-y-5">
             {participations.map((p) => (
               <div
                 key={p.id}
-                className="flex flex-col gap-3 rounded-lg border border-cs-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-5 rounded-xl border border-cs-border/80 bg-card px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6"
               >
-                <div>
-                  <h3 className="font-medium text-cs-heading">
+                <div className="min-w-0 space-y-1.5">
+                  <h3 className="font-medium leading-relaxed text-cs-heading">
                     {p.hackathon.title}
                   </h3>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm leading-relaxed text-muted-foreground">
                     {p.teamId ? <>Team: {p.team?.name ?? "—"}</> : "Solo"}
                     {" · "}
                     {p.hasSubmitted ? (
@@ -79,17 +79,17 @@ export default function ParticipationsPage() {
                     )}
                   </p>
                   {p.submission?.createdAt && (
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs leading-relaxed text-muted-foreground">
                       Submitted{" "}
                       {new Date(p.submission.createdAt).toLocaleString()}
                     </p>
                   )}
                 </div>
-                <div className="flex shrink-0 flex-wrap gap-2">
+                <div className="flex shrink-0 flex-wrap gap-3">
                   {p.hasSubmitted ? (
                     <Button variant="outline" size="sm" asChild>
                       <Link href="/submissions">
-                        <ExternalLink className="mr-1.5 size-4" />
+                        <ExternalLink className="mr-1.5 size-4 text-cs-primary" />
                         View submissions
                       </Link>
                     </Button>
@@ -102,7 +102,7 @@ export default function ParticipationsPage() {
                             : `/hackathons/${p.hackathonId}/submit?solo=1`
                         }
                       >
-                        <FileUp className="mr-1.5 size-4" />
+                        <FileUp className="mr-1.5 size-4 text-cs-primary" />
                         Submit project
                       </Link>
                     </Button>

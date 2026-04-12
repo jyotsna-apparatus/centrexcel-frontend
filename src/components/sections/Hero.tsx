@@ -9,18 +9,9 @@ const Hero = () => {
       id="hero"
       className="parent py-12 md:py-[100px] h-[100dvh] relative"
     >
-      <video
-        src="/hero-video.mp4"
-        autoPlay
-        muted
-        loop
-        playsInline
-        className="absolute inset-0 h-full w-full object-cover -z-[1] saturate-0 brightness-50"
-        aria-hidden
-      />
       <div className="container flex flex-col items-center justify-center gap-8 px-4 relative">
         <div className="relative inline-block" data-aos="fade-up">
-          <Image
+          {/* <Image
             src="/w.png"
             alt="wifi"
             width={120}
@@ -49,11 +40,11 @@ const Hero = () => {
             width={120}
             height={120}
             className="absolute -bottom-8 -right-1 md:-bottom-16 md:-right-2 z-20 brain-float w-12 h-12 md:w-[120px] md:h-[120px]"
-          />
+          /> */}
 
           <h1 className="h1 text-center !text-2xl sm:!text-3xl md:!text-4xl lg:!text-[4.5rem]">
-            Ship at Challenges.{" "}
-            <span className="text-cs-primary">Get Hired</span> by Top Companies.
+          Solve Real-World Challenges from Top Companies{" "}
+            <br></br><span className="text-cs-primary">Think Big! Act Small! Fail Fast!</span> 
           </h1>
         </div>
         <p

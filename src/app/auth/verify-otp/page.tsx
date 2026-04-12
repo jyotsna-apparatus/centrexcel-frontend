@@ -154,7 +154,7 @@ const VerifyOtpPageInner = () => {
     <RedirectIfAuthenticated>
       <div className="parent h-dvh">
         <div className="container flex flex-col gap-4 items-center justify-center">
-          <div className="card flex flex-col gap-4 items-center justify-center">
+          <div className="card flex flex-col items-center justify-center gap-6">
             <Image
               src="/logo-full.svg"
               alt="Centrexcel"

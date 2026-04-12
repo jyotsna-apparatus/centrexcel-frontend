@@ -92,12 +92,12 @@ export function DateTimePicker({
           disabled={disabled}
           aria-invalid={ariaInvalid}
           className={cn(
-            "w-full justify-start text-left font-normal",
+            "min-h-12 w-full justify-start px-4 py-2.5 text-left text-base font-normal",
             !value && "text-muted-foreground",
             className,
           )}
         >
-          <CalendarIcon className="mr-2 size-4" />
+          <CalendarIcon className="mr-3 size-4 shrink-0 text-cs-primary" />
           {value ? (
             <>
               {format(new Date(value), "PPP")} at{" "}
@@ -118,13 +118,15 @@ export function DateTimePicker({
           onSelect={(d) => handleSelect(d)}
           initialFocus
         />
-        <div className="border-t p-3">
-          <label className="text-xs text-muted-foreground">Time</label>
+        <div className="border-t border-cs-border/50 p-4">
+          <label className="text-xs font-medium text-muted-foreground">
+            Time
+          </label>
           <Input
             type="time"
             value={timeStr}
             onChange={handleTimeChange}
-            className="mt-1"
+            className="mt-2"
           />
         </div>
       </PopoverContent>

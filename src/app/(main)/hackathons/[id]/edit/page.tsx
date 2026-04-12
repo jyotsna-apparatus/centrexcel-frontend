@@ -494,7 +494,7 @@ export default function EditHackathonPage() {
         noValidate
       >
         {!isAdmin && hackathon.adminFeedback ? (
-          <div className="mb-6 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
+          <div className="mb-8 rounded-xl border border-amber-500/40 bg-amber-500/10 p-5 text-sm leading-relaxed">
             <p className="font-medium text-amber-900 dark:text-amber-100">
               Admin feedback
             </p>
@@ -511,13 +511,13 @@ export default function EditHackathonPage() {
 
         <HackathonFormSectionNav steps={stepOrder} />
 
-        <div className="flex flex-col gap-10">
+        <div className="flex flex-col gap-12 lg:gap-14">
           <HackathonFormStepPanel
             id={hackathonFormSectionId("basics")}
             title="Challenge basics"
             description="Name and short summary — this is what participants see first in the list."
           >
-            <div className="space-y-2">
+            <div className="space-y-3">
               <label className="text-sm font-medium" htmlFor="title">
                 Title
               </label>
@@ -534,7 +534,7 @@ export default function EditHackathonPage() {
                 <p className="text-sm !text-red-500">{errors.title}</p>
               )}
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               <label className="text-sm font-medium" htmlFor="shortDescription">
                 Short description
               </label>
@@ -547,7 +547,7 @@ export default function EditHackathonPage() {
                 maxLength={HACKATHON_CONSTANTS.TEXT_LIMITS.SHORT_DESCRIPTION}
                 aria-invalid={!!errors.shortDescription}
                 className={cn(
-                  "border-cs-border placeholder:text-muted-foreground w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus:ring-2 focus:ring-cs-primary/20",
+                  "border-cs-border placeholder:text-muted-foreground w-full rounded-md border bg-transparent px-4 py-3 text-sm leading-relaxed shadow-xs outline-none focus:ring-2 focus:ring-cs-primary/20",
                   errors.shortDescription && FIELD_ERROR_INPUT_CLASS,
                 )}
               />
@@ -564,16 +564,16 @@ export default function EditHackathonPage() {
             title="Schedule & submission type"
             description="Choose how participants submit work and set deadlines in order: apply → final submissions → scoring."
           >
-            <div className="space-y-3">
+            <div className="space-y-5">
               <label className="text-sm font-medium">Submission type</label>
-              <div className="flex flex-col gap-2 sm:flex-row sm:rounded-lg sm:border sm:border-input sm:p-0.5">
+              <div className="flex flex-col gap-3 sm:flex-row sm:rounded-lg sm:border sm:border-input sm:p-1">
                 <button
                   type="button"
                   onClick={() =>
                     setSubmissionMode(SUBMISSION_MODE.SINGLE_SUBMISSION)
                   }
                   className={cn(
-                    "rounded-lg px-4 py-3 text-left text-sm font-medium transition-colors sm:flex-1 sm:py-2 sm:text-center",
+                    "rounded-lg px-4 py-3.5 text-left text-sm font-medium leading-snug transition-colors sm:flex-1 sm:py-2.5 sm:text-center",
                     submissionMode === SUBMISSION_MODE.SINGLE_SUBMISSION
                       ? "bg-primary text-primary-foreground"
                       : "border border-cs-border bg-card text-muted-foreground hover:bg-muted/60 sm:border-0",
@@ -587,7 +587,7 @@ export default function EditHackathonPage() {
                     setSubmissionMode(SUBMISSION_MODE.DAILY_UPDATE)
                   }
                   className={cn(
-                    "rounded-lg px-4 py-3 text-left text-sm font-medium transition-colors sm:flex-1 sm:py-2 sm:text-center",
+                    "rounded-lg px-4 py-3.5 text-left text-sm font-medium leading-snug transition-colors sm:flex-1 sm:py-2.5 sm:text-center",
                     submissionMode === SUBMISSION_MODE.DAILY_UPDATE
                       ? "bg-primary text-primary-foreground"
                       : "border border-cs-border bg-card text-muted-foreground hover:bg-muted/60 sm:border-0",
@@ -596,14 +596,14 @@ export default function EditHackathonPage() {
                   {SUBMISSION_MODE_LABELS.daily_update}
                 </button>
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs leading-relaxed text-muted-foreground">
                 Daily: one file update per UTC day through the final deadline
                 (no separate final upload). Single: one final submission file
                 before the final deadline.
               </p>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
+            <div className="grid gap-6 sm:grid-cols-2 sm:gap-8">
+              <div className="space-y-3">
                 <label className="text-sm font-medium">Apply deadline</label>
                 <DateTimePicker
                   value={applyDeadline}
@@ -617,7 +617,7 @@ export default function EditHackathonPage() {
                   </p>
                 )}
               </div>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <label className="text-sm font-medium">
                   Final submission deadline
                 </label>
@@ -634,7 +634,7 @@ export default function EditHackathonPage() {
                 )}
               </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               <label className="text-sm font-medium">Scoring deadline</label>
               <DateTimePicker
                 value={scoringDeadline}
@@ -668,7 +668,7 @@ export default function EditHackathonPage() {
               {expectedDailyCount > 0 ? (
                 <div className="space-y-8">
                   {dailyInstructionTexts.map((html, idx) => (
-                    <div key={`day-${idx}`} className="space-y-2">
+                    <div key={`day-${idx}`} className="space-y-3">
                       <label className="text-sm font-semibold text-cs-heading">
                         Day {idx + 1}
                       </label>
@@ -721,7 +721,7 @@ export default function EditHackathonPage() {
             description="Who owns the challenge and who scores submissions."
           >
             {isAdmin ? (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <label className="text-sm font-medium">Sponsor</label>
                 <SearchableSelect
                   options={sponsorOptions}
@@ -737,14 +737,14 @@ export default function EditHackathonPage() {
                 )}
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <label className="text-sm font-medium">Sponsor</label>
                 <p className="rounded-md border border-cs-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
                   You (this challenge is linked to your sponsor account)
                 </p>
               </div>
             )}
-            <div className="space-y-2">
+            <div className="space-y-3">
               <label className="text-sm font-medium">Judges (1–5)</label>
               <SearchableMultiSelect
                 options={judgeOptions}
@@ -775,7 +775,7 @@ export default function EditHackathonPage() {
             }
           >
             {isAdmin ? (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <label className="text-sm font-medium" htmlFor="status">
                   Listing status
                 </label>
@@ -795,10 +795,10 @@ export default function EditHackathonPage() {
                 </select>
               </div>
             ) : null}
-            <div className="space-y-3">
+            <div className="space-y-4">
               <label className="text-sm font-medium">Entry fee</label>
               <div className="flex flex-wrap items-center gap-3">
-                <div className="flex rounded-lg border border-input p-0.5">
+                <div className="flex rounded-lg border border-input p-1">
                   <button
                     type="button"
                     onClick={() => setIsPaid(false)}
@@ -826,7 +826,7 @@ export default function EditHackathonPage() {
                 </div>
                 {isPaid && (
                   <div className="flex items-center gap-2">
-                    <IndianRupee className="size-4 text-muted-foreground" />
+                    <IndianRupee className="size-4 text-cs-primary" />
                     <Input
                       type="number"
                       min={0}
@@ -848,7 +848,7 @@ export default function EditHackathonPage() {
                 <p className="text-sm !text-red-500">{errors.priceOfEntry}</p>
               )}
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               <label className="text-sm font-medium" htmlFor="image">
                 Banner image (optional, 5:3, max 2 MB). Leave empty to keep the
                 current image.
@@ -868,7 +868,7 @@ export default function EditHackathonPage() {
           </HackathonFormStepPanel>
         </div>
 
-        <div className="mt-10 flex flex-col-reverse gap-3 border-t border-cs-border pt-8 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-12 flex flex-col-reverse gap-4 border-t border-cs-border/60 pt-10 sm:flex-row sm:items-center sm:justify-between">
           <Button
             type="button"
             variant="ghost"

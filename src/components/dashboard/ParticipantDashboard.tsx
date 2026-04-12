@@ -17,13 +17,11 @@ type StatCardProps = {
 
 function StatCard({ title, value, icon, href, className = "" }: StatCardProps) {
   const content = (
-    <div
-      className={`glass cs-card rounded-lg border border-cs-border p-6 shadow-sm transition-all hover:shadow-md ${className}`}
-    >
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-muted-foreground text-sm font-medium">{title}</p>
-          <p className="mt-2 text-3xl font-bold">{value}</p>
+    <div className={`app-glass-surface rounded-lg p-7 ${className}`}>
+      <div className="flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-muted-foreground">{title}</p>
+          <p className="mt-2 text-3xl font-bold tracking-tight">{value}</p>
         </div>
         <div className="rounded-full bg-primary/10 p-3 text-primary">
           {icon}
@@ -65,16 +63,16 @@ export default function ParticipantDashboard() {
   const mySubmissions = submissionsData?.data ?? [];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <div>
         <h1 className="h2 text-cs-heading">Participant Dashboard</h1>
-        <p className="p1 mt-1 text-cs-text">
+        <p className="p1 mt-2 text-cs-text leading-relaxed">
           Welcome back, {user?.email}. Here's your activity overview.
         </p>
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2">
         <StatCard
           title="My Teams"
           value={myTeams.length}
@@ -90,24 +88,24 @@ export default function ParticipantDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="glass cs-card rounded-lg border border-cs-border p-6">
-        <h2 className="mb-4 text-lg font-semibold">Quick Actions</h2>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="app-glass-surface rounded-lg p-7">
+        <h2 className="mb-6 text-lg font-semibold">Quick Actions</h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Button variant="outline" className="justify-start" asChild>
             <Link href="/hackathons">
-              <Trophy className="mr-2 size-4" />
+              <Trophy className="mr-2 size-4 text-cs-primary" />
               Browse Challenges
             </Link>
           </Button>
           <Button variant="outline" className="justify-start" asChild>
             <Link href="/participations">
-              <Users className="mr-2 size-4" />
+              <Users className="mr-2 size-4 text-cs-primary" />
               My participations
             </Link>
           </Button>
           <Button variant="outline" className="justify-start" asChild>
             <Link href="/submissions">
-              <FileUp className="mr-2 size-4" />
+              <FileUp className="mr-2 size-4 text-cs-primary" />
               My Submissions
             </Link>
           </Button>
@@ -115,32 +113,32 @@ export default function ParticipantDashboard() {
       </div>
 
       {/* Recent Activity */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-8 lg:grid-cols-2">
         {/* My Teams */}
-        <div className="glass cs-card rounded-lg border border-cs-border p-6">
-          <div className="mb-4 flex items-center justify-between">
+        <div className="app-glass-surface rounded-lg p-7">
+          <div className="mb-6 flex items-center justify-between gap-3">
             <h2 className="text-lg font-semibold">My Teams</h2>
             <Button variant="ghost" size="sm" asChild>
               <Link href="/participations">
                 View all
-                <ArrowRight className="ml-2 size-4" />
+                <ArrowRight className="ml-2 size-4 text-cs-primary" />
               </Link>
             </Button>
           </div>
           {myTeams.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {myTeams.slice(0, 5).map((team) => (
                 <div
                   key={team.id}
-                  className="flex items-center justify-between rounded-md border border-cs-border bg-cs-card/50 p-3"
+                  className="app-glass-surface flex items-center justify-between gap-4 rounded-md p-4 transition-colors hover:bg-white/[0.08]"
                 >
                   <div className="flex items-center gap-3">
                     <div className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
                       <Users className="size-5" />
                     </div>
                     <div>
-                      <p className="font-medium">{team.name}</p>
-                      <p className="text-muted-foreground text-sm">
+                      <p className="font-medium leading-snug">{team.name}</p>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
                         {team.participations?.length
                           ? `${team.participations.length} hackathon(s)`
                           : "Not in any challenge yet"}
@@ -162,7 +160,7 @@ export default function ParticipantDashboard() {
               </p>
               <Button variant="outline" className="w-full" asChild>
                 <Link href="/hackathons">
-                  <Plus className="mr-2 size-4" />
+                  <Plus className="mr-2 size-4 text-cs-primary" />
                   Join a Challenge
                 </Link>
               </Button>
@@ -171,31 +169,33 @@ export default function ParticipantDashboard() {
         </div>
 
         {/* My Submissions */}
-        <div className="glass cs-card rounded-lg border border-cs-border p-6">
-          <div className="mb-4 flex items-center justify-between">
+        <div className="app-glass-surface rounded-lg p-7">
+          <div className="mb-6 flex items-center justify-between gap-3">
             <h2 className="text-lg font-semibold">My Submissions</h2>
             <Button variant="ghost" size="sm" asChild>
               <Link href="/submissions">
                 View all
-                <ArrowRight className="ml-2 size-4" />
+                <ArrowRight className="ml-2 size-4 text-cs-primary" />
               </Link>
             </Button>
           </div>
           {mySubmissions.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {mySubmissions.slice(0, 5).map((submission) => (
                 <Link
                   key={submission.id}
                   href={`/submissions/${submission.id}`}
-                  className="flex items-center justify-between rounded-md border border-cs-border bg-cs-card/50 p-3 transition-colors hover:bg-accent/50"
+                  className="app-glass-surface flex items-center justify-between gap-4 rounded-md p-4 transition-colors hover:bg-white/[0.08]"
                 >
                   <div className="flex items-center gap-3">
                     <div className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
                       <FileUp className="size-5" />
                     </div>
                     <div>
-                      <p className="font-medium">{submission.title}</p>
-                      <p className="text-muted-foreground text-sm">
+                      <p className="font-medium leading-snug">
+                        {submission.title}
+                      </p>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
                         {submission.hackathon?.title ?? "Unknown challenge"}
                       </p>
                     </div>
@@ -222,7 +222,7 @@ export default function ParticipantDashboard() {
               </p>
               <Button variant="outline" className="w-full" asChild>
                 <Link href="/hackathons">
-                  <Plus className="mr-2 size-4" />
+                  <Plus className="mr-2 size-4 text-cs-primary" />
                   Create Submission
                 </Link>
               </Button>

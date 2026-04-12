@@ -53,8 +53,8 @@ export function AppSidebar() {
       : (item.children?.some((c) => isActive(c.href)) ?? false);
 
   return (
-    <Sidebar className="bg-cs-card border-r border-cs-border">
-      <SidebarHeader className="bg-cs-card border-b border-cs-border h-16 flex items-center justify-center">
+    <Sidebar className="border-transparent bg-transparent">
+      <SidebarHeader className="flex h-16 items-center justify-center border-b border-white/10">
         <Link href="/dashboard" className="flex items-center gap-2 px-2">
           <Image
             src="/logo-full.svg"
@@ -66,7 +66,7 @@ export function AppSidebar() {
           />
         </Link>
       </SidebarHeader>
-      <SidebarContent className="bg-cs-card">
+      <SidebarContent>
         <SidebarGroup>
           <SidebarMenu>
             {visibleItems.map((item) => (

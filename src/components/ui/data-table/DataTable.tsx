@@ -139,7 +139,7 @@ export function DataTable<TData extends RowData>({
       : data.length);
 
   return (
-    <div className={cn("space-y-4", className)}>
+    <div className={cn("space-y-5", className)}>
       {/* Search */}
       {(searchMode === "client" || dynamicSearchConfig) && (
         <DataTableSearch
@@ -152,7 +152,7 @@ export function DataTable<TData extends RowData>({
       )}
 
       {/* Table: scroll wrapper + optional card layout on small screens */}
-      <div className="glass cs-card w-full overflow-x-auto rounded-lg border border-cs-border">
+      <div className="app-glass-surface w-full overflow-x-auto rounded-lg">
         {responsiveCardLayout ? (
           <>
             <div className="hidden min-[640px]:block">
@@ -225,7 +225,7 @@ function DataTableSearch({
   if (searchMode === "client") {
     return (
       <div className="relative max-w-sm">
-        <Search className="text-muted-foreground absolute left-3 top-1/2 size-4 -translate-y-1/2" />
+        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-cs-primary opacity-90" />
         <Input
           placeholder={placeholder}
           value={globalFilter}
@@ -238,7 +238,7 @@ function DataTableSearch({
 
   return (
     <div className="relative max-w-sm">
-      <Search className="text-muted-foreground absolute left-3 top-1/2 size-4 -translate-y-1/2" />
+      <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-cs-primary opacity-90" />
       <Input
         placeholder={placeholder}
         value={localDynamicValue}
@@ -258,13 +258,13 @@ function TableDesktop<TData extends RowData>({
 }) {
   return (
     <table className="w-full min-w-[640px] caption-bottom text-sm">
-      <thead className=" ">
+      <thead>
         {table.getHeaderGroups().map((headerGroup) => (
-          <tr key={headerGroup.id} className="border-b border-cs-border ">
+          <tr key={headerGroup.id} className="border-b border-cs-border/60">
             {headerGroup.headers.map((header) => (
               <th
                 key={header.id}
-                className=" h-12 px-4 text-left font-medium !bg-gradient-to-b from-cs-primary to-cs-secondary !text-white"
+                className="h-14 px-5 text-left font-medium !bg-gradient-to-b from-cs-primary to-cs-secondary !text-white"
               >
                 <SortableHeader<TData> header={header} />
               </th>
@@ -276,10 +276,10 @@ function TableDesktop<TData extends RowData>({
         {table.getRowModel().rows.map((row) => (
           <tr
             key={row.id}
-            className="border-b border-cs-border transition-colors hover:bg-white/10 hover:cursor-pointer "
+            className="border-b border-cs-border/50 transition-colors hover:cursor-pointer hover:bg-white/10"
           >
             {row.getVisibleCells().map((cell) => (
-              <td key={cell.id} className="p-4">
+              <td key={cell.id} className="px-5 py-4 align-top leading-relaxed">
                 {flexRender(cell.column.columnDef.cell, cell.getContext())}
               </td>
             ))}
@@ -334,11 +334,11 @@ function TableCards<TData extends RowData>({
 }) {
   const headers = table.getHeaderGroups()[0]?.headers ?? [];
   return (
-    <div className="divide-y divide-cs-border p-2">
+    <div className="flex flex-col gap-4 p-2 sm:p-3">
       {table.getRowModel().rows.map((row) => (
         <div
           key={row.id}
-          className="space-y-2 rounded-md border border-cs-border bg-cs-card/50 p-3"
+          className="space-y-3 rounded-xl border border-cs-border/70 bg-cs-card/50 p-4 shadow-sm"
         >
           {row.getVisibleCells().map((cell, i) => {
             const colHeader = headers[i];
@@ -349,11 +349,11 @@ function TableCards<TData extends RowData>({
                 )
               : null;
             return (
-              <div key={cell.id} className="flex flex-col gap-0.5">
-                <span className="text-muted-foreground text-xs font-medium">
+              <div key={cell.id} className="flex flex-col gap-1">
+                <span className="text-xs font-medium text-cs-primary">
                   {label}
                 </span>
-                <span className="text-sm">
+                <span className="text-sm leading-relaxed">
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
                 </span>
               </div>

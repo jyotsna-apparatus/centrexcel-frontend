@@ -50,6 +50,14 @@
   --sidebar-accent-foreground: var(--cs-white);
   --sidebar-border: var(--cs-border);
   --sidebar-ring: var(--cs-primary);
+
+  /* Glass surface — dark frost; higher opacity keeps panels readable over busy video */
+  --app-glass-surface-bg: rgba(0, 0, 0, 0.76);
+  --app-glass-surface-border: rgba(255, 255, 255, 0.14);
+  /* Heavy frost — strong blur (browsers may clamp very large values) */
+  --app-glass-surface-blur: 240px;
+  --app-glass-surface-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 16px 56px rgba(0, 0, 0, 0.62);
 }
 
 @theme inline {
@@ -113,8 +121,12 @@
   text-wrap: balance;
 }
 
+html {
+  background-color: var(--cs-black);
+}
+
 body {
-  background: var(--cs-black);
+  background: transparent;
 }
 
 h1,
@@ -196,10 +208,49 @@ h6 {
 .card {
   width: 100%;
   max-width: 450px;
-  padding: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  background: var(--cs-card);
-  border-radius: 0.5rem;
+  padding: 2rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--app-glass-surface-border);
+  background-color: var(--app-glass-surface-bg);
+  backdrop-filter: blur(var(--app-glass-surface-blur));
+  -webkit-backdrop-filter: blur(var(--app-glass-surface-blur));
+  box-shadow: var(--app-glass-surface-shadow);
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease,
+    background-color 0.3s ease;
+}
+
+/* Dashboard / dialogs: panels using bg-card + border-cs-border — same tokens as sidebar */
+.rounded-lg.border.border-cs-border.bg-card,
+.rounded-md.border.border-cs-border.bg-card,
+.rounded-xl.border.border-cs-border.bg-card,
+.rounded-full.border.border-cs-border.bg-card {
+  background-color: var(--app-glass-surface-bg) !important;
+  backdrop-filter: blur(var(--app-glass-surface-blur)) !important;
+  -webkit-backdrop-filter: blur(var(--app-glass-surface-blur)) !important;
+  border-color: var(--app-glass-surface-border) !important;
+  box-shadow: var(--app-glass-surface-shadow);
+}
+
+.border.border-cs-border.bg-card {
+  background-color: var(--app-glass-surface-bg) !important;
+  backdrop-filter: blur(var(--app-glass-surface-blur)) !important;
+  -webkit-backdrop-filter: blur(var(--app-glass-surface-blur)) !important;
+  border-color: var(--app-glass-surface-border) !important;
+  box-shadow: var(--app-glass-surface-shadow);
+}
+
+.rounded-md.border.border-cs-border.bg-popover,
+.rounded-md.border.border-cs-border.bg-cs-card {
+  background-color: var(--app-glass-surface-bg) !important;
+  backdrop-filter: blur(var(--app-glass-surface-blur)) !important;
+  -webkit-backdrop-filter: blur(var(--app-glass-surface-blur)) !important;
+  border-color: var(--app-glass-surface-border) !important;
+  box-shadow: var(--app-glass-surface-shadow);
 }
 
 .dark {
@@ -243,7 +294,7 @@ h6 {
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-transparent text-foreground;
   }
 }
 
@@ -252,28 +303,52 @@ h6 {
   font-size: 0.75rem;
 }
 
+/* Primary glass surface — same values as `sidebar.tsx` inner shell */
+.app-glass-surface,
 .glass {
-  /* background: linear-gradient(#fff2, transparent); */
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  /* box-shadow: 0 25px 25px rgba(0, 0, 0, 0.25); */
-  background: rgba(255, 255, 255, 0.05);
+  background-color: var(--app-glass-surface-bg);
+  border: 1px solid var(--app-glass-surface-border);
+  backdrop-filter: blur(var(--app-glass-surface-blur));
+  -webkit-backdrop-filter: blur(var(--app-glass-surface-blur));
+  box-shadow: var(--app-glass-surface-shadow);
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
 .cs-card {
   transition: all 0.3s ease;
   background: linear-gradient(
     45deg,
-    rgba(255, 255, 255, 0.12) 0%,
-    rgba(255, 255, 255, 0.03) 50%,
-    rgba(255, 255, 255, 0.1) 100%
+    rgba(0, 0, 0, 0.74) 0%,
+    rgba(0, 0, 0, 0.58) 50%,
+    rgba(0, 0, 0, 0.7) 100%
   );
 
   &:hover {
     outline: 1px solid var(--cs-primary);
-    box-shadow: 0 5px 15px rgba(255, 255, 255, 0.1);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
     transform: translateY(-2px);
   }
+}
+
+/* When combined with .glass, use sidebar glass only (no gradient / no lift) */
+.glass.cs-card {
+  background: var(--app-glass-surface-bg);
+  background-image: none;
+  backdrop-filter: blur(var(--app-glass-surface-blur));
+  -webkit-backdrop-filter: blur(var(--app-glass-surface-blur));
+  border: 1px solid var(--app-glass-surface-border);
+  box-shadow: var(--app-glass-surface-shadow);
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+.glass.cs-card:hover {
+  outline: none;
+  transform: none;
+  box-shadow: var(--app-glass-surface-shadow);
 }
 
 @keyframes float {
@@ -460,15 +535,6 @@ h6 {
     border-radius: 100rem;
     z-index: -1;
     animation: spinner 6s linear infinite;
-  }
-
-  .card-container {
-    background: var(--cs-card);
-    padding: 1rem;
-    border-radius: 0.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
   }
 }
 
