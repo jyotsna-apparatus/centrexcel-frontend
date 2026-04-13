@@ -5,6 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Centrexcel",
     short_name: "Centrexcel",
     description: "Centrexcel - Progressive Web App",
+    
     start_url: "/",
     display: "standalone",
     background_color: "#191917",

@@ -112,6 +112,33 @@ async function authenticatedFetch(
   return res;
 }
 
+type ParsedApiResponse<T> = {
+  json: T | null;
+  text: string;
+};
+
+async function parseApiResponseBody<T>(
+  res: Response,
+): Promise<ParsedApiResponse<T>> {
+  const text = await res.text();
+  if (!text) return { json: null, text: "" };
+  try {
+    return { json: JSON.parse(text) as T, text };
+  } catch {
+    return { json: null, text };
+  }
+}
+
+function summarizeNonJsonBody(text: string): string | null {
+  if (!text.trim()) return null;
+  const cleaned = text
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!cleaned) return null;
+  return cleaned.slice(0, 180);
+}
+
 export async function login(
   credentials: LoginCredentials,
 ): Promise<LoginResult> {
@@ -2530,17 +2557,21 @@ export async function initDailyThreadChunkUpload(form: {
       body: JSON.stringify(form),
     },
   );
-  const json = (await res.json()) as {
+  const { json, text } = await parseApiResponseBody<{
     data?: ChunkUploadInitResponse;
     message?: string;
-  };
+  }>(res);
   if (!res.ok) {
+    const fallbackFromBody = summarizeNonJsonBody(text);
     throw new Error(
       typeof json?.message === "string"
         ? json.message
-        : "Failed to initialize upload",
+        : fallbackFromBody
+          ? `Failed to initialize upload: ${fallbackFromBody}`
+          : "Failed to initialize upload",
     );
   }
+  if (!json) throw new Error("Invalid upload init response from server");
   const data = json?.data;
   if (!data?.id) throw new Error("Invalid chunk upload init response");
   return data;
@@ -2565,17 +2596,21 @@ export async function uploadDailyThreadChunk(
       body: chunkBlob,
     },
   );
-  const json = (await res.json()) as {
+  const { json, text } = await parseApiResponseBody<{
     data?: UploadChunkProgressResponse;
     message?: string;
-  };
+  }>(res);
   if (!res.ok) {
+    const fallbackFromBody = summarizeNonJsonBody(text);
     throw new Error(
       typeof json?.message === "string"
         ? json.message
-        : "Failed to upload chunk",
+        : fallbackFromBody
+          ? `Failed to upload chunk: ${fallbackFromBody}`
+          : "Failed to upload chunk",
     );
   }
+  if (!json) throw new Error("Invalid upload chunk response from server");
   const data = json?.data;
   if (!data) throw new Error("Invalid upload chunk response");
   return data;
@@ -2599,17 +2634,21 @@ export async function completeDailyThreadChunkUpload(
       body: JSON.stringify({ feedbackMessage }),
     },
   );
-  const json = (await res.json()) as {
+  const { json, text } = await parseApiResponseBody<{
     data?: SubmissionThreadEntry;
     message?: string;
-  };
+  }>(res);
   if (!res.ok) {
+    const fallbackFromBody = summarizeNonJsonBody(text);
     throw new Error(
       typeof json?.message === "string"
         ? json.message
-        : "Failed to complete upload",
+        : fallbackFromBody
+          ? `Failed to complete upload: ${fallbackFromBody}`
+          : "Failed to complete upload",
     );
   }
+  if (!json) throw new Error("Invalid upload completion response from server");
   const data = json?.data;
   if (!data) throw new Error("Invalid complete upload response");
   return data;
@@ -2629,11 +2668,16 @@ export async function abortDailyThreadChunkUpload(
     },
   );
   if (!res.ok) {
-    const json = (await res.json()) as { message?: string };
+    const { json, text } = await parseApiResponseBody<{ message?: string }>(
+      res,
+    );
+    const fallbackFromBody = summarizeNonJsonBody(text);
     throw new Error(
       typeof json?.message === "string"
         ? json.message
-        : "Failed to abort upload",
+        : fallbackFromBody
+          ? `Failed to abort upload: ${fallbackFromBody}`
+          : "Failed to abort upload",
     );
   }
 }
@@ -2661,17 +2705,21 @@ export async function initFinalSubmissionChunkUpload(form: {
       body: JSON.stringify({ ...form, purpose: "final_submission" }),
     },
   );
-  const json = (await res.json()) as {
+  const { json, text } = await parseApiResponseBody<{
     data?: ChunkUploadInitResponse;
     message?: string;
-  };
+  }>(res);
   if (!res.ok) {
+    const fallbackFromBody = summarizeNonJsonBody(text);
     throw new Error(
       typeof json?.message === "string"
         ? json.message
-        : "Failed to initialize final upload",
+        : fallbackFromBody
+          ? `Failed to initialize final upload: ${fallbackFromBody}`
+          : "Failed to initialize final upload",
     );
   }
+  if (!json) throw new Error("Invalid final upload init response from server");
   const data = json?.data;
   if (!data?.id) throw new Error("Invalid final chunk upload init response");
   return data;
@@ -2696,17 +2744,21 @@ export async function uploadFinalSubmissionChunk(
       body: chunkBlob,
     },
   );
-  const json = (await res.json()) as {
+  const { json, text } = await parseApiResponseBody<{
     data?: UploadChunkProgressResponse;
     message?: string;
-  };
+  }>(res);
   if (!res.ok) {
+    const fallbackFromBody = summarizeNonJsonBody(text);
     throw new Error(
       typeof json?.message === "string"
         ? json.message
-        : "Failed to upload final chunk",
+        : fallbackFromBody
+          ? `Failed to upload final chunk: ${fallbackFromBody}`
+          : "Failed to upload final chunk",
     );
   }
+  if (!json) throw new Error("Invalid final chunk response from server");
   const data = json?.data;
   if (!data) throw new Error("Invalid final chunk response");
   return data;
@@ -2730,14 +2782,22 @@ export async function completeFinalSubmissionChunkUpload(
       body: JSON.stringify(payload),
     },
   );
-  const json = (await res.json()) as { data?: Submission; message?: string };
+  const { json, text } = await parseApiResponseBody<{
+    data?: Submission;
+    message?: string;
+  }>(res);
   if (!res.ok) {
+    const fallbackFromBody = summarizeNonJsonBody(text);
     throw new Error(
       typeof json?.message === "string"
         ? json.message
-        : "Failed to complete final upload",
+        : fallbackFromBody
+          ? `Failed to complete final upload: ${fallbackFromBody}`
+          : "Failed to complete final upload",
     );
   }
+  if (!json)
+    throw new Error("Invalid final upload completion response from server");
   const data = json?.data;
   if (!data) throw new Error("Invalid final upload completion response");
   return data;
@@ -2757,11 +2817,16 @@ export async function abortFinalSubmissionChunkUpload(
     },
   );
   if (!res.ok) {
-    const json = (await res.json()) as { message?: string };
+    const { json, text } = await parseApiResponseBody<{ message?: string }>(
+      res,
+    );
+    const fallbackFromBody = summarizeNonJsonBody(text);
     throw new Error(
       typeof json?.message === "string"
         ? json.message
-        : "Failed to abort final upload",
+        : fallbackFromBody
+          ? `Failed to abort final upload: ${fallbackFromBody}`
+          : "Failed to abort final upload",
     );
   }
 }
