@@ -161,7 +161,7 @@ export function HackathonCard({
           />
         )}
         <div className="flex flex-1 flex-col gap-4 p-5">
-          <h3 className="h4 leading-relaxed">{hackathon.title}</h3>
+          <h3 className="h4 !leading-[1.5]">{hackathon.title}</h3>
           <p className="p1 text-cs-text leading-relaxed">
             Apply by {applyBy} · Submit by {submitBy}
           </p>
@@ -218,7 +218,7 @@ export function HackathonCard({
       <div className="flex flex-1 flex-col px-5 pb-4 pt-5">
         <div className="mb-3 flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1 space-y-1.5">
-            <h3 className="line-clamp-2 text-base font-semibold leading-relaxed text-cs-heading sm:text-[1.05rem]">
+            <h3 className="line-clamp-2 text-base font-semibold !leading-[1.6] text-cs-heading sm:text-[1.05rem]">
               {hackathon.title}
             </h3>
             {hackathon.category?.trim() ? (
