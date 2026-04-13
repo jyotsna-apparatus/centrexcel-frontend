@@ -116,11 +116,34 @@ export const ONBOARDING_ONLY_NAV: SidebarNavItem[] = [
  * Filter sidebar items by user role. Use in sidebar and optionally in middleware.
  * Accepts API role string; invalid roles get no items.
  */
+const PARTICIPANT_NAV_ORDER: string[] = [
+  "Challenges",
+  "My participations",
+  "Submissions",
+  "Winnings",
+  "Dashboard",
+  "Settings",
+];
+
+function sortSidebarForParticipant(
+  items: SidebarNavItem[],
+): SidebarNavItem[] {
+  const index = (label: string) => {
+    const i = PARTICIPANT_NAV_ORDER.indexOf(label);
+    return i === -1 ? PARTICIPANT_NAV_ORDER.length + 1 : i;
+  };
+  return [...items].sort((a, b) => index(a.label) - index(b.label));
+}
+
 export function getSidebarItemsForRole(
   role: Role | string | null | undefined,
 ): SidebarNavItem[] {
   if (!role || !isRole(role)) return [];
-  return SIDEBAR_NAV_CONFIG.filter((item) => item.roles.includes(role));
+  const items = SIDEBAR_NAV_CONFIG.filter((item) => item.roles.includes(role));
+  if (role === ROLES.PARTICIPANT) {
+    return sortSidebarForParticipant(items);
+  }
+  return items;
 }
 
 /**

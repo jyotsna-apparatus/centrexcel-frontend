@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getAccessToken } from "@/lib/auth";
+import { getPostAuthHomePathFromToken } from "@/lib/post-auth-home";
 
 /**
  * Redirects to /dashboard if the user already has an access token.
@@ -19,7 +20,7 @@ export function RedirectIfAuthenticated({
   useEffect(() => {
     const token = getAccessToken();
     if (token) {
-      router.replace("/dashboard");
+      router.replace(getPostAuthHomePathFromToken(token));
       return;
     }
     setReady(true);

@@ -137,7 +137,7 @@ h5,
 h6 {
   font-weight: 600;
   color: var(--cs-heading);
-  line-height: 100%;
+  line-height: 120%;
 
   span {
     color: var(--cs-primary);
@@ -547,3 +547,6 @@ h6 {
     transform: translate(-50%, -50%) rotate(360deg);
   }
 }
+
+
+

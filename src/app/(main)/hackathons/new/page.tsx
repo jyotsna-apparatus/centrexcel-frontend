@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import PageHeader from "@/components/pageHeader/PageHeader";
+import { UploadRequirementHint } from "@/components/upload-requirement-hint";
 import { Button } from "@/components/ui/button";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
 import { Input } from "@/components/ui/input";
@@ -88,6 +89,7 @@ export default function NewHackathonPage() {
   const [isPaid, setIsPaid] = useState(false);
   const [priceOfEntry, setPriceOfEntry] = useState("");
   const [image, setImage] = useState<File | null>(null);
+  const [bannerFileInputKey, setBannerFileInputKey] = useState(0);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const stepOrder = useMemo(
@@ -703,16 +705,36 @@ export default function NewHackathonPage() {
             </div>
             <div className="space-y-3">
               <label className="text-sm font-medium" htmlFor="image">
-                Banner image (optional, 5:3, max 2 MB)
+                Banner image (optional)
               </label>
-              <Input
-                id="image"
-                type="file"
-                accept=".webp,.png,.jpg,.jpeg,image/webp,image/png,image/jpeg,image/jpg"
-                onChange={(e) => setImage(e.target.files?.[0] ?? null)}
-                aria-invalid={!!errors.image}
-                className={errors.image ? FIELD_ERROR_INPUT_CLASS : ""}
-              />
+              <UploadRequirementHint variant="banner" />
+              <div className="flex flex-wrap items-center gap-2">
+                <Input
+                  key={bannerFileInputKey}
+                  id="image"
+                  type="file"
+                  accept=".webp,.png,.jpg,.jpeg,image/webp,image/png,image/jpeg,image/jpg"
+                  onChange={(e) => setImage(e.target.files?.[0] ?? null)}
+                  aria-invalid={!!errors.image}
+                  className={cn(
+                    "min-w-[200px] flex-1",
+                    errors.image ? FIELD_ERROR_INPUT_CLASS : "",
+                  )}
+                />
+                {image ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setImage(null);
+                      setBannerFileInputKey((k) => k + 1);
+                    }}
+                  >
+                    Clear file
+                  </Button>
+                ) : null}
+              </div>
               {errors.image && (
                 <p className="text-sm !text-red-500">{errors.image}</p>
               )}

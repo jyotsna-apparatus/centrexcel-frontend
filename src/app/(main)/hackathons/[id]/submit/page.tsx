@@ -7,6 +7,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import PageHeader from "@/components/pageHeader/PageHeader";
+import { RequiredFieldMark } from "@/components/required-field-mark";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -62,8 +63,12 @@ export default function HackathonSubmitPage() {
   const [totalChunks, setTotalChunks] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [dailyFileInputKey, setDailyFileInputKey] = useState(0);
+  const [finalFileInputKey, setFinalFileInputKey] = useState(0);
   const activeUploadSessionRef = useRef<string | null>(null);
   const activeFinalUploadSessionRef = useRef<string | null>(null);
+  const cancelDailyUploadRef = useRef(false);
+  const cancelFinalUploadRef = useRef(false);
   const { data: thread, isLoading: threadLoading } = useMySubmissionThread(
     id || null,
   );
@@ -127,6 +132,7 @@ export default function HackathonSubmitPage() {
       toast.error("Daily updates are not available after a final submission.");
       return;
     }
+    cancelDailyUploadRef.current = false;
     setIsUploading(true);
     resetUploadProgress();
     try {
@@ -149,7 +155,12 @@ export default function HackathonSubmitPage() {
       });
       activeUploadSessionRef.current = init.id;
 
+      let dailyCancelled = false;
       for (let chunkIndex = 0; chunkIndex < computedTotalChunks; chunkIndex++) {
+        if (cancelDailyUploadRef.current) {
+          dailyCancelled = true;
+          break;
+        }
         const start = chunkIndex * chunkSize;
         const end = Math.min(start + chunkSize, totalSize);
         const chunkBlob = file.slice(start, end);
@@ -162,6 +173,20 @@ export default function HackathonSubmitPage() {
         setUploadPercent(progress.progressPercent);
       }
 
+      if (dailyCancelled) {
+        try {
+          await abortDailyThreadChunkUpload(init.id);
+        } catch {
+          // no-op
+        }
+        activeUploadSessionRef.current = null;
+        setFile(null);
+        setDailyFileInputKey((k) => k + 1);
+        resetUploadProgress();
+        toast.info("Upload cancelled");
+        return;
+      }
+
       await completeDailyThreadChunkUpload(init.id, message);
       toast.success("Daily update posted successfully.");
       queryClient.invalidateQueries({ queryKey: ["submissions"] });
@@ -172,6 +197,7 @@ export default function HackathonSubmitPage() {
       });
       setFeedbackMessage("");
       setFile(null);
+      setDailyFileInputKey((k) => k + 1);
       resetUploadProgress();
     } catch (err) {
       const sessionId = activeUploadSessionRef.current;
@@ -208,6 +234,7 @@ export default function HackathonSubmitPage() {
       toast.error("Please select final submission file.");
       return;
     }
+    cancelFinalUploadRef.current = false;
     setSubmittingFinal(true);
     try {
       const totalSize = finalFile.size;
@@ -229,7 +256,12 @@ export default function HackathonSubmitPage() {
       });
       activeFinalUploadSessionRef.current = init.id;
 
+      let finalCancelled = false;
       for (let chunkIndex = 0; chunkIndex < computedTotalChunks; chunkIndex++) {
+        if (cancelFinalUploadRef.current) {
+          finalCancelled = true;
+          break;
+        }
         const start = chunkIndex * chunkSize;
         const end = Math.min(start + chunkSize, totalSize);
         const chunkBlob = finalFile.slice(start, end);
@@ -240,6 +272,22 @@ export default function HackathonSubmitPage() {
         );
         setFinalCurrentChunk(progress.receivedChunks);
         setFinalUploadPercent(progress.progressPercent);
+      }
+
+      if (finalCancelled) {
+        try {
+          await abortFinalSubmissionChunkUpload(init.id);
+        } catch {
+          // no-op
+        }
+        activeFinalUploadSessionRef.current = null;
+        setFinalFile(null);
+        setFinalFileInputKey((k) => k + 1);
+        setFinalUploadPercent(0);
+        setFinalCurrentChunk(0);
+        setFinalTotalChunks(0);
+        toast.info("Upload cancelled");
+        return;
       }
 
       await completeFinalSubmissionChunkUpload(init.id, {
@@ -255,6 +303,7 @@ export default function HackathonSubmitPage() {
       setFinalTitle("");
       setFinalDescription("");
       setFinalFile(null);
+      setFinalFileInputKey((k) => k + 1);
       setFinalUploadPercent(0);
       setFinalCurrentChunk(0);
       setFinalTotalChunks(0);
@@ -550,6 +599,7 @@ export default function HackathonSubmitPage() {
                                 className="mb-1.5 block text-sm font-medium text-cs-heading"
                               >
                                 Daily feedback message
+                                <RequiredFieldMark />
                               </label>
                               <textarea
                                 id="submit-feedback"
@@ -570,21 +620,40 @@ export default function HackathonSubmitPage() {
                                 className="mb-1.5 block text-sm font-medium text-cs-heading"
                               >
                                 <FileUp className="mr-1.5 inline size-4" />
-                                Upload file (required)
+                                Upload file
+                                <RequiredFieldMark />
                               </label>
-                              <Input
-                                id="submit-file"
-                                type="file"
-                                accept=".zip,.tar.gz,.pdf"
-                                onChange={(e) =>
-                                  setFile(e.target.files?.[0] ?? null)
-                                }
-                                disabled={dailyFormDisabled}
-                                className="w-full"
-                              />
+                              <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch sm:gap-3">
+                                <Input
+                                  key={dailyFileInputKey}
+                                  id="submit-file"
+                                  type="file"
+                                  accept=".zip,application/zip,application/x-zip-compressed"
+                                  onChange={(e) =>
+                                    setFile(e.target.files?.[0] ?? null)
+                                  }
+                                  disabled={dailyFormDisabled}
+                                  className="w-full min-w-0 flex-1 cursor-pointer"
+                                />
+                                {file && !isUploading ? (
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="shrink-0 border-destructive/40 text-destructive hover:bg-destructive/10 sm:self-center"
+                                    disabled={dailyFormDisabled}
+                                    onClick={() => {
+                                      setFile(null);
+                                      setDailyFileInputKey((k) => k + 1);
+                                    }}
+                                  >
+                                    Clear file
+                                  </Button>
+                                ) : null}
+                              </div>
                               <p className="mt-1 text-xs text-muted-foreground">
-                                One update per UTC day until the final
-                                submission deadline (
+                                ZIP only; max 128 MB. One update per UTC day
+                                until the final submission deadline (
                                 {new Date(
                                   hackathon.finalSubmissionDeadline,
                                 ).toLocaleString()}
@@ -593,8 +662,8 @@ export default function HackathonSubmitPage() {
                             </div>
 
                             {isUploading ? (
-                              <div className="space-y-2 rounded-md border border-cs-border bg-muted/30 p-3">
-                                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                              <div className="space-y-2 rounded-lg border border-cs-border bg-muted/40 p-4">
+                                <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
                                   <div
                                     className="h-full bg-primary transition-all"
                                     style={{
@@ -605,9 +674,12 @@ export default function HackathonSubmitPage() {
                                     }}
                                   />
                                 </div>
+                                <p className="text-sm font-medium text-cs-heading">
+                                  Uploading… {uploadPercent}%
+                                </p>
                                 <p className="text-xs text-muted-foreground">
-                                  Uploading {uploadPercent}% ({currentChunk}/
-                                  {totalChunks} chunks)
+                                  Chunk {currentChunk} of {totalChunks}. You can
+                                  cancel below if you need to start over.
                                 </p>
                               </div>
                             ) : null}
@@ -619,7 +691,20 @@ export default function HackathonSubmitPage() {
                               </p>
                             ) : null}
 
-                            <div className="flex gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                              {isUploading ? (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="default"
+                                  className="min-h-10 border-destructive/50 font-medium text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                  onClick={() => {
+                                    cancelDailyUploadRef.current = true;
+                                  }}
+                                >
+                                  Cancel upload
+                                </Button>
+                              ) : null}
                               <Button
                                 type="submit"
                                 disabled={
@@ -655,6 +740,7 @@ export default function HackathonSubmitPage() {
                 className="mb-1.5 block text-sm font-medium text-cs-heading"
               >
                 Title
+                <RequiredFieldMark />
               </label>
               <Input
                 id="final-title"
@@ -687,18 +773,40 @@ export default function HackathonSubmitPage() {
                 className="mb-1.5 block text-sm font-medium text-cs-heading"
               >
                 Final file
+                <RequiredFieldMark />
               </label>
-              <Input
-                id="final-file"
-                type="file"
-                accept=".zip,.tar.gz,.pdf"
-                onChange={(e) => setFinalFile(e.target.files?.[0] ?? null)}
-                disabled={submittingFinal || hasFinalSubmitted}
-              />
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch sm:gap-3">
+                <Input
+                  key={finalFileInputKey}
+                  id="final-file"
+                  type="file"
+                  accept=".zip,application/zip,application/x-zip-compressed"
+                  onChange={(e) => setFinalFile(e.target.files?.[0] ?? null)}
+                  disabled={submittingFinal || hasFinalSubmitted}
+                  className="w-full min-w-0 flex-1 cursor-pointer"
+                />
+                {finalFile && !submittingFinal && !hasFinalSubmitted ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0 border-destructive/40 text-destructive hover:bg-destructive/10 sm:self-center"
+                    onClick={() => {
+                      setFinalFile(null);
+                      setFinalFileInputKey((k) => k + 1);
+                    }}
+                  >
+                    Clear file
+                  </Button>
+                ) : null}
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                ZIP only; max 128 MB.
+              </p>
             </div>
             {submittingFinal ? (
-              <div className="space-y-2 rounded-md border border-cs-border bg-muted/30 p-3">
-                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+              <div className="space-y-2 rounded-lg border border-cs-border bg-muted/40 p-4">
+                <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
                   <div
                     className="h-full bg-primary transition-all"
                     style={{
@@ -706,9 +814,12 @@ export default function HackathonSubmitPage() {
                     }}
                   />
                 </div>
+                <p className="text-sm font-medium text-cs-heading">
+                  Uploading… {finalUploadPercent}%
+                </p>
                 <p className="text-xs text-muted-foreground">
-                  Uploading final file {finalUploadPercent}% (
-                  {finalCurrentChunk}/{finalTotalChunks} chunks)
+                  Chunk {finalCurrentChunk} of {finalTotalChunks}. Cancel below
+                  if you need to start over.
                 </p>
               </div>
             ) : null}
@@ -718,7 +829,19 @@ export default function HackathonSubmitPage() {
                 upload. ({finalUploadError})
               </p>
             ) : null}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {submittingFinal ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-h-10 border-destructive/50 font-medium text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() => {
+                    cancelFinalUploadRef.current = true;
+                  }}
+                >
+                  Cancel upload
+                </Button>
+              ) : null}
               <Button
                 type="submit"
                 disabled={submittingFinal || hasFinalSubmitted || !finalFile}

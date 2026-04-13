@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { setTokens } from "@/lib/auth";
 import { resendOtp, verifyEmail } from "@/lib/auth-api";
+import { getPostAuthHomePath } from "@/lib/post-auth-home";
 import { cn } from "@/lib/utils";
 
 const OTP_LENGTH = 6;
@@ -120,8 +121,8 @@ const VerifyOtpPageInner = () => {
       if (data.data?.accessToken && data.data?.refreshToken) {
         setTokens(data.data.accessToken, data.data.refreshToken);
         toast.success(data.message ?? "Email verified. Welcome!");
-        const onboarded = data.data.user?.isOnboarded === true;
-        router.push(onboarded ? "/dashboard" : "/onboarding");
+        const u = data.data.user;
+        router.push(u ? getPostAuthHomePath(u) : "/onboarding");
       } else {
         toast.success(data.message ?? "Email verified. You can now log in.");
         router.push("/auth/sign-in");

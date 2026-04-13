@@ -31,6 +31,11 @@ export type LoginUser = {
   isOnboarded?: boolean;
   profileBio?: string | null;
   profilePic?: string | null;
+  education?: string | null;
+  profession?: string | null;
+  workExperience?: string | null;
+  age?: number | null;
+  gender?: string | null;
 };
 
 /** Normalized shape: tokens and user for use after login/verify-email */
@@ -139,6 +144,23 @@ function summarizeNonJsonBody(text: string): string | null {
   return cleaned.slice(0, 180);
 }
 
+const INVALID_SERVER_RESPONSE =
+  "Upload failed (invalid server response). Check your connection or try again.";
+
+/** Error message for failed API calls when the body may be HTML or non-JSON. */
+function errorMessageFromParsedBody(
+  parsed: ParsedApiResponse<{ message?: string }>,
+  contextLabel: string,
+): string {
+  const j = parsed.json;
+  if (j && typeof j.message === "string" && j.message.length > 0) {
+    return j.message;
+  }
+  const summary = summarizeNonJsonBody(parsed.text);
+  if (summary) return `${contextLabel}: ${summary}`;
+  return INVALID_SERVER_RESPONSE;
+}
+
 export async function login(
   credentials: LoginCredentials,
 ): Promise<LoginResult> {
@@ -154,7 +176,7 @@ export async function login(
     },
     body: JSON.stringify(credentials),
   });
-  const json = (await res.json()) as
+  type LoginJson =
     | (LoginResponse & { message?: string; error?: string })
     | {
         success?: boolean;
@@ -175,14 +197,22 @@ export async function login(
         error?: string;
         message?: string;
       };
+  const parsed = await parseApiResponseBody<LoginJson>(res);
+  const json = parsed.json;
   if (!res.ok) {
+    const j = json as { message?: string; error?: string } | null;
     const message =
-      typeof (json as { message?: string })?.message === "string"
-        ? (json as { message: string }).message
-        : typeof (json as { error?: string })?.error === "string"
-          ? (json as { error: string }).error
-          : "Login failed";
+      typeof j?.message === "string"
+        ? j.message
+        : typeof j?.error === "string"
+          ? j.error
+          : errorMessageFromParsedBody(parsed, "Login failed");
     throw new Error(message);
+  }
+  if (!json) {
+    throw new Error(
+      errorMessageFromParsedBody(parsed, "Login failed"),
+    );
   }
 
   const payload = (
@@ -960,10 +990,21 @@ export async function createUser(
 
 // --- Profile / Settings (authenticated) ---
 
+export type ParticipantGenderValue =
+  | "female"
+  | "male"
+  | "non_binary"
+  | "prefer_not_to_say";
+
 export type UpdateProfileBody = {
   name?: string | null;
   username?: string | null;
   profileBio?: string | null;
+  education?: string | null;
+  profession?: string | null;
+  workExperience?: string | null;
+  age?: number | null;
+  gender?: ParticipantGenderValue | null;
 };
 
 export type UpdateProfileResponse = {
@@ -1002,29 +1043,45 @@ export type OnboardingCompleteResponse = {
   data?: { user: LoginUser };
 };
 
+export type CompleteOnboardingParticipantFields = {
+  education: string;
+  profession: string;
+  workExperience: string;
+  age: number;
+  gender: ParticipantGenderValue;
+};
+
 export async function completeOnboarding(params: {
   profileBio: string;
   profilePic: File;
+  participant?: CompleteOnboardingParticipantFields;
 }): Promise<OnboardingCompleteResponse> {
   const baseUrl = getBaseUrl();
   if (!baseUrl) throw new Error("NEXT_PUBLIC_BACKEND_BASE_URL is not set");
   const form = new FormData();
   form.append("profileBio", params.profileBio);
   form.append("profilePic", params.profilePic);
+  if (params.participant) {
+    form.append("education", params.participant.education);
+    form.append("profession", params.participant.profession);
+    form.append("workExperience", params.participant.workExperience);
+    form.append("age", String(params.participant.age));
+    form.append("gender", params.participant.gender);
+  }
   const res = await authenticatedFetch(`${baseUrl}/auth/onboarding/complete`, {
     method: "POST",
     body: form,
   });
-  const json = (await res.json()) as OnboardingCompleteResponse & {
-    message?: string;
-  };
+  const parsed = await parseApiResponseBody<
+    OnboardingCompleteResponse & { message?: string }
+  >(res);
   if (!res.ok) {
     throw new Error(
-      typeof json?.message === "string"
-        ? json.message
-        : "Failed to complete onboarding",
+      errorMessageFromParsedBody(parsed, "Failed to complete onboarding"),
     );
   }
+  const json = parsed.json;
+  if (!json) throw new Error("Invalid onboarding response");
   const user = json?.data?.user;
   if (!user) throw new Error("Invalid onboarding response");
   return {
@@ -1045,16 +1102,16 @@ export async function updateProfilePicture(
     method: "POST",
     body: form,
   });
-  const json = (await res.json()) as OnboardingCompleteResponse & {
-    message?: string;
-  };
+  const parsed = await parseApiResponseBody<
+    OnboardingCompleteResponse & { message?: string }
+  >(res);
   if (!res.ok) {
     throw new Error(
-      typeof json?.message === "string"
-        ? json.message
-        : "Failed to update profile picture",
+      errorMessageFromParsedBody(parsed, "Failed to update profile picture"),
     );
   }
+  const json = parsed.json;
+  if (!json) throw new Error("Invalid response");
   const user = json?.data?.user;
   if (!user) throw new Error("Invalid response");
   return {
@@ -1896,18 +1953,18 @@ export async function createHackathon(
     headers: { accept: "application/json" },
     body,
   });
-  const json = (await res.json()) as {
+  const parsed = await parseApiResponseBody<{
     success?: boolean;
     message?: string;
     data?: Challenge;
-  };
+  }>(res);
   if (!res.ok) {
     throw new Error(
-      typeof json?.message === "string"
-        ? json.message
-        : "Failed to create challenge",
+      errorMessageFromParsedBody(parsed, "Failed to create challenge"),
     );
   }
+  const json = parsed.json;
+  if (!json) throw new Error("Invalid create challenge response");
   const data = json?.data;
   if (!data) throw new Error("Invalid create challenge response");
   return {
@@ -1963,14 +2020,17 @@ export async function updateHackathon(
       body,
     },
   );
-  const json = (await res.json()) as { data?: Challenge; message?: string };
+  const parsed = await parseApiResponseBody<{
+    data?: Challenge;
+    message?: string;
+  }>(res);
   if (!res.ok) {
     throw new Error(
-      typeof json?.message === "string"
-        ? json.message
-        : "Failed to update challenge",
+      errorMessageFromParsedBody(parsed, "Failed to update challenge"),
     );
   }
+  const json = parsed.json;
+  if (!json) throw new Error("Invalid update challenge response");
   const data = json?.data;
   if (!data) throw new Error("Invalid update challenge response");
   return data;
@@ -2486,14 +2546,17 @@ export async function createSubmission(
     headers: { accept: "application/json" },
     body,
   });
-  const json = (await res.json()) as { data?: Submission; message?: string };
+  const parsed = await parseApiResponseBody<{
+    data?: Submission;
+    message?: string;
+  }>(res);
   if (!res.ok) {
     throw new Error(
-      typeof json?.message === "string"
-        ? json.message
-        : "Failed to create submission",
+      errorMessageFromParsedBody(parsed, "Failed to create submission"),
     );
   }
+  const json = parsed.json;
+  if (!json) throw new Error("Invalid create submission response");
   const data = json?.data;
   if (!data) throw new Error("Invalid create submission response");
   return data;
@@ -2518,17 +2581,17 @@ export async function createDailyThreadEntry(
       body,
     },
   );
-  const json = (await res.json()) as {
+  const parsed = await parseApiResponseBody<{
     data?: SubmissionThreadEntry;
     message?: string;
-  };
+  }>(res);
   if (!res.ok) {
     throw new Error(
-      typeof json?.message === "string"
-        ? json.message
-        : "Failed to create daily update",
+      errorMessageFromParsedBody(parsed, "Failed to create daily update"),
     );
   }
+  const json = parsed.json;
+  if (!json) throw new Error("Invalid create daily update response");
   const data = json?.data;
   if (!data) throw new Error("Invalid create daily update response");
   return data;

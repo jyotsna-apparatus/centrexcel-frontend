@@ -5,6 +5,8 @@ import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { hackathonImageSrc } from "@/components/hackathon-card/HackathonCard";
+import { RequiredFieldMark } from "@/components/required-field-mark";
+import { UploadRequirementHint } from "@/components/upload-requirement-hint";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
@@ -15,9 +17,12 @@ import {
   confirmPasswordChange,
   requestEmailChange,
   requestPasswordChangeOtp,
+  type ParticipantGenderValue,
+  type UpdateProfileBody,
   updateProfile,
   updateProfilePicture,
 } from "@/lib/auth-api";
+import { ROLES } from "@/types/roles";
 import { cn, FIELD_ERROR_INPUT_CLASS } from "@/lib/utils";
 import {
   validateEmail,
@@ -30,6 +35,13 @@ const MAX_BIO_LEN = 1000;
 const MAX_PROFILE_FILE = 2 * 1024 * 1024;
 
 const OTP_LENGTH = 6;
+const MAX_WORK_EXP_LEN = 2000;
+const GENDER_OPTIONS: { value: ParticipantGenderValue; label: string }[] = [
+  { value: "female", label: "Female" },
+  { value: "male", label: "Male" },
+  { value: "non_binary", label: "Non-binary" },
+  { value: "prefer_not_to_say", label: "Prefer not to say" },
+];
 
 export default function SettingsPage() {
   const { user, loadUser } = useAuth();
@@ -43,8 +55,18 @@ export default function SettingsPage() {
     name: "",
     username: "",
     profileBio: "",
+    education: "",
+    profession: "",
+    workExperience: "",
+    age: "",
+    gender: "" as ParticipantGenderValue | "",
   });
   const [profileSaveDialogOpen, setProfileSaveDialogOpen] = useState(false);
+  const [education, setEducation] = useState("");
+  const [profession, setProfession] = useState("");
+  const [workExperience, setWorkExperience] = useState("");
+  const [ageInput, setAgeInput] = useState("");
+  const [gender, setGender] = useState<ParticipantGenderValue | "">("");
 
   // Email change
   const [newEmail, setNewEmail] = useState("");
@@ -71,20 +93,64 @@ export default function SettingsPage() {
     const n = user.name ?? "";
     const u = user.username ?? "";
     const b = user.profileBio ?? "";
+    const ed = user.education ?? "";
+    const pr = user.profession ?? "";
+    const wx = user.workExperience ?? "";
+    const ag = user.age != null ? String(user.age) : "";
+    const gen = (user.gender as ParticipantGenderValue | undefined) ?? "";
     setName(n);
     setUsername(u);
     setProfileBio(b);
-    setProfileBaseline({ name: n, username: u, profileBio: b });
+    setEducation(ed);
+    setProfession(pr);
+    setWorkExperience(wx);
+    setAgeInput(ag);
+    const validGender = GENDER_OPTIONS.some((o) => o.value === gen)
+      ? (gen as ParticipantGenderValue)
+      : "";
+    setGender(validGender);
+    setProfileBaseline({
+      name: n,
+      username: u,
+      profileBio: b,
+      education: ed,
+      profession: pr,
+      workExperience: wx,
+      age: ag,
+      gender: validGender,
+    });
   }, [user]);
 
   const isProfileDirty = useMemo(() => {
     const bn = profileBaseline.name.trim();
     const bu = profileBaseline.username.trim();
     const bb = profileBaseline.profileBio.trim();
+    const bed = profileBaseline.education.trim();
+    const bpr = profileBaseline.profession.trim();
+    const bwx = profileBaseline.workExperience.trim();
+    const bag = profileBaseline.age.trim();
+    const bgen = profileBaseline.gender;
     return (
-      name.trim() !== bn || username.trim() !== bu || profileBio.trim() !== bb
+      name.trim() !== bn ||
+      username.trim() !== bu ||
+      profileBio.trim() !== bb ||
+      education.trim() !== bed ||
+      profession.trim() !== bpr ||
+      workExperience.trim() !== bwx ||
+      ageInput.trim() !== bag ||
+      gender !== bgen
     );
-  }, [name, username, profileBio, profileBaseline]);
+  }, [
+    name,
+    username,
+    profileBio,
+    education,
+    profession,
+    workExperience,
+    ageInput,
+    gender,
+    profileBaseline,
+  ]);
 
   const profilePictureSrc = user ? hackathonImageSrc(user.profilePic) : null;
 
@@ -159,11 +225,7 @@ export default function SettingsPage() {
   }, []);
 
   const profileMutation = useMutation({
-    mutationFn: (body: {
-      name?: string | null;
-      username?: string | null;
-      profileBio?: string | null;
-    }) => updateProfile(body),
+    mutationFn: (body: UpdateProfileBody) => updateProfile(body),
     onSuccess: async () => {
       await loadUser();
       toast.success("Profile updated");
@@ -252,14 +314,34 @@ export default function SettingsPage() {
       const u = validateUsername(username.trim());
       if (!u.valid) {
         setUsernameError(u.message ?? "Invalid username");
+        toast.error(u.message ?? "Invalid username");
         throw new Error(u.message ?? "Invalid username");
       }
     }
-    await profileMutation.mutateAsync({
+    const body: UpdateProfileBody = {
       name: name.trim() || null,
       username: username.trim() || null,
       profileBio: profileBio.trim(),
-    });
+    };
+    if (user?.role === ROLES.PARTICIPANT) {
+      const ageNum = parseInt(ageInput.trim(), 10);
+      if (!Number.isFinite(ageNum) || ageNum < 13 || ageNum > 120) {
+        const msg = "Age must be a whole number between 13 and 120";
+        toast.error(msg);
+        throw new Error(msg);
+      }
+      if (!gender) {
+        const msg = "Select a gender option";
+        toast.error(msg);
+        throw new Error(msg);
+      }
+      body.education = education.trim() || null;
+      body.profession = profession.trim() || null;
+      body.workExperience = workExperience.trim() || null;
+      body.age = ageNum;
+      body.gender = gender;
+    }
+    await profileMutation.mutateAsync(body);
   };
 
   const onPickProfilePicture = (f: File | null) => {
@@ -375,9 +457,7 @@ export default function SettingsPage() {
                 <label className="text-sm font-medium text-cs-text block">
                   Profile picture
                 </label>
-                <p className="text-xs text-cs-text">
-                  PNG, WebP, or JPEG — max 2000×2000px, 2MB
-                </p>
+                <UploadRequirementHint variant="profile" className="mt-1" />
                 <Input
                   type="file"
                   accept={PROFILE_ACCEPT}
@@ -447,6 +527,101 @@ export default function SettingsPage() {
               {profileBio.length} / {MAX_BIO_LEN}
             </p>
           </div>
+
+          {user.role === ROLES.PARTICIPANT ? (
+            <div className="space-y-4 border-t border-cs-border pt-6">
+              <div>
+                <p className="text-sm font-medium text-cs-heading">
+                  Participant profile
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  <RequiredFieldMark /> Age and gender are required when you save
+                  profile changes that include this section.
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-cs-text mb-1.5 block">
+                  Education
+                </label>
+                <Input
+                  value={education}
+                  onChange={(e) => setEducation(e.target.value.slice(0, 200))}
+                  className="max-w-md"
+                  maxLength={200}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-cs-text mb-1.5 block">
+                  Profession
+                </label>
+                <Input
+                  value={profession}
+                  onChange={(e) => setProfession(e.target.value.slice(0, 200))}
+                  className="max-w-md"
+                  maxLength={200}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-cs-text mb-1.5 block">
+                  Work experience
+                </label>
+                <textarea
+                  value={workExperience}
+                  onChange={(e) =>
+                    setWorkExperience(e.target.value.slice(0, MAX_WORK_EXP_LEN))
+                  }
+                  maxLength={MAX_WORK_EXP_LEN}
+                  rows={4}
+                  className={cn(
+                    "placeholder:text-muted-foreground max-w-md min-h-[100px] w-full rounded-md border border-cs-border bg-transparent px-3 py-2 text-base shadow-xs outline-none resize-y md:text-sm",
+                    "focus-visible:border-cs-primary focus-visible:ring-ring/50 focus-visible:ring-[1px]",
+                  )}
+                />
+                <p className="text-xs text-cs-text mt-1">
+                  {workExperience.length} / {MAX_WORK_EXP_LEN}
+                </p>
+              </div>
+              <div className="grid max-w-md gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="text-sm font-medium text-cs-text mb-1.5 block">
+                    Age
+                    <RequiredFieldMark />
+                  </label>
+                  <Input
+                    type="number"
+                    min={13}
+                    max={120}
+                    value={ageInput}
+                    onChange={(e) => setAgeInput(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-cs-text mb-1.5 block">
+                    Gender
+                    <RequiredFieldMark />
+                  </label>
+                  <select
+                    value={gender}
+                    onChange={(e) =>
+                      setGender(e.target.value as ParticipantGenderValue | "")
+                    }
+                    className={cn(
+                      "border-cs-border h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs outline-none",
+                      "focus-visible:border-cs-primary focus-visible:ring-ring/50 focus-visible:ring-[1px]",
+                    )}
+                  >
+                    <option value="">Select…</option>
+                    {GENDER_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
           <Button
             type="submit"
             disabled={!isProfileDirty || profileMutation.isPending}
@@ -460,7 +635,11 @@ export default function SettingsPage() {
         open={profileSaveDialogOpen}
         onOpenChange={setProfileSaveDialogOpen}
         title="Save profile changes?"
-        description="Your updates to name, username, and bio will be saved to your account."
+        description={
+          user?.role === ROLES.PARTICIPANT
+            ? "Your updates to profile, bio, and participant details will be saved."
+            : "Your updates to name, username, and bio will be saved to your account."
+        }
         confirmLabel="Save"
         cancelLabel="Cancel"
         onConfirm={executeProfileSave}

@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useAuth } from "@/contexts/auth-context";
+import { getPostAuthHomePath } from "@/lib/post-auth-home";
 
 function isOnboardingPath(pathname: string): boolean {
   return pathname === "/onboarding" || pathname.startsWith("/onboarding/");
@@ -16,7 +17,7 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!user) return;
     if (user.isOnboarded === true && isOnboardingPath(pathname)) {
-      router.replace("/dashboard");
+      router.replace(getPostAuthHomePath(user));
       return;
     }
     if (user.isOnboarded !== true && !isOnboardingPath(pathname)) {

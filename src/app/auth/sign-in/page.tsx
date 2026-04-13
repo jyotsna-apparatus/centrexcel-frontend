@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { setTokens } from "@/lib/auth";
 import { type LoginResponse, login } from "@/lib/auth-api";
+import { getPostAuthHomePath } from "@/lib/post-auth-home";
 import { FIELD_ERROR_INPUT_CLASS } from "@/lib/utils";
 import { validateEmail } from "@/lib/validate";
 
@@ -43,9 +44,7 @@ const LoginPage = () => {
       const ok = data as LoginResponse;
       setTokens(ok.data.accessToken, ok.data.refreshToken);
       toast.success("Login successful");
-      router.push(
-        ok.data.user.isOnboarded === true ? "/dashboard" : "/onboarding",
-      );
+      router.push(getPostAuthHomePath(ok.data.user));
     },
     onError: (error: Error) => {
       toast.error(error.message ?? "Login failed");
