@@ -22,7 +22,7 @@ export default function AppVideoBackground() {
         <div
           className={
             isHome
-              ? "absolute inset-0 bg-black/32"
+              ? "absolute inset-0 bg-black/62"
               : "absolute inset-0 bg-black/55"
           }
         />

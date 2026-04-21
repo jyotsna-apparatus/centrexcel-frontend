@@ -18,6 +18,13 @@ function _toLocalISO(d: Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+function parseDateTimeValue(value?: string): Date | undefined {
+  if (!value?.trim()) return undefined;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return undefined;
+  return parsed;
+}
+
 export interface DateTimePickerProps {
   value?: string;
   onChange?: (value: string) => void;
@@ -38,15 +45,15 @@ export function DateTimePicker({
   disabled,
 }: DateTimePickerProps) {
   const [open, setOpen] = React.useState(false);
-  const date = value ? new Date(value) : undefined;
+  const date = parseDateTimeValue(value);
   const [timeStr, setTimeStr] = React.useState(() =>
     date
       ? `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`
       : "23:59",
   );
   React.useEffect(() => {
-    if (value) {
-      const d = new Date(value);
+    const d = parseDateTimeValue(value);
+    if (d) {
       setTimeStr(
         `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`,
       );
@@ -60,7 +67,7 @@ export function DateTimePicker({
     const [h, m] = timeStr.split(":").map(Number);
     const next = new Date(d);
     next.setHours(Number.isNaN(h) ? 23 : h, Number.isNaN(m) ? 59 : m, 0, 0);
-    onChange?.(next.toISOString());
+    onChange?.(_toLocalISO(next));
   };
 
   const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -70,7 +77,7 @@ export function DateTimePicker({
       const [h, m] = v.split(":").map(Number);
       const next = new Date(date);
       next.setHours(h, m, 0, 0);
-      onChange?.(next.toISOString());
+      onChange?.(_toLocalISO(next));
     }
   };
 
@@ -100,8 +107,8 @@ export function DateTimePicker({
           <CalendarIcon className="mr-3 size-4 shrink-0 text-cs-primary" />
           {value ? (
             <>
-              {format(new Date(value), "PPP")} at{" "}
-              {new Date(value).toLocaleTimeString([], {
+              {format(date ?? new Date(value), "PPP")} at{" "}
+              {(date ?? new Date(value)).toLocaleTimeString([], {
                 hour: "2-digit",
                 minute: "2-digit",
               })}
@@ -111,14 +118,17 @@ export function DateTimePicker({
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
+      <PopoverContent
+        className="date-time-picker-popover w-auto p-0 "
+        align="start"
+      >
         <Calendar
           mode="single"
           selected={date}
           onSelect={(d) => handleSelect(d)}
           initialFocus
         />
-        <div className="border-t border-cs-border/50 p-4">
+        <div className="border-t border-cs-border/50">
           <label className="text-xs font-medium text-muted-foreground">
             Time
           </label>

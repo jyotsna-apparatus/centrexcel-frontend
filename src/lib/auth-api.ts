@@ -210,9 +210,7 @@ export async function login(
     throw new Error(message);
   }
   if (!json) {
-    throw new Error(
-      errorMessageFromParsedBody(parsed, "Login failed"),
-    );
+    throw new Error(errorMessageFromParsedBody(parsed, "Login failed"));
   }
 
   const payload = (
@@ -1371,6 +1369,32 @@ export type Team = {
   }>;
 };
 
+export type TeamJoinRequest = {
+  id: string;
+  teamId: string;
+  userId: string;
+  hackathonId: string;
+  status: "pending" | "approved" | "rejected";
+  reviewedAt: string | null;
+  reviewedBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+  user?: {
+    id: string;
+    email: string;
+    username: string | null;
+  };
+  team?: {
+    id: string;
+    name: string;
+    inviteCode: string;
+  };
+  hackathon?: {
+    id: string;
+    title: string;
+  };
+};
+
 export type TeamListItem = {
   id: string;
   name: string;
@@ -1602,6 +1626,9 @@ export type Challenge = {
   adminFeedback?: string | null;
   reviewedAt?: string | null;
   reviewedById?: string | null;
+  funnelId?: string | null;
+  stageNumber?: number | null;
+  previousStageHackathonId?: string | null;
   createdAt: string;
   updatedAt: string;
   sponsor?: {
@@ -1619,6 +1646,46 @@ export type Challenge = {
     submissions: number;
     teams: number;
   };
+};
+
+export type HackathonFunnelStage = {
+  id: string | null;
+  stageNumber: number;
+  status: "draft" | "active" | "review" | "completed";
+  startAt: string;
+  endAt: string;
+  closedAt: string | null;
+  selectionCountTarget: number | null;
+  selectedCount: number;
+  hackathon: {
+    id: string;
+    title: string;
+    status: string;
+    stageNumber: number | null;
+  };
+};
+
+export type HackathonFunnel = {
+  funnelId: string | null;
+  currentHackathonId: string;
+  stages: HackathonFunnelStage[];
+};
+
+export type StageEligibility = {
+  eligible: boolean;
+  reason: string | null;
+  stageNumber: number | null;
+};
+
+export type CreateNextStagePayload = {
+  title?: string;
+  shortDescription?: string;
+  applyDeadline: string;
+  finalSubmissionDeadline: string;
+  scoringDeadline: string;
+  instructions?: string;
+  dailyInstructions?: unknown;
+  judgeIds?: string[];
 };
 
 export type HackathonListItem = Challenge;
@@ -1667,6 +1734,7 @@ export async function getHackathons(params: {
   limit: number;
   search?: string;
   status?: string;
+  submissionMode?: string;
   sponsorId?: string;
   forJudge?: "me";
   /** Admin-only: filter by sponsor submission workflow status */
@@ -1679,6 +1747,7 @@ export async function getHackathons(params: {
   q.set("limit", String(params.limit));
   if (params.search) q.set("search", params.search);
   if (params.status) q.set("status", params.status);
+  if (params.submissionMode) q.set("submissionMode", params.submissionMode);
   if (params.sponsorId) q.set("sponsorId", params.sponsorId);
   if (params.forJudge === "me") q.set("forJudge", "me");
   if (params.approvalStatus) q.set("approvalStatus", params.approvalStatus);
@@ -1906,6 +1975,149 @@ export async function getHackathon(id: string): Promise<Challenge> {
   if (!hackathon || typeof hackathon.id === "undefined")
     throw new Error("Invalid challenge response");
   return hackathon;
+}
+
+export async function getHackathonFunnel(id: string): Promise<HackathonFunnel> {
+  const baseUrl = getBaseUrl();
+  if (!baseUrl) throw new Error("NEXT_PUBLIC_BACKEND_BASE_URL is not set");
+  const res = await authenticatedFetch(
+    `${baseUrl}/hackathons/${encodeURIComponent(id)}/funnel`,
+    {
+      method: "GET",
+      headers: { accept: "application/json" },
+    },
+  );
+  const json = (await res.json()) as {
+    data?: HackathonFunnel;
+    message?: string;
+  };
+  if (!res.ok) {
+    throw new Error(
+      typeof json?.message === "string"
+        ? json.message
+        : "Failed to fetch funnel",
+    );
+  }
+  if (!json.data) throw new Error("Invalid funnel response");
+  return json.data;
+}
+
+export async function getStageEligibility(
+  id: string,
+): Promise<StageEligibility> {
+  const baseUrl = getBaseUrl();
+  if (!baseUrl) throw new Error("NEXT_PUBLIC_BACKEND_BASE_URL is not set");
+  const res = await authenticatedFetch(
+    `${baseUrl}/hackathons/${encodeURIComponent(id)}/stage-eligibility`,
+    {
+      method: "GET",
+      headers: { accept: "application/json" },
+    },
+  );
+  const json = (await res.json()) as {
+    data?: StageEligibility;
+    message?: string;
+  };
+  if (!res.ok) {
+    throw new Error(
+      typeof json?.message === "string"
+        ? json.message
+        : "Failed to fetch stage eligibility",
+    );
+  }
+  if (!json.data) throw new Error("Invalid stage eligibility response");
+  return json.data;
+}
+
+export async function closeHackathonStage(
+  id: string,
+): Promise<HackathonFunnelStage> {
+  const baseUrl = getBaseUrl();
+  if (!baseUrl) throw new Error("NEXT_PUBLIC_BACKEND_BASE_URL is not set");
+  const res = await authenticatedFetch(
+    `${baseUrl}/hackathons/${encodeURIComponent(id)}/funnel/close`,
+    {
+      method: "POST",
+      headers: { accept: "application/json" },
+    },
+  );
+  const json = (await res.json()) as {
+    data?: HackathonFunnelStage;
+    message?: string;
+  };
+  if (!res.ok) {
+    throw new Error(
+      typeof json?.message === "string"
+        ? json.message
+        : "Failed to close stage",
+    );
+  }
+  if (!json.data) throw new Error("Invalid close stage response");
+  return json.data;
+}
+
+export async function upsertHackathonStageSelections(
+  id: string,
+  participationIds: string[],
+): Promise<{ stageId: string; selectedCount: number }> {
+  const baseUrl = getBaseUrl();
+  if (!baseUrl) throw new Error("NEXT_PUBLIC_BACKEND_BASE_URL is not set");
+  const res = await authenticatedFetch(
+    `${baseUrl}/hackathons/${encodeURIComponent(id)}/funnel/selections`,
+    {
+      method: "PUT",
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ participationIds }),
+    },
+  );
+  const json = (await res.json()) as {
+    data?: { stageId: string; selectedCount: number };
+    message?: string;
+  };
+  if (!res.ok) {
+    throw new Error(
+      typeof json?.message === "string"
+        ? json.message
+        : "Failed to update stage finalists",
+    );
+  }
+  if (!json.data) throw new Error("Invalid stage selection response");
+  return json.data;
+}
+
+export async function createNextHackathonStage(
+  id: string,
+  payload: CreateNextStagePayload,
+): Promise<{ nextHackathon: Challenge; nextStage: HackathonFunnelStage }> {
+  const baseUrl = getBaseUrl();
+  if (!baseUrl) throw new Error("NEXT_PUBLIC_BACKEND_BASE_URL is not set");
+  const res = await authenticatedFetch(
+    `${baseUrl}/hackathons/${encodeURIComponent(id)}/funnel/next-stage`,
+    {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+  );
+  const json = (await res.json()) as {
+    data?: { nextHackathon: Challenge; nextStage: HackathonFunnelStage };
+    message?: string;
+  };
+  if (!res.ok) {
+    throw new Error(
+      typeof json?.message === "string"
+        ? json.message
+        : "Failed to create next stage",
+    );
+  }
+  if (!json.data) throw new Error("Invalid next stage response");
+  return json.data;
 }
 
 export type CreateHackathonFormData = {
@@ -2144,11 +2356,11 @@ export async function downloadHackathonEntries(
 
 // --- Teams: join, remove member, deletion flow ---
 
-/** Join a team by invite code and register for a hackathon (creates participation). */
+/** Create a pending join request by invite code for a hackathon. */
 export async function joinTeam(
   inviteCode: string,
   hackathonId: string,
-): Promise<Team> {
+): Promise<TeamJoinRequest> {
   const baseUrl = getBaseUrl();
   if (!baseUrl) throw new Error("NEXT_PUBLIC_BACKEND_BASE_URL is not set");
   const res = await authenticatedFetch(`${baseUrl}/teams/join`, {
@@ -2156,15 +2368,93 @@ export async function joinTeam(
     headers: { accept: "application/json", "Content-Type": "application/json" },
     body: JSON.stringify({ inviteCode: inviteCode.trim(), hackathonId }),
   });
-  const json = (await res.json()) as { data?: Team; message?: string };
+  const json = (await res.json()) as {
+    data?: TeamJoinRequest;
+    message?: string;
+  };
   if (!res.ok) {
     throw new Error(
-      typeof json?.message === "string" ? json.message : "Failed to join team",
+      typeof json?.message === "string"
+        ? json.message
+        : "Failed to send join request",
     );
   }
   const data = json?.data;
-  if (!data) throw new Error("Invalid join team response");
+  if (!data) throw new Error("Invalid join request response");
   return data;
+}
+
+/** Get pending join requests for a team (leader only). */
+export async function getPendingJoinRequests(
+  teamId: string,
+): Promise<TeamJoinRequest[]> {
+  const baseUrl = getBaseUrl();
+  if (!baseUrl) throw new Error("NEXT_PUBLIC_BACKEND_BASE_URL is not set");
+  const res = await authenticatedFetch(
+    `${baseUrl}/teams/${encodeURIComponent(teamId)}/join-requests`,
+    { method: "GET", headers: { accept: "application/json" } },
+  );
+  const json = (await res.json()) as {
+    data?: TeamJoinRequest[];
+    message?: string;
+  };
+  if (!res.ok) {
+    throw new Error(
+      typeof json?.message === "string"
+        ? json.message
+        : "Failed to fetch join requests",
+    );
+  }
+  return Array.isArray(json?.data) ? json.data : [];
+}
+
+/** Approve a pending team join request (leader only). */
+export async function approveTeamJoinRequest(
+  teamId: string,
+  requestId: string,
+): Promise<Team> {
+  const baseUrl = getBaseUrl();
+  if (!baseUrl) throw new Error("NEXT_PUBLIC_BACKEND_BASE_URL is not set");
+  const res = await authenticatedFetch(
+    `${baseUrl}/teams/${encodeURIComponent(teamId)}/join-requests/${encodeURIComponent(requestId)}/approve`,
+    { method: "POST", headers: { accept: "application/json" } },
+  );
+  const json = (await res.json()) as { data?: Team; message?: string };
+  if (!res.ok) {
+    throw new Error(
+      typeof json?.message === "string"
+        ? json.message
+        : "Failed to approve join request",
+    );
+  }
+  if (!json.data) throw new Error("Invalid approve join request response");
+  return json.data;
+}
+
+/** Reject a pending team join request (leader only). */
+export async function rejectTeamJoinRequest(
+  teamId: string,
+  requestId: string,
+): Promise<TeamJoinRequest> {
+  const baseUrl = getBaseUrl();
+  if (!baseUrl) throw new Error("NEXT_PUBLIC_BACKEND_BASE_URL is not set");
+  const res = await authenticatedFetch(
+    `${baseUrl}/teams/${encodeURIComponent(teamId)}/join-requests/${encodeURIComponent(requestId)}/reject`,
+    { method: "POST", headers: { accept: "application/json" } },
+  );
+  const json = (await res.json()) as {
+    data?: TeamJoinRequest;
+    message?: string;
+  };
+  if (!res.ok) {
+    throw new Error(
+      typeof json?.message === "string"
+        ? json.message
+        : "Failed to reject join request",
+    );
+  }
+  if (!json.data) throw new Error("Invalid reject join request response");
+  return json.data;
 }
 
 /** Remove a team member (team leader only) */

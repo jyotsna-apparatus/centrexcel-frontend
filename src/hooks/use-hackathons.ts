@@ -3,6 +3,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   type Challenge,
+  getHackathonFunnel,
   getFeaturedHackathons,
   getHackathon,
   getHackathons,
@@ -17,6 +18,7 @@ export type UseHackathonsParams = {
   pageSize: number;
   search?: string;
   status?: string;
+  submissionMode?: string;
   sponsorId?: string;
   forJudge?: "me";
   /** Admin-only */
@@ -56,6 +58,7 @@ export function useHackathons({
   pageSize,
   search,
   status,
+  submissionMode,
   sponsorId,
   forJudge,
   approvalStatus,
@@ -67,6 +70,7 @@ export function useHackathons({
       pageSize,
       search,
       status,
+      submissionMode,
       sponsorId,
       forJudge,
       approvalStatus,
@@ -77,6 +81,7 @@ export function useHackathons({
         limit: pageSize,
         search: search?.trim() || undefined,
         status,
+      submissionMode,
         sponsorId,
         forJudge,
         approvalStatus,
@@ -94,6 +99,17 @@ export function useHackathon(id: string | null) {
       return getHackathon(id);
     },
     enabled: !!id,
+  });
+}
+
+export function useHackathonFunnel(id: string | null, enabled: boolean = true) {
+  return useQuery({
+    queryKey: ["hackathon-funnel", id],
+    queryFn: () => {
+      if (id == null) throw new Error("Hackathon id required");
+      return getHackathonFunnel(id);
+    },
+    enabled: !!id && enabled,
   });
 }
 

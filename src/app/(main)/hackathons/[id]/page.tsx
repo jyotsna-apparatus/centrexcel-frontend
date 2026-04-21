@@ -4,14 +4,15 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Award,
-  Calendar,
   Download,
   FileUp,
   MessageSquare,
   Pencil,
+  Trash2,
   Trophy,
   User,
   UserCheck,
+  UserMinus,
   UserPlus,
   Users,
 } from "lucide-react";
@@ -22,6 +23,7 @@ import { toast } from "sonner";
 import { hackathonImageSrc } from "@/components/hackathon-card";
 import PageHeader from "@/components/pageHeader/PageHeader";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import {
   Sheet,
@@ -33,13 +35,15 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  CHALLENGE_TYPE_LABELS,
+  FUNNEL_STAGE_STATUS_LABELS,
   HACKATHON_APPROVAL_LABELS,
   HACKATHON_STATUS_LABELS,
   SUBMISSION_MODE,
   SUBMISSION_MODE_LABELS,
 } from "@/config/hackathon-constants";
 import { useAuth } from "@/contexts/auth-context";
-import { useHackathon } from "@/hooks/use-hackathons";
+import { useHackathon, useHackathonFunnel } from "@/hooks/use-hackathons";
 import {
   useHackathonSubmissionThreads,
   useSubmissionsByHackathon,
@@ -47,12 +51,20 @@ import {
 import { useTeams } from "@/hooks/use-teams";
 import { useHackathonWinners } from "@/hooks/use-winners";
 import {
+  approveTeamJoinRequest,
+  closeHackathonStage,
+  createNextHackathonStage,
+  deleteHackathon,
   downloadHackathonEntries,
   downloadSubmission,
   downloadThreadEntry,
   getHackathonParticipations,
   getParticipationForHackathon,
+  getPendingJoinRequests,
+  rejectTeamJoinRequest,
+  removeTeamMember,
   updateScore,
+  upsertHackathonStageSelections,
 } from "@/lib/auth-api";
 import {
   getCurrentDailyDayNumber,
@@ -60,6 +72,7 @@ import {
 } from "@/lib/hackathon-deadlines";
 
 export default function HackathonDetailPage() {
+  const teamMaxMembers = 4;
   const params = useParams();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -92,6 +105,10 @@ export default function HackathonDetailPage() {
   );
   const { data: submissions = [], isLoading: submissionsLoading } =
     useSubmissionsByHackathon(canSeeSubmissions && id ? id : null);
+  const { data: funnelData } = useHackathonFunnel(
+    id || null,
+    Boolean(id && hackathon?.submissionMode === SUBMISSION_MODE.DAILY_UPDATE),
+  );
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [downloadingAll, setDownloadingAll] = useState(false);
   const [downloadingThreadEntryId, setDownloadingThreadEntryId] = useState<
@@ -105,6 +122,21 @@ export default function HackathonDetailPage() {
     Record<string, { score: string; feedback: string }>
   >({});
   const [savingScoreId, setSavingScoreId] = useState<string | null>(null);
+  const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
+  const [approvingRequestId, setApprovingRequestId] = useState<string | null>(
+    null,
+  );
+  const [rejectingRequestId, setRejectingRequestId] = useState<string | null>(
+    null,
+  );
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [selectedFinalistIds, setSelectedFinalistIds] = useState<string[]>([]);
+  const [nextStageTitle, setNextStageTitle] = useState("");
+  const [nextStageShortDescription, setNextStageShortDescription] =
+    useState("");
+  const [nextStageApplyDeadline, setNextStageApplyDeadline] = useState("");
+  const [nextStageFinalDeadline, setNextStageFinalDeadline] = useState("");
+  const [nextStageScoringDeadline, setNextStageScoringDeadline] = useState("");
 
   const selectedSubmissionForScoreEditor =
     submissions.find(
@@ -159,9 +191,16 @@ export default function HackathonDetailPage() {
     search: "",
     hackathonId: id || undefined,
   });
-  const myTeamsForHackathon = teamsData?.data ?? [];
+  const allTeamsForHackathon = teamsData?.data ?? [];
+  const myTeamsForHackathon = allTeamsForHackathon.filter((team) =>
+    team.members?.some((member) => member.userId === user?.id),
+  );
   const hasTeamForHackathon = myTeamsForHackathon.length > 0;
   const firstTeam = hasTeamForHackathon ? myTeamsForHackathon[0] : null;
+  const myTeamMembership = firstTeam?.members.find(
+    (member) => member.userId === user?.id,
+  );
+  const isTeamLeader = myTeamMembership?.role === "leader";
   const { data: participation } = useQuery({
     queryKey: ["participation", "hackathon", id],
     queryFn: () => getParticipationForHackathon(id),
@@ -173,13 +212,162 @@ export default function HackathonDetailPage() {
   } = useQuery({
     queryKey: ["participations", "hackathon", id],
     queryFn: () => getHackathonParticipations(id),
-    enabled: !!id && isAdmin,
+    enabled: !!id && (isAdmin || isSponsor),
   });
+  const canManageFunnelStages = isAdmin || isSponsor;
+  const currentStageRecord =
+    funnelData?.stages?.find((stage) => stage.hackathon.id === id) ?? null;
+  const canCloseCurrentStage =
+    canManageFunnelStages && currentStageRecord?.status === "active";
+  const canSelectFinalists =
+    canManageFunnelStages &&
+    currentStageRecord != null &&
+    currentStageRecord.status !== "active";
+  const canCreateNextStage =
+    canManageFunnelStages &&
+    currentStageRecord?.status === "completed" &&
+    (currentStageRecord.stageNumber ?? 0) < 3;
   const hasSoloParticipation = participation && !participation.teamId;
   const hasAnyParticipation = Boolean(participation);
   const canSubmitSolo = hasSoloParticipation && !participation?.hasSubmitted;
 
   const teamInviteCode = firstTeam?.inviteCode ?? null;
+  const { data: pendingJoinRequests = [] } = useQuery({
+    queryKey: ["team", firstTeam?.id, "join-requests"],
+    queryFn: async () => {
+      if (!firstTeam?.id) return [];
+      return getPendingJoinRequests(firstTeam.id);
+    },
+    enabled: Boolean(firstTeam?.id && isTeamLeader),
+  });
+
+  const removeTeamMemberMutation = useMutation({
+    mutationFn: async (memberUserId: string) => {
+      if (!firstTeam?.id) throw new Error("Team not found");
+      await removeTeamMember(firstTeam.id, memberUserId);
+    },
+    onMutate: (memberUserId) => {
+      setRemovingMemberId(memberUserId);
+    },
+    onSuccess: () => {
+      toast.success("Team member removed.");
+      queryClient.invalidateQueries({ queryKey: ["teams"] });
+      queryClient.invalidateQueries({
+        queryKey: ["participation", "hackathon", id],
+      });
+      queryClient.invalidateQueries({ queryKey: ["participations"] });
+    },
+    onError: (err: Error) => {
+      toast.error(err.message ?? "Failed to remove member");
+    },
+    onSettled: () => {
+      setRemovingMemberId(null);
+    },
+  });
+
+  const approveJoinRequestMutation = useMutation({
+    mutationFn: async (requestId: string) => {
+      if (!firstTeam?.id) throw new Error("Team not found");
+      await approveTeamJoinRequest(firstTeam.id, requestId);
+    },
+    onMutate: (requestId) => {
+      setApprovingRequestId(requestId);
+    },
+    onSuccess: () => {
+      toast.success("Join request approved.");
+      queryClient.invalidateQueries({ queryKey: ["teams"] });
+      queryClient.invalidateQueries({
+        queryKey: ["team", firstTeam?.id, "join-requests"],
+      });
+      queryClient.invalidateQueries({ queryKey: ["participations"] });
+    },
+    onError: (err: Error) => {
+      toast.error(err.message ?? "Failed to approve request");
+    },
+    onSettled: () => {
+      setApprovingRequestId(null);
+    },
+  });
+
+  const rejectJoinRequestMutation = useMutation({
+    mutationFn: async (requestId: string) => {
+      if (!firstTeam?.id) throw new Error("Team not found");
+      await rejectTeamJoinRequest(firstTeam.id, requestId);
+    },
+    onMutate: (requestId) => {
+      setRejectingRequestId(requestId);
+    },
+    onSuccess: () => {
+      toast.success("Join request rejected.");
+      queryClient.invalidateQueries({
+        queryKey: ["team", firstTeam?.id, "join-requests"],
+      });
+    },
+    onError: (err: Error) => {
+      toast.error(err.message ?? "Failed to reject request");
+    },
+    onSettled: () => {
+      setRejectingRequestId(null);
+    },
+  });
+
+  const closeStageMutation = useMutation({
+    mutationFn: async () => {
+      if (!id) throw new Error("Hackathon not found");
+      return closeHackathonStage(id);
+    },
+    onSuccess: () => {
+      toast.success("Stage moved to review.");
+      queryClient.invalidateQueries({ queryKey: ["hackathon-funnel", id] });
+    },
+    onError: (err: Error) => {
+      toast.error(err.message ?? "Failed to close stage");
+    },
+  });
+
+  const finalistsMutation = useMutation({
+    mutationFn: async () => {
+      if (!id) throw new Error("Hackathon not found");
+      return upsertHackathonStageSelections(id, selectedFinalistIds);
+    },
+    onSuccess: (data) => {
+      toast.success(`Finalists saved (${data.selectedCount} selected).`);
+      queryClient.invalidateQueries({ queryKey: ["hackathon-funnel", id] });
+    },
+    onError: (err: Error) => {
+      toast.error(err.message ?? "Failed to save finalists");
+    },
+  });
+
+  const nextStageMutation = useMutation({
+    mutationFn: async () => {
+      if (!id) throw new Error("Hackathon not found");
+      return createNextHackathonStage(id, {
+        title: nextStageTitle.trim() || undefined,
+        shortDescription: nextStageShortDescription.trim() || undefined,
+        applyDeadline: new Date(nextStageApplyDeadline).toISOString(),
+        finalSubmissionDeadline: new Date(nextStageFinalDeadline).toISOString(),
+        scoringDeadline: new Date(nextStageScoringDeadline).toISOString(),
+      });
+    },
+    onSuccess: (data) => {
+      toast.success("Next stage created successfully.");
+      queryClient.invalidateQueries({ queryKey: ["hackathons"] });
+      queryClient.invalidateQueries({ queryKey: ["hackathon-funnel", id] });
+      router.push(`/hackathons/${data.nextHackathon.id}`);
+    },
+    onError: (err: Error) => {
+      toast.error(err.message ?? "Failed to create next stage");
+    },
+  });
+
+  const toggleFinalist = (participationId: string) => {
+    setSelectedFinalistIds((prev) =>
+      prev.includes(participationId)
+        ? prev.filter((id) => id !== participationId)
+        : [...prev, participationId],
+    );
+  };
   const handleCopyInviteCode = async (code: string) => {
     try {
       await navigator.clipboard.writeText(code);
@@ -206,6 +394,17 @@ export default function HackathonDetailPage() {
     },
     onSettled: () => {
       setSavingScoreId(null);
+    },
+  });
+  const deleteHackathonMutation = useMutation({
+    mutationFn: () => deleteHackathon(id),
+    onSuccess: () => {
+      toast.success("Challenge deleted.");
+      queryClient.invalidateQueries({ queryKey: ["hackathons"] });
+      router.push("/hackathons");
+    },
+    onError: (err: Error) => {
+      toast.error(err.message ?? "Failed to delete challenge");
     },
   });
 
@@ -283,6 +482,8 @@ export default function HackathonDetailPage() {
 
   const statusLabel =
     HACKATHON_STATUS_LABELS[hackathon.status] ?? hackathon.status;
+  const challengeTypeLabel =
+    CHALLENGE_TYPE_LABELS[hackathon.submissionMode] ?? "Challenge";
   const hasResults = Array.isArray(winners) && winners.length > 0;
   const positionLabels: Record<number, string> = {
     1: "1st",
@@ -292,6 +493,7 @@ export default function HackathonDetailPage() {
 
   const approval = hackathon.approvalStatus;
   const canEditChallenge = isAdmin || isOwnSponsorHackathon;
+  const canDeleteChallenge = isAdmin;
   const canParticipateFlow =
     isParticipant && hackathon.approvalStatus === "approved";
 
@@ -324,6 +526,17 @@ export default function HackathonDetailPage() {
                 <Pencil className="mr-2 size-4" />
                 {isAdmin ? "Edit" : "Edit challenge"}
               </Link>
+            </Button>
+          )}
+          {canDeleteChallenge && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setDeleteConfirmOpen(true)}
+              disabled={deleteHackathonMutation.isPending}
+            >
+              <Trash2 className="mr-2 size-4" />
+              {deleteHackathonMutation.isPending ? "Deleting..." : "Delete"}
             </Button>
           )}
           {canParticipateFlow && (
@@ -436,6 +649,9 @@ export default function HackathonDetailPage() {
           >
             <TabsList>
               <TabsTrigger value="details">Details</TabsTrigger>
+              {hackathon.submissionMode === SUBMISSION_MODE.DAILY_UPDATE && (
+                <TabsTrigger value="stages">Stages</TabsTrigger>
+              )}
               {canSeeSubmissions && (
                 <TabsTrigger value="submissions">Submissions</TabsTrigger>
               )}
@@ -451,55 +667,55 @@ export default function HackathonDetailPage() {
             <TabsContent value="details" className="space-y-6">
               <div className="rounded-lg border border-cs-border bg-card p-4">
                 <h3 className="mb-2 font-medium text-cs-heading">Details</h3>
-                <dl className="grid gap-2 text-sm sm:grid-cols-2">
+                <dl className="flex flex-col gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground">Status</span>
+                    <span className="!text-cs-primary">Status</span>
                     <span>{statusLabel}</span>
                   </div>
                   <div className="flex items-center gap-2 sm:col-span-2">
-                    <span className="text-muted-foreground">
-                      Submission type
-                    </span>
+                    <span className="!text-cs-primary">Submission type</span>
                     <span>
                       {SUBMISSION_MODE_LABELS[hackathon.submissionMode] ??
                         hackathon.submissionMode}
                     </span>
                   </div>
+                  <div className="flex items-center gap-2 sm:col-span-2">
+                    <span className="!text-cs-primary">Challenge type</span>
+                    <span>{challengeTypeLabel}</span>
+                  </div>
                   <div className="flex items-center gap-2">
-                    <Calendar className="size-4 text-muted-foreground" />
+                    <span className="!text-cs-primary">Apply deadline:</span>
                     <span>
-                      Apply deadline:{" "}
                       {new Date(hackathon.applyDeadline).toLocaleString()}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Calendar className="size-4 text-muted-foreground" />
+                    <span className="!text-cs-primary">
+                      Final submission deadline:
+                    </span>
                     <span>
-                      Final submission deadline:{" "}
                       {new Date(
                         hackathon.finalSubmissionDeadline,
                       ).toLocaleString()}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 sm:col-span-2">
-                    <Calendar className="size-4 text-muted-foreground" />
+                    <span className="!text-cs-primary">Scoring deadline:</span>
                     <span>
-                      Scoring deadline:{" "}
                       {new Date(hackathon.scoringDeadline).toLocaleString()}
                     </span>
                   </div>
                   {hackathon.sponsor && (
                     <div className="flex items-center gap-2">
-                      <User className="size-4 text-muted-foreground" />
+                      <span className="!text-cs-primary">Sponsor:</span>
                       <span>
-                        Sponsor:{" "}
                         {hackathon.sponsor.username ?? hackathon.sponsor.email}
                       </span>
                     </div>
                   )}
                   {hackathon.isPaid && hackathon.priceOfEntry != null && (
                     <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground">Entry fee</span>
+                      <span className="!text-cs-primary">Entry fee</span>
                       <span>₹{Number(hackathon.priceOfEntry).toFixed(2)}</span>
                     </div>
                   )}
@@ -537,8 +753,139 @@ export default function HackathonDetailPage() {
                         Copy
                       </Button>
                     </div>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Team members: {firstTeam?.members.length ?? 0}/
+                      {teamMaxMembers}
+                    </p>
                   </div>
                 ) : null}
+
+                {isParticipant && firstTeam && (
+                  <div className="mt-4 rounded-lg border border-cs-border bg-card p-3">
+                    <p className="text-sm font-medium text-cs-heading">
+                      Team members
+                    </p>
+                    <ul className="mt-2 space-y-2">
+                      {firstTeam.members.map((member) => {
+                        const label = member.user.username ?? member.user.email;
+                        const isLeaderMember = member.role === "leader";
+                        const canRemoveMember = isTeamLeader && !isLeaderMember;
+                        return (
+                          <li
+                            key={member.id}
+                            className="flex items-center justify-between rounded-md border border-cs-border bg-muted/20 px-3 py-2 text-sm"
+                          >
+                            <div>
+                              <span className="font-medium text-cs-heading">
+                                {label}
+                              </span>
+                              <span className="ml-2 text-xs text-muted-foreground">
+                                {isLeaderMember ? "Team admin" : "Member"}
+                              </span>
+                            </div>
+                            {canRemoveMember ? (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                disabled={removingMemberId === member.userId}
+                                onClick={() =>
+                                  removeTeamMemberMutation.mutate(member.userId)
+                                }
+                              >
+                                <UserMinus className="mr-2 size-4" />
+                                {removingMemberId === member.userId
+                                  ? "Removing..."
+                                  : "Remove"}
+                              </Button>
+                            ) : null}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
+
+                {isParticipant && isTeamLeader && firstTeam && (
+                  <div className="mt-4 rounded-lg border border-cs-border bg-card p-3">
+                    <p className="text-sm font-medium text-cs-heading">
+                      Pending join requests
+                    </p>
+                    {pendingJoinRequests.length === 0 ? (
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        No pending requests.
+                      </p>
+                    ) : (
+                      <ul className="mt-2 space-y-2">
+                        {pendingJoinRequests.map((request) => {
+                          const canApprove =
+                            (firstTeam.members.length ?? 0) < teamMaxMembers;
+                          const isActionLoading =
+                            approvingRequestId === request.id ||
+                            rejectingRequestId === request.id;
+                          return (
+                            <li
+                              key={request.id}
+                              className="rounded-md border border-cs-border bg-muted/20 px-3 py-2"
+                            >
+                              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                <div className="text-sm">
+                                  <p className="font-medium text-cs-heading">
+                                    {request.user?.username ??
+                                      request.user?.email ??
+                                      request.userId}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Requested on{" "}
+                                    {new Date(
+                                      request.createdAt,
+                                    ).toLocaleString()}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    disabled={!canApprove || isActionLoading}
+                                    onClick={() =>
+                                      approveJoinRequestMutation.mutate(
+                                        request.id,
+                                      )
+                                    }
+                                  >
+                                    {approvingRequestId === request.id
+                                      ? "Approving..."
+                                      : "Approve"}
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={isActionLoading}
+                                    onClick={() =>
+                                      rejectJoinRequestMutation.mutate(
+                                        request.id,
+                                      )
+                                    }
+                                  >
+                                    {rejectingRequestId === request.id
+                                      ? "Rejecting..."
+                                      : "Reject"}
+                                  </Button>
+                                </div>
+                              </div>
+                              {!canApprove && (
+                                <p className="mt-2 text-xs text-destructive">
+                                  Team is at the {teamMaxMembers}-member limit.
+                                </p>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </div>
+                )}
               </div>
 
               {canSeeJudges &&
@@ -574,6 +921,210 @@ export default function HackathonDetailPage() {
                 </div>
               )}
             </TabsContent>
+
+            {hackathon.submissionMode === SUBMISSION_MODE.DAILY_UPDATE && (
+              <TabsContent value="stages" className="space-y-4">
+                <div className="rounded-lg border border-cs-border bg-muted/20 p-3">
+                  <p className="text-sm font-medium text-cs-heading">
+                    Stage progression
+                  </p>
+                  {funnelData?.stages?.length ? (
+                    <ul className="mt-2 space-y-2">
+                      {funnelData.stages.map((stage) => (
+                        <li
+                          key={
+                            stage.id ??
+                            `${stage.stageNumber}-${stage.hackathon.id}`
+                          }
+                          className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-cs-border bg-card px-3 py-2 text-sm"
+                        >
+                          <div className="min-w-0">
+                            <p className="font-medium text-cs-heading">
+                              Stage {stage.stageNumber}/3
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(stage.startAt).toLocaleDateString()} -{" "}
+                              {new Date(stage.endAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-muted-foreground">
+                              {FUNNEL_STAGE_STATUS_LABELS[stage.status] ??
+                                stage.status}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {stage.selectedCount} selected
+                            </p>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Stage timeline is not available yet.
+                    </p>
+                  )}
+                </div>
+
+                {canManageFunnelStages ? (
+                  <div className="space-y-3 rounded-lg border border-cs-border bg-card p-3">
+                    <p className="text-sm font-medium text-cs-heading">
+                      Stage controls
+                    </p>
+                    {currentStageRecord ? (
+                      <p className="text-xs text-muted-foreground">
+                        Current stage: {currentStageRecord.stageNumber}/3 ·{" "}
+                        {FUNNEL_STAGE_STATUS_LABELS[
+                          currentStageRecord.status
+                        ] ?? currentStageRecord.status}
+                      </p>
+                    ) : null}
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => closeStageMutation.mutate()}
+                        disabled={
+                          !canCloseCurrentStage || closeStageMutation.isPending
+                        }
+                      >
+                        {closeStageMutation.isPending
+                          ? "Closing stage..."
+                          : "Close current stage"}
+                      </Button>
+                    </div>
+
+                    <div className="rounded-md border border-cs-border bg-muted/20 p-3">
+                      <p className="text-sm font-medium text-cs-heading">
+                        Select finalists
+                      </p>
+                      {participationsLoading ? (
+                        <Skeleton className="mt-3 h-24 w-full rounded-md" />
+                      ) : hackathonParticipations.length === 0 ? (
+                        <p className="mt-3 text-xs text-muted-foreground">
+                          No participations available for selection.
+                        </p>
+                      ) : (
+                        <div className="mt-3 max-h-52 space-y-2 overflow-y-auto pr-1">
+                          {hackathonParticipations.map((participant) => {
+                            const checked = selectedFinalistIds.includes(
+                              participant.id,
+                            );
+                            return (
+                              <label
+                                key={participant.id}
+                                className="flex cursor-pointer items-center justify-between gap-3 rounded-md border border-cs-border bg-card px-3 py-2 text-sm"
+                              >
+                                <span className="min-w-0">
+                                  <span className="font-medium text-cs-heading">
+                                    {participant.user.username ??
+                                      participant.user.email}
+                                  </span>
+                                  <span className="ml-2 text-xs text-muted-foreground">
+                                    {participant.team?.name
+                                      ? `Team: ${participant.team.name}`
+                                      : "Solo"}
+                                  </span>
+                                </span>
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={() =>
+                                    toggleFinalist(participant.id)
+                                  }
+                                  disabled={!canSelectFinalists}
+                                />
+                              </label>
+                            );
+                          })}
+                        </div>
+                      )}
+                      <div className="mt-3 flex items-center justify-between gap-2">
+                        <p className="text-xs text-muted-foreground">
+                          Selected: {selectedFinalistIds.length}
+                        </p>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => finalistsMutation.mutate()}
+                          disabled={
+                            !canSelectFinalists || finalistsMutation.isPending
+                          }
+                        >
+                          {finalistsMutation.isPending
+                            ? "Saving..."
+                            : "Save finalists"}
+                        </Button>
+                      </div>
+                    </div>
+
+                    {canCreateNextStage ? (
+                      <div className="rounded-md border border-cs-border bg-muted/20 p-3">
+                        <p className="text-sm font-medium text-cs-heading">
+                          Create next stage
+                        </p>
+                        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                          <Input
+                            placeholder="Stage title (optional)"
+                            value={nextStageTitle}
+                            onChange={(e) => setNextStageTitle(e.target.value)}
+                          />
+                          <Input
+                            placeholder="Short description (optional)"
+                            value={nextStageShortDescription}
+                            onChange={(e) =>
+                              setNextStageShortDescription(e.target.value)
+                            }
+                          />
+                          <Input
+                            type="datetime-local"
+                            value={nextStageApplyDeadline}
+                            onChange={(e) =>
+                              setNextStageApplyDeadline(e.target.value)
+                            }
+                          />
+                          <Input
+                            type="datetime-local"
+                            value={nextStageFinalDeadline}
+                            onChange={(e) =>
+                              setNextStageFinalDeadline(e.target.value)
+                            }
+                          />
+                          <Input
+                            type="datetime-local"
+                            value={nextStageScoringDeadline}
+                            onChange={(e) =>
+                              setNextStageScoringDeadline(e.target.value)
+                            }
+                          />
+                        </div>
+                        <div className="mt-3 flex justify-end">
+                          <Button
+                            type="button"
+                            onClick={() => nextStageMutation.mutate()}
+                            disabled={
+                              nextStageMutation.isPending ||
+                              !nextStageApplyDeadline ||
+                              !nextStageFinalDeadline ||
+                              !nextStageScoringDeadline
+                            }
+                          >
+                            {nextStageMutation.isPending
+                              ? "Creating..."
+                              : "Create next stage"}
+                          </Button>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Stage selection is available for sponsor/admin.
+                  </p>
+                )}
+              </TabsContent>
+            )}
 
             {canSeeSubmissions && (
               <TabsContent value="submissions" className="space-y-4">
@@ -980,6 +1531,19 @@ export default function HackathonDetailPage() {
           </SheetFooter>
         </SheetContent>
       </Sheet>
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        title="Delete challenge"
+        description="Are you sure you want to delete this challenge? This action cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="destructive"
+        onConfirm={async () => {
+          await deleteHackathonMutation.mutateAsync();
+        }}
+        loading={deleteHackathonMutation.isPending}
+      />
     </div>
   );
 }

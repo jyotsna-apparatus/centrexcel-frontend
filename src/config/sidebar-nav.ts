@@ -10,6 +10,7 @@ import {
   Trophy,
   UserCheck,
   UserCircle,
+  Users,
   UsersRound,
 } from "lucide-react";
 import type { Role } from "@/types/roles";
@@ -58,6 +59,12 @@ export const SIDEBAR_NAV_CONFIG: SidebarNavItem[] = [
     label: "My participations",
     href: "/participations",
     icon: UserCheck,
+    roles: [ROLES.PARTICIPANT],
+  },
+  {
+    label: "Manage team",
+    href: "/teams",
+    icon: Users,
     roles: [ROLES.PARTICIPANT],
   },
   {
@@ -119,15 +126,14 @@ export const ONBOARDING_ONLY_NAV: SidebarNavItem[] = [
 const PARTICIPANT_NAV_ORDER: string[] = [
   "Challenges",
   "My participations",
+  "Manage team",
   "Submissions",
   "Winnings",
   "Dashboard",
   "Settings",
 ];
 
-function sortSidebarForParticipant(
-  items: SidebarNavItem[],
-): SidebarNavItem[] {
+function sortSidebarForParticipant(items: SidebarNavItem[]): SidebarNavItem[] {
   const index = (label: string) => {
     const i = PARTICIPANT_NAV_ORDER.indexOf(label);
     return i === -1 ? PARTICIPANT_NAV_ORDER.length + 1 : i;

@@ -55,12 +55,14 @@ const SiteHeader = () => {
       </header>
 
       <nav
-        className={`parent glass fixed left-0 top-0 z-50 h-screen w-screen p-8 transition ${
-          isOpen ? "translate-x-0" : "translate-x-full"
-        }`}
+        className={`parent glass fixed left-0 top-0 z-50 h-screen w-screen transition flex justify-end ${isOpen ? "translate-x-0" : "translate-x-full"
+          }`}
         inert={!isOpen}
       >
-        <div className="conatiner relative h-full">
+        <button className=" w-full" onClick={() => setIsOpen(false)}>
+
+        </button>
+        <div className=" max-w-[400px] w-full relative h-full p-4 bg-[#000d3a]">
           <button
             className="p-2 rounded-md hover:bg-cs-card border border-cs-border absolute top-8 right-8 cursor-pointer"
             onClick={() => setIsOpen(false)}
@@ -81,6 +83,7 @@ const SiteHeader = () => {
             ))}
           </div>
         </div>
+
       </nav>
     </>
   );

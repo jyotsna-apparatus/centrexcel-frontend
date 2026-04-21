@@ -10,7 +10,11 @@ import PageHeader from "@/components/pageHeader/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { HACKATHON_STATUS_LABELS } from "@/config/hackathon-constants";
+import {
+  CHALLENGE_TYPE_LABELS,
+  HACKATHON_STATUS_LABELS,
+  SUBMISSION_MODE,
+} from "@/config/hackathon-constants";
 import { useAuth } from "@/contexts/auth-context";
 import { useHackathons } from "@/hooks/use-hackathons";
 import { useTeams } from "@/hooks/use-teams";
@@ -45,12 +49,14 @@ export default function HackathonsPage() {
     DEBOUNCE_MS,
   );
   const [statusFilter, setStatusFilter] = useState<string>("");
+  const [submissionModeFilter, setSubmissionModeFilter] = useState<string>("");
 
   const { data, isLoading, isError, error, isFetching } = useHackathons({
     page: pageIndex,
     pageSize,
     search: debouncedSearch.trim() || undefined,
     status: statusFilter || undefined,
+    submissionMode: submissionModeFilter || undefined,
   });
 
   const { data: myTeamsData } = useTeams({
@@ -164,6 +170,22 @@ export default function HackathonsPage() {
           ))}
         </Select>
         <Select
+          value={submissionModeFilter}
+          onChange={(e) => {
+            setSubmissionModeFilter(e.target.value);
+            setPageIndex(0);
+          }}
+          className="w-[260px]"
+        >
+          <option value="">All challenge types</option>
+          <option value={SUBMISSION_MODE.SINGLE_SUBMISSION}>
+            {CHALLENGE_TYPE_LABELS[SUBMISSION_MODE.SINGLE_SUBMISSION]}
+          </option>
+          <option value={SUBMISSION_MODE.DAILY_UPDATE}>
+            {CHALLENGE_TYPE_LABELS[SUBMISSION_MODE.DAILY_UPDATE]}
+          </option>
+        </Select>
+        <Select
           value={String(pageSize)}
           onChange={(e) => {
             setPageSize(Number(e.target.value));
@@ -217,10 +239,8 @@ export default function HackathonsPage() {
       ) : (
         <>
           <div
-            className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8"
-            style={{
-              gridTemplateColumns: "repeat(auto-fill, minmax(300px, 400px))",
-            }}
+            className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 lg:gap-8 w-full "
+           
           >
             {hackathons.map((hackathon) => (
               <HackathonCard

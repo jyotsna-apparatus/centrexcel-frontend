@@ -19,16 +19,19 @@ export default function LandingPage() {
       <SiteHeader />
       <Hero />
       <SecondSection />
-      <SixthSection />
+      <FeaturedChallenges />
+      <HowItWorks />
+
+      {/* <SixthSection /> */}
       <ThirdSection />
       <FourthSection />
       <FifthSection />
       <StatsSection />
       <Features />
-      <HowItWorks />
-      <FeaturedChallenges />
       <Faqs />
       <FooterSection />
     </AOSProvider>
   );
 }
+
+

@@ -50,3 +50,15 @@ export const SUBMISSION_MODE_LABELS: Record<string, string> = {
   daily_update: "Daily updates",
   single_submission: "Single final submission",
 };
+
+export const CHALLENGE_TYPE_LABELS: Record<string, string> = {
+  daily_update: "Startup Challenge (Multi Upload)",
+  single_submission: "Hackathon Challenge (Single Upload)",
+};
+
+export const FUNNEL_STAGE_STATUS_LABELS: Record<string, string> = {
+  draft: "Draft",
+  active: "Active",
+  review: "In review",
+  completed: "Completed",
+};

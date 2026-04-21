@@ -7,13 +7,13 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import PageHeader from "@/components/pageHeader/PageHeader";
-import { UploadRequirementHint } from "@/components/upload-requirement-hint";
 import { Button } from "@/components/ui/button";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
 import { Input } from "@/components/ui/input";
 import { SearchableMultiSelect } from "@/components/ui/searchable-multi-select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { TiptapEditor } from "@/components/ui/tiptap-editor";
+import { UploadRequirementHint } from "@/components/upload-requirement-hint";
 import {
   HACKATHON_CONSTANTS,
   SUBMISSION_MODE,
@@ -83,6 +83,7 @@ export default function NewHackathonPage() {
   const [dailyInstructionTexts, setDailyInstructionTexts] = useState<string[]>(
     [],
   );
+  const [dailyBriefCount, setDailyBriefCount] = useState(1);
   const [instructions, setInstructions] = useState("");
   const [sponsorId, setSponsorId] = useState("");
   const [judgeIds, setJudgeIds] = useState<string[]>([]);
@@ -160,16 +161,24 @@ export default function NewHackathonPage() {
   }, [submissionMode, applyDeadline, finalSubmissionDeadline]);
 
   useEffect(() => {
-    if (expectedDailyCount <= 0) {
+    if (submissionMode !== SUBMISSION_MODE.DAILY_UPDATE) return;
+    if (expectedDailyCount > 0) {
+      setDailyBriefCount(expectedDailyCount);
+    }
+  }, [expectedDailyCount, submissionMode]);
+
+  useEffect(() => {
+    if (submissionMode !== SUBMISSION_MODE.DAILY_UPDATE) {
       setDailyInstructionTexts([]);
       return;
     }
+    const count = Math.max(1, Math.min(30, dailyBriefCount));
     setDailyInstructionTexts((prev) => {
       const next = [...prev];
-      while (next.length < expectedDailyCount) next.push("");
-      return next.slice(0, expectedDailyCount);
+      while (next.length < count) next.push("");
+      return next.slice(0, count);
     });
-  }, [expectedDailyCount]);
+  }, [dailyBriefCount, submissionMode]);
 
   const validateStepFields = useCallback(
     (step: HackathonFormStepId): Record<string, string> => {
@@ -214,9 +223,8 @@ export default function NewHackathonPage() {
           break;
         case "daily":
           if (submissionMode !== SUBMISSION_MODE.DAILY_UPDATE) break;
-          if (expectedDailyCount < 1) {
-            next.dailyInstructions =
-              "Set apply and final deadlines so the first daily day is on or before the final day (UTC)";
+          if (dailyInstructionTexts.length < 1) {
+            next.dailyInstructions = "Add at least 1 daily instruction";
           } else {
             for (let i = 0; i < dailyInstructionTexts.length; i++) {
               const html = dailyInstructionTexts[i] ?? "";
@@ -278,6 +286,7 @@ export default function NewHackathonPage() {
       scoringDeadline,
       submissionMode,
       expectedDailyCount,
+      dailyBriefCount,
       dailyInstructionTexts,
       instructions,
       isSponsor,
@@ -328,7 +337,8 @@ export default function NewHackathonPage() {
     }
 
     const dailyInstructionsJson =
-      submissionMode === SUBMISSION_MODE.DAILY_UPDATE && expectedDailyCount > 0
+      submissionMode === SUBMISSION_MODE.DAILY_UPDATE &&
+      dailyInstructionTexts.length > 0
         ? JSON.stringify(
             dailyInstructionTexts.map((instruction, i) => ({
               dayNumber: i + 1,
@@ -534,46 +544,53 @@ export default function NewHackathonPage() {
             <HackathonFormStepPanel
               id={hackathonFormSectionId("daily")}
               title="Daily briefs (UTC)"
-              description={
-                expectedDailyCount > 0
-                  ? `Day 1 is the UTC calendar day after the apply deadline. Add rich text for each of the ${expectedDailyCount} day(s) in this challenge window.`
-                  : "Set apply and final deadlines under Schedule so we know how many daily briefs you need."
-              }
+              description="Add day-wise instructions for this multi-entry challenge. You can set the number of days directly."
             >
               {errors.dailyInstructions && (
                 <p className="text-sm !text-red-500">
                   {errors.dailyInstructions}
                 </p>
               )}
-              {expectedDailyCount > 0 ? (
-                <div className="space-y-8">
-                  {dailyInstructionTexts.map((html, idx) => (
-                    <div key={`day-${idx}`} className="space-y-3">
-                      <label className="text-sm font-semibold text-cs-heading">
-                        Day {idx + 1}
-                      </label>
-                      <TiptapEditor
-                        value={html}
-                        onChange={(v) => {
-                          setDailyInstructionTexts((prev) => {
-                            const copy = [...prev];
-                            copy[idx] = v;
-                            return copy;
-                          });
-                        }}
-                        placeholder={`What should participants focus on on day ${idx + 1}?`}
-                        maxLength={HACKATHON_CONSTANTS.TEXT_LIMITS.INSTRUCTIONS}
-                        editorContentClassName="min-h-[100px]"
-                      />
-                    </div>
-                  ))}
+              <div className="space-y-8">
+                <div className="space-y-3">
+                  <label className="text-sm font-medium">Number of days</label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={30}
+                    value={dailyBriefCount}
+                    onChange={(e) =>
+                      setDailyBriefCount(
+                        Number.parseInt(e.target.value || "1", 10) || 1,
+                      )
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Tip: when apply/final deadlines are set, this is auto-synced
+                    from timeline.
+                  </p>
                 </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Under <strong>Schedule</strong>, choose deadlines so the first
-                  daily day falls on or before the final submission day (UTC).
-                </p>
-              )}
+                {dailyInstructionTexts.map((html, idx) => (
+                  <div key={`day-${idx}`} className="space-y-3">
+                    <label className="text-sm font-semibold text-cs-heading">
+                      Day {idx + 1}
+                    </label>
+                    <TiptapEditor
+                      value={html}
+                      onChange={(v) => {
+                        setDailyInstructionTexts((prev) => {
+                          const copy = [...prev];
+                          copy[idx] = v;
+                          return copy;
+                        });
+                      }}
+                      placeholder={`What should participants focus on on day ${idx + 1}?`}
+                      maxLength={HACKATHON_CONSTANTS.TEXT_LIMITS.INSTRUCTIONS}
+                      editorContentClassName="min-h-[100px]"
+                    />
+                  </div>
+                ))}
+              </div>
             </HackathonFormStepPanel>
           ) : null}
 

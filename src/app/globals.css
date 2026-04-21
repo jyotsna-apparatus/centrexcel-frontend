@@ -199,7 +199,7 @@ h6 {
   .container {
     width: 100%;
     height: 100%;
-    max-width: 1200px;
+    max-width: 1400px;
     margin: 0 auto;
     padding: 0 1rem;
   }
@@ -214,7 +214,7 @@ h6 {
   background-color: var(--app-glass-surface-bg);
   backdrop-filter: blur(var(--app-glass-surface-blur));
   -webkit-backdrop-filter: blur(var(--app-glass-surface-blur));
-  box-shadow: var(--app-glass-surface-shadow);
+  /* box-shadow: var(--app-glass-surface-shadow); */
   transform: translateZ(0);
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
@@ -233,7 +233,7 @@ h6 {
   backdrop-filter: blur(var(--app-glass-surface-blur)) !important;
   -webkit-backdrop-filter: blur(var(--app-glass-surface-blur)) !important;
   border-color: var(--app-glass-surface-border) !important;
-  box-shadow: var(--app-glass-surface-shadow);
+  /* box-shadow: var(--app-glass-surface-shadow); */
 }
 
 .border.border-cs-border.bg-card {
@@ -241,7 +241,7 @@ h6 {
   backdrop-filter: blur(var(--app-glass-surface-blur)) !important;
   -webkit-backdrop-filter: blur(var(--app-glass-surface-blur)) !important;
   border-color: var(--app-glass-surface-border) !important;
-  box-shadow: var(--app-glass-surface-shadow);
+  /* box-shadow: var(--app-glass-surface-shadow); */
 }
 
 .rounded-md.border.border-cs-border.bg-popover,
@@ -250,7 +250,15 @@ h6 {
   backdrop-filter: blur(var(--app-glass-surface-blur)) !important;
   -webkit-backdrop-filter: blur(var(--app-glass-surface-blur)) !important;
   border-color: var(--app-glass-surface-border) !important;
-  box-shadow: var(--app-glass-surface-shadow);
+  /* box-shadow: var(--app-glass-surface-shadow); */
+}
+
+/* Keep calendar popover opaque; glass blur makes day grid unreadable. */
+.date-time-picker-popover {
+  background-color: var(--cs-card) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-color: var(--cs-border) !important;
 }
 
 .dark {
@@ -310,7 +318,7 @@ h6 {
   border: 1px solid var(--app-glass-surface-border);
   backdrop-filter: blur(var(--app-glass-surface-blur));
   -webkit-backdrop-filter: blur(var(--app-glass-surface-blur));
-  box-shadow: var(--app-glass-surface-shadow);
+  /* box-shadow: var(--app-glass-surface-shadow); */
   transform: translateZ(0);
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
@@ -339,7 +347,7 @@ h6 {
   backdrop-filter: blur(var(--app-glass-surface-blur));
   -webkit-backdrop-filter: blur(var(--app-glass-surface-blur));
   border: 1px solid var(--app-glass-surface-border);
-  box-shadow: var(--app-glass-surface-shadow);
+  /* box-shadow: var(--app-glass-surface-shadow); */
   transform: translateZ(0);
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
@@ -439,13 +447,13 @@ h6 {
   background:
     linear-gradient(var(--cs-black), var(--cs-black)) padding-box,
     linear-gradient(
-      90deg,
-      var(--cs-primary) 0%,
-      transparent 35%,
-      transparent 70%,
-      var(--cs-secondary) 100%
-    )
-    border-box;
+        90deg,
+        var(--cs-primary) 0%,
+        transparent 35%,
+        transparent 70%,
+        var(--cs-secondary) 100%
+      )
+      border-box;
   border: 2px solid transparent;
   color: var(--cs-white);
   padding: 0.25rem 1rem;
@@ -548,5 +556,21 @@ h6 {
   }
 }
 
+.special-card-outer {
+  --spacing: 4px;
+
+  padding: 2px;
+  border-radius: 15px;
+  overflow: hidden;
+  .special-card-inner {
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.118);
+    backdrop-filter: blur(10px);
+    box-shadow:
+      var(--spacing) var(--spacing) 10px 0 var(--cs-primary),
+      calc(-1 * var(--spacing)) calc(-1 * var(--spacing)) 10px 0
+        var(--cs-secondary);
+  }
+}
 
 

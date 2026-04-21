@@ -2,8 +2,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "../ui/button";
+import {  ScrollIcon } from "lucide-react";
 
 const Hero = () => {
+
+  const popText= ["Think Big!", "Act Small!", "Fail Fast!"]
+
+
   return (
     <section
       id="hero"
@@ -11,40 +16,15 @@ const Hero = () => {
     >
       <div className="container flex flex-col items-center justify-center gap-8 px-4 relative">
         <div className="relative inline-block" data-aos="fade-up">
-          {/* <Image
-            src="/w.png"
-            alt="wifi"
-            width={120}
-            height={120}
-            className="absolute -top-4 -right-4 md:-top-8 md:-right-8 z-20 satellite-float w-12 h-12 md:w-[120px] md:h-[120px]"
-          />
-          <Image
-            src="/r.png"
-            alt="robot"
-            width={120}
-            height={120}
-            className="absolute -top-4 -left-4 md:-top-8 md:-left-8 z-20 rocket-float w-12 h-12 md:w-[120px] md:h-[120px]"
-          />
-
-          <Image
-            src="/c.png"
-            alt="trophy"
-            width={120}
-            height={120}
-            className="absolute -bottom-8 -left-1 md:-bottom-16 md:-left-2 z-20 trophy-float w-12 h-12 md:w-[120px] md:h-[120px]"
-          />
-
-          <Image
-            src="/t.png"
-            alt="target"
-            width={120}
-            height={120}
-            className="absolute -bottom-8 -right-1 md:-bottom-16 md:-right-2 z-20 brain-float w-12 h-12 md:w-[120px] md:h-[120px]"
-          /> */}
 
           <h1 className="h1 text-center !text-2xl sm:!text-3xl md:!text-4xl lg:!text-[4.5rem]">
           Solve Real-World Challenges from Top Companies{" "}
-            <br></br><span className="text-cs-primary">Think Big! Act Small! Fail Fast!</span> 
+            <br></br>
+            {popText.map((text, index) => (
+              <span key={index} className="text-cs-primary m-2 mt-6" data-aos="zoom-up" data-aos-delay={String(1000 + index * 600)}>
+                {text}
+              </span>
+            ))}
           </h1>
         </div>
         <p
@@ -60,6 +40,13 @@ const Hero = () => {
             Get Started
           </Button>
         </Link>
+
+        <span className="absolute bottom-0 left-0 right-0 flex justify-center items-center animate-bounce opacity-50">
+          <span className="h-10 w-6  rounded-[100px] border-2 border-white flex items-start justify-center ">
+
+            <span className="h-3 w-1 rounded-full bg-white mt-2"></span>
+          </span>
+        </span>
       </div>
     </section>
   );

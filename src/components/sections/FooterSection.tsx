@@ -29,7 +29,7 @@ const footerSections = [
 
 const FooterSection = () => {
   return (
-    <footer className="parent border-t border-white/10 pt-8 pb-8">
+    <footer className="parent border-t border-white/10 pt-8 pb-8 bg-black">
       <div className="container px-6 py-8 mx-4 sm:mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-8">
           <div className="flex flex-col gap-3 min-w-[200px]">

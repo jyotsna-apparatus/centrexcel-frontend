@@ -17,9 +17,9 @@ const Challenges = () => {
   const hackathons = Array.isArray(list) ? list : [];
 
   return (
-    <section id="hackathons" className="parent py-[100px]">
+    <section id="hackathons" className="parent py-[100px] bg-black/60">
       <div className="container px-4 flex flex-col items-center gap-6">
-        <GlassCard className="w-full max-w-3xl flex flex-col items-center gap-4 px-6 py-8">
+        <div className="w-full max-w-3xl flex flex-col items-center gap-4 px-6 py-8">
           <h2 className="h2 text-center" data-aos="fade-up" data-aos-delay="0">
             Featured <span>Challenges</span>
           </h2>
@@ -31,7 +31,7 @@ const Challenges = () => {
             Upcoming events you don't want to miss. Apply now and build
             something that matters.
           </p>
-        </GlassCard>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl">
           {isLoading &&
             [...Array(FEATURED_LIMIT)].map((_, i) => (
@@ -64,6 +64,15 @@ const Challenges = () => {
               data-aos-delay="200"
             >
               No challenges yet. Check back soon.
+            </p>
+          )}
+          {!isLoading && isError && (
+            <p
+              className="p1 text-cs-text col-span-full text-center"
+              data-aos="fade-up"
+              data-aos-delay="200"
+            >
+              Could not load featured challenges. Please check API connection.
             </p>
           )}
         </div>

@@ -13,6 +13,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { GlassCard } from "@/components/ui/glass-card";
 import {
+  CHALLENGE_TYPE_LABELS,
   HACKATHON_APPROVAL_LABELS,
   HACKATHON_STATUS_LABELS,
 } from "@/config/hackathon-constants";
@@ -129,16 +130,18 @@ export function HackathonCard({
   const applyClosed = isApplyDeadlinePassed(hackathon.applyDeadline);
   const applyBy = formatHackathonDeadline(hackathon.applyDeadline);
   const submitBy = formatHackathonDeadline(hackathon.finalSubmissionDeadline);
+  const challengeTypeLabel =
+    CHALLENGE_TYPE_LABELS[hackathon.submissionMode] ?? "Challenge";
 
   if (variant === "featured") {
     return (
       <GlassCard
         className={cn(
-          "flex flex-col overflow-hidden gap-0 rounded-xl p-0",
+          "flex flex-col overflow-hidden gap-0 rounded-xl p-0 ",
           className,
         )}
-        {...(dataAos && { "data-aos": dataAos })}
-        {...(dataAosDelay && { "data-aos-delay": dataAosDelay })}
+        // {...(dataAos && { "data-aos": dataAos })}
+        // {...(dataAosDelay && { "data-aos-delay": dataAosDelay })}
       >
         {imageSrc ? (
           <div
@@ -155,7 +158,7 @@ export function HackathonCard({
           </div>
         ) : (
           <div
-            className="w-full bg-muted"
+            className="w-full bg-gradient-to-br from-cs-primary/30 via-cs-secondary/30 to-cs-primary/20"
             style={{ aspectRatio: "5/3" }}
             aria-hidden
           />
@@ -165,6 +168,10 @@ export function HackathonCard({
           <p className="p1 text-cs-text leading-relaxed">
             Apply by {applyBy} · Submit by {submitBy}
           </p>
+          <p className="p1 text-cs-primary">{challengeTypeLabel}</p>
+          {hackathon.stageNumber ? (
+            <p className="p1 text-muted-foreground">Stage {hackathon.stageNumber}/3</p>
+          ) : null}
           {hackathon.isPaid && hackathon.priceOfEntry != null ? (
             <p className="p1">
               Entry:{" "}
@@ -189,7 +196,7 @@ export function HackathonCard({
   return (
     <div
       className={cn(
-        "flex w-full min-w-[300px] max-w-[400px] flex-col rounded-xl border border-cs-border/80 bg-card shadow-xs transition-shadow hover:shadow-md",
+        "flex  !min-w-[300px] w-full flex-col rounded-xl border border-cs-border/80 bg-card shadow-xs transition-shadow hover:shadow-md",
         className,
       )}
       {...(dataAos && { "data-aos": dataAos })}
@@ -210,7 +217,7 @@ export function HackathonCard({
         </div>
       ) : (
         <div
-          className="w-full rounded-t-lg bg-muted"
+          className="w-full rounded-t-lg bg-gradient-to-br from-cs-primary/30 via-cs-secondary/30 to-cs-primary/20"
           style={{ aspectRatio: "5/3" }}
           aria-hidden
         />
@@ -254,6 +261,13 @@ export function HackathonCard({
               {hackathon._count?.submissions ?? 0} entries
             </span>
           </span>
+          <span className="flex items-start gap-2.5">
+            <FileText className="mt-0.5 size-4 shrink-0 text-cs-primary" />
+            <span className="leading-relaxed">{challengeTypeLabel}</span>
+          </span>
+          {hackathon.stageNumber ? (
+            <span className="leading-relaxed">Stage {hackathon.stageNumber} of 3</span>
+          ) : null}
           <span className="flex items-start gap-2.5">
             <Users className="mt-0.5 size-4 shrink-0 text-cs-primary" />
             <span className="leading-relaxed">

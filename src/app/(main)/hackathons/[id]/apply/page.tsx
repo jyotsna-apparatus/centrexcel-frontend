@@ -30,6 +30,7 @@ import {
 } from "@/lib/auth-api";
 
 type TeamModalStep = "choose" | "create" | "join" | "existing";
+const TEAM_SIZE_MAX = 4;
 
 export default function HackathonApplyPage() {
   const params = useParams();
@@ -68,6 +69,12 @@ export default function HackathonApplyPage() {
   const [teamModalStep, setTeamModalStep] = useState<TeamModalStep>("choose");
   const [teamName, setTeamName] = useState("");
   const [inviteCode, setInviteCode] = useState("");
+  const inviteCodeLookup = inviteCode.trim().toLowerCase();
+  const inviteCodeMatchedTeam = allTeams.find(
+    (team) => team.inviteCode.toLowerCase() === inviteCodeLookup,
+  );
+  const inviteCodeTeamIsFull =
+    (inviteCodeMatchedTeam?.members?.length ?? 0) >= TEAM_SIZE_MAX;
 
   const createMutation = useMutation({
     mutationFn: (name: string) => createTeam({ name, hackathonId: id }),
@@ -93,15 +100,15 @@ export default function HackathonApplyPage() {
 
   const joinMutation = useMutation({
     mutationFn: (code: string) => joinTeam(code, id),
-    onSuccess: (data) => {
-      toast.success("Joined team successfully.");
+    onSuccess: () => {
+      toast.success("Join request sent. Waiting for team admin approval.");
       queryClient.invalidateQueries({ queryKey: ["teams"] });
       queryClient.invalidateQueries({ queryKey: ["participations"] });
       queryClient.invalidateQueries({ queryKey: ["hackathons"] });
       setTeamModalOpen(false);
       setTeamModalStep("choose");
       setInviteCode("");
-      router.push(`/hackathons/${id}/submit?teamId=${data.id}`);
+      router.push(`/hackathons/${id}`);
     },
     onError: (err: Error) => {
       toast.error(err.message ?? "Failed to join team");
@@ -247,9 +254,12 @@ export default function HackathonApplyPage() {
           </li>
           <li>
             <strong>Team:</strong> Create a new team or join one with an invite
-            code, then submit one project for the team.
+            code. Team joins require admin approval.
           </li>
         </ul>
+        <p className="mt-2 text-xs">
+          Team size limit: maximum {TEAM_SIZE_MAX} participants.
+        </p>
         <p className="mt-3 text-xs">
           Apply deadline:{" "}
           <span className="font-medium text-foreground">
@@ -418,7 +428,7 @@ export default function HackathonApplyPage() {
               {teamModalStep === "create" &&
                 "Choose a name for your team. You can use this team in multiple challenges."}
               {teamModalStep === "join" &&
-                "Enter the invite code shared by your team lead."}
+                "Enter the invite code shared by your team lead. Your request will be approved by the team admin."}
               {teamModalStep === "existing" &&
                 "Select a team to register for this challenge."}
             </DialogDescription>
@@ -494,6 +504,18 @@ export default function HackathonApplyPage() {
                   disabled={createMutation.isPending}
                   className="w-full"
                 />
+                {inviteCodeMatchedTeam ? (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Team "{inviteCodeMatchedTeam.name}" currently has{" "}
+                    {inviteCodeMatchedTeam.members.length}/{TEAM_SIZE_MAX}{" "}
+                    members.
+                  </p>
+                ) : null}
+                {inviteCodeTeamIsFull ? (
+                  <p className="mt-2 text-xs text-destructive">
+                    This team is already full and cannot accept more members.
+                  </p>
+                ) : null}
               </div>
               <DialogFooter>
                 <Button
@@ -542,9 +564,15 @@ export default function HackathonApplyPage() {
                 <Button
                   type="submit"
                   variant="secondary"
-                  disabled={joinMutation.isPending || !inviteCode.trim()}
+                  disabled={
+                    joinMutation.isPending ||
+                    !inviteCode.trim() ||
+                    inviteCodeTeamIsFull
+                  }
                 >
-                  {joinMutation.isPending ? "Joining…" : "Join team"}
+                  {joinMutation.isPending
+                    ? "Sending request…"
+                    : "Request to join"}
                 </Button>
               </DialogFooter>
             </form>
