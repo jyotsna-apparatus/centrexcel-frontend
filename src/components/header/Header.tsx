@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React from "react";
 import { hackathonImageSrc } from "@/components/hackathon-card/HackathonCard";
+import { NotificationsBell } from "@/components/notifications/NotificationsBell";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -68,6 +69,7 @@ const Header = () => {
       <div className="app-glass-surface flex h-16 w-full items-center justify-between rounded-none border-x-0 border-t-0 p-4">
         <SidebarTrigger />
         <div className="flex items-center gap-2">
+          {user && <NotificationsBell />}
           {user && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

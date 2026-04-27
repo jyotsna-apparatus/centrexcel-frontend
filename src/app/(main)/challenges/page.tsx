@@ -1,100 +1,85 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, ClipboardCheck, Plus } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ClipboardCheck,
+  Plus,
+} from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { HackathonCard } from "@/components/hackathon-card";
+import { ChallengeCard } from "@/components/challenge-card";
 import PageHeader from "@/components/pageHeader/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import {
+  CHALLENGE_STATUS_LABELS,
   CHALLENGE_TYPE_LABELS,
-  HACKATHON_STATUS_LABELS,
-  SUBMISSION_MODE,
-} from "@/config/hackathon-constants";
+} from "@/config/challenge-constants";
 import { useAuth } from "@/contexts/auth-context";
-import { useHackathons } from "@/hooks/use-hackathons";
-import { useTeams } from "@/hooks/use-teams";
-import { getMyParticipations } from "@/lib/auth-api";
+import { useChallengesPage } from "@/hooks/use-challenges";
+import { getMyParticipations } from "@/lib/challenges-api";
+import type {
+  ChallengeStatus,
+  ChallengeType,
+} from "@/types/challenge";
 
 const DEBOUNCE_MS = 300;
 const PAGE_SIZE_OPTIONS = [12, 24, 48] as const;
 const DEFAULT_PAGE_SIZE = 12;
 
-function useDebouncedSearch(initialValue: string, delayMs: number) {
-  const [value, setValue] = useState(initialValue);
-  const [debouncedValue, setDebouncedValue] = useState(initialValue);
-
+function useDebounced<T>(value: T, delayMs: number): T {
+  const [debounced, setDebounced] = useState(value);
   useEffect(() => {
-    const id = window.setTimeout(() => setDebouncedValue(value), delayMs);
+    const id = window.setTimeout(() => setDebounced(value), delayMs);
     return () => clearTimeout(id);
   }, [value, delayMs]);
-
-  return [value, debouncedValue, setValue] as const;
+  return debounced;
 }
 
-export default function HackathonsPage() {
+export default function ChallengesPage() {
   const { user } = useAuth();
-  const isParticipant = user?.role === "participant";
   const isAdmin = user?.role === "admin";
   const isSponsor = user?.role === "sponsor";
+  const isParticipant = user?.role === "participant";
 
   const [pageIndex, setPageIndex] = useState(0);
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
-  const [searchInput, debouncedSearch, setSearchInput] = useDebouncedSearch(
-    "",
-    DEBOUNCE_MS,
-  );
+  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
+  const [searchInput, setSearchInput] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("");
-  const [submissionModeFilter, setSubmissionModeFilter] = useState<string>("");
+  const [typeFilter, setTypeFilter] = useState<string>("");
+  const debouncedSearch = useDebounced(searchInput.trim(), DEBOUNCE_MS);
 
-  const { data, isLoading, isError, error, isFetching } = useHackathons({
+  const { data, isLoading, isFetching, isError, error } = useChallengesPage({
     page: pageIndex,
     pageSize,
-    search: debouncedSearch.trim() || undefined,
-    status: statusFilter || undefined,
-    submissionMode: submissionModeFilter || undefined,
+    search: debouncedSearch || undefined,
+    status: (statusFilter || undefined) as ChallengeStatus | undefined,
+    challengeType: (typeFilter || undefined) as ChallengeType | undefined,
   });
 
-  const { data: myTeamsData } = useTeams({
-    page: 0,
-    pageSize: 100,
-    search: "",
-    hackathonId: undefined,
-  });
-  const allTeams = myTeamsData?.data ?? [];
-  const myTeams = allTeams.filter((t) =>
-    t.members?.some((m) => m.userId === user?.id),
-  );
-  const teamByHackathonId = useMemo(() => {
-    const map: Record<string, { id: string }> = {};
-    for (const team of myTeams) {
-      for (const p of team.participations ?? []) {
-        if (p.hackathon?.id && !map[p.hackathon.id]) {
-          map[p.hackathon.id] = { id: team.id };
-        }
-      }
-    }
-    return map;
-  }, [myTeams]);
-
-  const { data: myParticipationsData } = useQuery({
-    queryKey: ["hackathons-page", "my-participations"],
-    queryFn: () => getMyParticipations({ page: 1, limit: 500 }),
+  const myParticipationsQuery = useQuery({
+    queryKey: ["my-participation-ids", user?.id],
+    queryFn: () => getMyParticipations({ page: 1, limit: 200 }),
     enabled: isParticipant,
+    staleTime: 30_000,
   });
 
-  const participatedHackathonIds = useMemo(() => {
-    return new Set(
-      (myParticipationsData?.data ?? []).map((p) => p.hackathonId),
-    );
-  }, [myParticipationsData?.data]);
+  useEffect(() => {
+    if (isError && error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to load challenges",
+      );
+    }
+  }, [isError, error]);
 
-  const hackathonsRaw = data?.data;
-  const hackathons = Array.isArray(hackathonsRaw) ? hackathonsRaw : [];
+  const challenges = data?.data ?? [];
+  const participatedChallengeIds = new Set(
+    (myParticipationsQuery.data?.data ?? []).map((p) => p.challengeId),
+  );
   const pagination = data?.pagination;
   const totalPages = Math.max(1, pagination?.totalPages ?? 1);
   const totalCount = pagination?.total ?? 0;
@@ -106,27 +91,19 @@ export default function HackathonsPage() {
       setSearchInput(e.target.value);
       setPageIndex(0);
     },
-    [setSearchInput],
+    [],
   );
-
-  useEffect(() => {
-    if (isError && error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to load challenges",
-      );
-    }
-  }, [isError, error]);
 
   return (
     <div>
       <PageHeader
         title="Challenges"
-        description="Browse and manage challenge events."
+        description="Hackathon and startup challenges you can join or manage."
       >
         <div className="flex flex-wrap items-center gap-2">
           {isAdmin && (
             <Button variant="outline" asChild>
-              <Link href="/hackathons/approvals">
+              <Link href="/challenges/approvals">
                 <ClipboardCheck className="mr-2 size-4 text-cs-primary" />
                 Approvals
               </Link>
@@ -134,18 +111,16 @@ export default function HackathonsPage() {
           )}
           {(isAdmin || isSponsor) && (
             <Button variant="default" asChild>
-              <Link href="/hackathons/new">
+              <Link href="/challenges/new">
                 <Plus className="size-4" color="black" />
-                {isSponsor && !isAdmin
-                  ? "Submit challenge"
-                  : "Create challenge"}
+                {isSponsor && !isAdmin ? "Submit challenge" : "Create challenge"}
               </Link>
             </Button>
           )}
         </div>
       </PageHeader>
 
-      <div className="mb-8 flex flex-wrap items-center gap-4 md:gap-5">
+      <div className="mb-8 flex flex-wrap items-center gap-4 md:gap-5 bg-gradient-to-r from-cs-primary to-cs-secondary  outline outline-white/50 w-full p-4 rounded-lg">
         <Input
           type="search"
           placeholder="Search by title or description..."
@@ -163,27 +138,23 @@ export default function HackathonsPage() {
           className="w-[180px]"
         >
           <option value="">All statuses</option>
-          {Object.entries(HACKATHON_STATUS_LABELS).map(([value, label]) => (
+          {Object.entries(CHALLENGE_STATUS_LABELS).map(([value, label]) => (
             <option key={value} value={value}>
               {label}
             </option>
           ))}
         </Select>
         <Select
-          value={submissionModeFilter}
+          value={typeFilter}
           onChange={(e) => {
-            setSubmissionModeFilter(e.target.value);
+            setTypeFilter(e.target.value);
             setPageIndex(0);
           }}
-          className="w-[260px]"
+          className="w-[240px]"
         >
           <option value="">All challenge types</option>
-          <option value={SUBMISSION_MODE.SINGLE_SUBMISSION}>
-            {CHALLENGE_TYPE_LABELS[SUBMISSION_MODE.SINGLE_SUBMISSION]}
-          </option>
-          <option value={SUBMISSION_MODE.DAILY_UPDATE}>
-            {CHALLENGE_TYPE_LABELS[SUBMISSION_MODE.DAILY_UPDATE]}
-          </option>
+          <option value="hackathon">{CHALLENGE_TYPE_LABELS.hackathon}</option>
+          <option value="startup">{CHALLENGE_TYPE_LABELS.startup}</option>
         </Select>
         <Select
           value={String(pageSize)}
@@ -207,11 +178,11 @@ export default function HackathonsPage() {
           {Array.from({ length: 6 }).map((_, i) => (
             <div
               key={i}
-              className="h-56 animate-pulse rounded-lg border border-cs-border bg-card"
+              className="h-72 animate-pulse rounded-lg border border-cs-border bg-card"
             />
           ))}
         </div>
-      ) : hackathons.length === 0 ? (
+      ) : challenges.length === 0 ? (
         <div className="rounded-xl border border-cs-border/80 bg-card px-4 py-16 text-center">
           <p className="text-muted-foreground mb-4">
             {isFetching && debouncedSearch
@@ -219,48 +190,24 @@ export default function HackathonsPage() {
               : "No challenges found."}
           </p>
           {(isAdmin || isSponsor) && !isFetching && !debouncedSearch && (
-            <p className="text-muted-foreground text-sm mb-4">
-              {isSponsor && !isAdmin
-                ? "Submit a challenge for admin approval to list it here once approved."
-                : "Create your first challenge to get started."}
-            </p>
-          )}
-          {(isAdmin || isSponsor) && !isFetching && (
             <Button asChild>
-              <Link href="/hackathons/new">
+              <Link href="/challenges/new">
                 <Plus className="mr-2 size-4" />
-                {isSponsor && !isAdmin
-                  ? "Submit challenge"
-                  : "Create challenge"}
+                {isSponsor && !isAdmin ? "Submit challenge" : "Create challenge"}
               </Link>
             </Button>
           )}
         </div>
       ) : (
         <>
-          <div
-            className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 lg:gap-8 w-full "
-           
-          >
-            {hackathons.map((hackathon) => (
-              <HackathonCard
-                key={hackathon.id}
-                hackathon={hackathon}
-                variant="list"
-                isAdmin={isAdmin}
+          <div className="grid w-full gap-6 md:grid-cols-2 lg:grid-cols-3 lg:gap-8">
+            {challenges.map((challenge) => (
+              <ChallengeCard
+                key={challenge.id}
+                challenge={challenge}
                 showApprovalBadge={isAdmin || isSponsor}
-                isSponsor={isSponsor}
-                isParticipant={isParticipant}
-                hasParticipated={
-                  isParticipant
-                    ? participatedHackathonIds.has(hackathon.id)
-                    : false
-                }
-                userTeamForHackathon={
-                  isParticipant
-                    ? (teamByHackathonId[hackathon.id] ?? null)
-                    : null
-                }
+                showParticipate={isParticipant}
+                alreadyParticipated={participatedChallengeIds.has(challenge.id)}
               />
             ))}
           </div>
@@ -282,7 +229,7 @@ export default function HackathonsPage() {
                 <ChevronLeft className="size-4" />
                 Previous
               </Button>
-              <span className="text-sm text-muted-foreground px-2">
+              <span className="px-2 text-sm text-muted-foreground">
                 Page {pageIndex + 1} of {totalPages}
               </span>
               <Button

@@ -1,5 +1,6 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import { ChevronDown } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -23,6 +24,7 @@ import {
   ONBOARDING_ONLY_NAV,
 } from "@/config/sidebar-nav";
 import { useAuth } from "@/contexts/auth-context";
+import { listChallenges } from "@/lib/challenges-api";
 import { cn } from "@/lib/utils";
 import { isRole, type Role } from "@/types/roles";
 
@@ -40,6 +42,14 @@ export function AppSidebar() {
   const [usersOpen, setUsersOpen] = useState(() =>
     pathname.startsWith("/users"),
   );
+
+  const { data: pendingApprovalsRes } = useQuery({
+    queryKey: ["sidebar", "pending-approvals-count"],
+    queryFn: () =>
+      listChallenges({ page: 1, limit: 1, approvalStatus: "pending_review" }),
+    enabled: user?.role === "admin",
+  });
+  const pendingApprovalCount = pendingApprovalsRes?.pagination?.total ?? 0;
 
   const isActive = (path: string) =>
     pathname === path || pathname.startsWith(`${path}/`);
@@ -124,9 +134,15 @@ export function AppSidebar() {
                         : "text-cs-text",
                     )}
                   >
-                    <Link href={item.href}>
-                      <item.icon className="size-4" />
-                      <span>{item.label}</span>
+                    <Link href={item.href} className="flex w-full items-center gap-2">
+                      <item.icon className="size-4 shrink-0" />
+                      <span className="flex-1 truncate">{item.label}</span>
+                      {item.href === "/challenges/approvals" &&
+                      pendingApprovalCount > 0 ? (
+                        <span className="rounded-full bg-destructive px-2 py-0.5 text-[10px] font-semibold text-destructive-foreground">
+                          {pendingApprovalCount > 99 ? "99+" : pendingApprovalCount}
+                        </span>
+                      ) : null}
                     </Link>
                   </SidebarMenuButton>
                 ) : null}

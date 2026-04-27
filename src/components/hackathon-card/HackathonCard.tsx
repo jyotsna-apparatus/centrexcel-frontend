@@ -13,11 +13,11 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { GlassCard } from "@/components/ui/glass-card";
 import {
+  CHALLENGE_APPROVAL_LABELS,
+  CHALLENGE_STATUS_LABELS,
   CHALLENGE_TYPE_LABELS,
-  HACKATHON_APPROVAL_LABELS,
-  HACKATHON_STATUS_LABELS,
-} from "@/config/hackathon-constants";
-import type { HackathonListItem } from "@/lib/auth-api";
+} from "@/config/challenge-constants";
+import type { Challenge } from "@/types/challenge";
 import { cn } from "@/lib/utils";
 
 function isApplyDeadlinePassed(iso: string | null | undefined): boolean {
@@ -25,7 +25,7 @@ function isApplyDeadlinePassed(iso: string | null | undefined): boolean {
   return new Date(iso).getTime() < Date.now();
 }
 
-/** Build URL for hackathon banner image (proxied via /api). */
+/** Build URL for challenge banner image (proxied via /api). */
 export function hackathonImageSrc(
   imagePath: string | null | undefined,
 ): string | null {
@@ -49,9 +49,32 @@ export function formatHackathonDeadline(
   }
 }
 
+function stageSchedule(challenge: Challenge) {
+  if (challenge.challengeType === "startup") {
+    const start = challenge.startupStartAt;
+    return {
+      applyDeadline: start,
+      finalSubmissionDeadline: start,
+      activeStageOrder: null as number | null,
+    };
+  }
+  const stages = (challenge.stages ?? [])
+    .slice()
+    .sort((a, b) => a.stageOrder - b.stageOrder);
+  const first = stages[0];
+  const project =
+    stages.find((s) => s.stageType === "project") ?? stages[stages.length - 1];
+  const active = stages.find((s) => s.status === "active");
+  return {
+    applyDeadline: first?.applyDeadline ?? null,
+    finalSubmissionDeadline: project?.submissionDeadline ?? null,
+    activeStageOrder: active?.stageOrder ?? null,
+  };
+}
+
 function ApprovalBadge({ status }: { status: string }) {
   if (!status || status === "approved") return null;
-  const label = HACKATHON_APPROVAL_LABELS[status] ?? status;
+  const label = CHALLENGE_APPROVAL_LABELS[status as keyof typeof CHALLENGE_APPROVAL_LABELS] ?? status;
   const className =
     status === "pending_review"
       ? "bg-sky-500/15 text-sky-800 dark:text-sky-300"
@@ -73,7 +96,9 @@ function ApprovalBadge({ status }: { status: string }) {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const label = HACKATHON_STATUS_LABELS[status] ?? status;
+  const label =
+    CHALLENGE_STATUS_LABELS[status as keyof typeof CHALLENGE_STATUS_LABELS] ??
+    status;
   const className =
     status === "open"
       ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
@@ -95,20 +120,15 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 type HackathonCardProps = {
-  hackathon: HackathonListItem;
+  hackathon: Challenge;
   variant: "featured" | "list";
   isAdmin?: boolean;
-  /** When true, show approval workflow badge if not approved */
   showApprovalBadge?: boolean;
-  /** Sponsor can edit pending / changes / rejected own challenges */
   isSponsor?: boolean;
   isParticipant?: boolean;
-  /** When true, participant has already enrolled in this hackathon. */
   hasParticipated?: boolean;
-  /** When set, user is in a team for this hackathon—show "Submit with team" instead of "Solo". */
   userTeamForHackathon?: { id: string } | null;
   className?: string;
-  /** Optional AOS attributes (e.g. data-aos, data-aos-delay). */
   dataAos?: string;
   dataAosDelay?: string;
 };
@@ -126,12 +146,14 @@ export function HackathonCard({
   dataAos,
   dataAosDelay,
 }: HackathonCardProps) {
+  const { applyDeadline, finalSubmissionDeadline, activeStageOrder } =
+    stageSchedule(hackathon);
   const imageSrc = hackathonImageSrc(hackathon.image);
-  const applyClosed = isApplyDeadlinePassed(hackathon.applyDeadline);
-  const applyBy = formatHackathonDeadline(hackathon.applyDeadline);
-  const submitBy = formatHackathonDeadline(hackathon.finalSubmissionDeadline);
+  const applyClosed = isApplyDeadlinePassed(applyDeadline);
+  const applyBy = formatHackathonDeadline(applyDeadline);
+  const submitBy = formatHackathonDeadline(finalSubmissionDeadline);
   const challengeTypeLabel =
-    CHALLENGE_TYPE_LABELS[hackathon.submissionMode] ?? "Challenge";
+    CHALLENGE_TYPE_LABELS[hackathon.challengeType] ?? "Challenge";
 
   if (variant === "featured") {
     return (
@@ -140,8 +162,6 @@ export function HackathonCard({
           "flex flex-col overflow-hidden gap-0 rounded-xl p-0 ",
           className,
         )}
-        // {...(dataAos && { "data-aos": dataAos })}
-        // {...(dataAosDelay && { "data-aos-delay": dataAosDelay })}
       >
         {imageSrc ? (
           <div
@@ -166,11 +186,21 @@ export function HackathonCard({
         <div className="flex flex-1 flex-col gap-4 p-5">
           <h3 className="h4 !leading-[1.5]">{hackathon.title}</h3>
           <p className="p1 text-cs-text leading-relaxed">
-            Apply by {applyBy} · Submit by {submitBy}
+            {hackathon.challengeType === "startup" ? (
+              <>
+                Starts {applyBy} · {hackathon.startupDurationDays ?? 0}-day sprint
+              </>
+            ) : (
+              <>
+                Apply by {applyBy} · Submit by {submitBy}
+              </>
+            )}
           </p>
           <p className="p1 text-cs-primary">{challengeTypeLabel}</p>
-          {hackathon.stageNumber ? (
-            <p className="p1 text-muted-foreground">Stage {hackathon.stageNumber}/3</p>
+          {hackathon.challengeType === "hackathon" && activeStageOrder != null ? (
+            <p className="p1 text-muted-foreground">
+              Stage {activeStageOrder}/3
+            </p>
           ) : null}
           {hackathon.isPaid && hackathon.priceOfEntry != null ? (
             <p className="p1">
@@ -185,14 +215,13 @@ export function HackathonCard({
             </p>
           )}
           <Button variant="outline" size="sm" asChild className="mt-auto w-fit">
-            <Link href={`/hackathons/${hackathon.id}`}>View details</Link>
+            <Link href={`/challenges/${hackathon.id}`}>View details</Link>
           </Button>
         </div>
       </GlassCard>
     );
   }
 
-  // list variant
   return (
     <div
       className={cn(
@@ -228,11 +257,6 @@ export function HackathonCard({
             <h3 className="line-clamp-2 text-base font-semibold !leading-[1.6] text-cs-heading sm:text-[1.05rem]">
               {hackathon.title}
             </h3>
-            {hackathon.category?.trim() ? (
-              <p className="text-xs font-medium text-cs-primary">
-                {hackathon.category.trim()}
-              </p>
-            ) : null}
           </div>
           <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
             {showApprovalBadge && hackathon.approvalStatus ? (
@@ -247,26 +271,34 @@ export function HackathonCard({
         <div className="flex flex-col gap-2.5 text-xs text-muted-foreground">
           <span className="flex items-start gap-2.5">
             <Calendar className="mt-0.5 size-4 shrink-0 text-cs-primary" />
-            <span className="min-w-0 leading-relaxed">Apply by {applyBy}</span>
+            <span className="min-w-0 leading-relaxed">
+              {hackathon.challengeType === "startup"
+                ? `Starts ${applyBy}`
+                : `Apply by ${applyBy}`}
+            </span>
           </span>
           <span className="flex items-start gap-2.5">
             <FileUp className="mt-0.5 size-4 shrink-0 text-cs-primary" />
             <span className="min-w-0 leading-relaxed">
-              Submit by {submitBy}
+              {hackathon.challengeType === "startup"
+                ? `${hackathon.startupDurationDays ?? 0}-day daily entries`
+                : `Submit by ${submitBy}`}
             </span>
           </span>
           <span className="flex items-start gap-2.5">
             <FileText className="mt-0.5 size-4 shrink-0 text-cs-primary" />
             <span className="leading-relaxed">
-              {hackathon._count?.submissions ?? 0} entries
+              {hackathon._count?.participations ?? 0} participants
             </span>
           </span>
           <span className="flex items-start gap-2.5">
             <FileText className="mt-0.5 size-4 shrink-0 text-cs-primary" />
             <span className="leading-relaxed">{challengeTypeLabel}</span>
           </span>
-          {hackathon.stageNumber ? (
-            <span className="leading-relaxed">Stage {hackathon.stageNumber} of 3</span>
+          {hackathon.challengeType === "hackathon" && activeStageOrder != null ? (
+            <span className="leading-relaxed">
+              Stage {activeStageOrder} of 3
+            </span>
           ) : null}
           <span className="flex items-start gap-2.5">
             <Users className="mt-0.5 size-4 shrink-0 text-cs-primary" />
@@ -288,7 +320,7 @@ export function HackathonCard({
       </div>
       <div className="mt-1 flex flex-wrap gap-3 border-t border-cs-border/40 px-5 pb-5 pt-5">
         <Button variant="outline" size="sm" className="min-w-0 flex-1" asChild>
-          <Link href={`/hackathons/${hackathon.id}`}>
+          <Link href={`/challenges/${hackathon.id}`}>
             <Eye className="mr-1.5 size-4 shrink-0 text-cs-primary" />
             View
           </Link>
@@ -300,7 +332,7 @@ export function HackathonCard({
             className="min-w-0 flex-1"
             asChild
           >
-            <Link href={`/hackathons/${hackathon.id}/edit`}>
+            <Link href={`/challenges/${hackathon.id}/edit`}>
               <Pencil className="mr-1.5 size-4 shrink-0 text-cs-primary" />
               Edit
             </Link>
@@ -313,7 +345,7 @@ export function HackathonCard({
             className="min-w-0 flex-1"
             asChild
           >
-            <Link href={`/hackathons/${hackathon.id}/edit`}>
+            <Link href={`/challenges/${hackathon.id}/edit`}>
               <Pencil className="mr-1.5 size-4 shrink-0 text-cs-primary" />
               Edit
             </Link>
@@ -332,7 +364,7 @@ export function HackathonCard({
               className="min-w-0 flex-1"
               asChild
             >
-              <Link href={`/hackathons/${hackathon.id}/apply`}>
+              <Link href={`/challenges/${hackathon.id}/enroll`}>
                 <UserPlus className="mr-1.5 size-4 shrink-0" />
                 Participate
               </Link>

@@ -1,19 +1,19 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { HackathonCard } from "@/components/hackathon-card";
 import { Button } from "@/components/ui/button";
 import { GlassCard } from "@/components/ui/glass-card";
-import { useFeaturedHackathons } from "@/hooks/use-hackathons";
+import { getFeaturedChallenges } from "@/lib/challenges-api";
 
 const FEATURED_LIMIT = 3;
 
 const Challenges = () => {
-  const {
-    data: list = [],
-    isLoading,
-    isError,
-  } = useFeaturedHackathons(FEATURED_LIMIT);
+  const { data: list = [], isLoading, isError } = useQuery({
+    queryKey: ["featured-challenges", FEATURED_LIMIT],
+    queryFn: () => getFeaturedChallenges(FEATURED_LIMIT),
+  });
   const hackathons = Array.isArray(list) ? list : [];
 
   return (
@@ -78,7 +78,7 @@ const Challenges = () => {
         </div>
         <div data-aos="fade-up" data-aos-delay="500">
           <Button size="lg" asChild>
-            <Link href="/hackathons">View all challenges</Link>
+            <Link href="/challenges">View all challenges</Link>
           </Button>
         </div>
       </div>

@@ -3,9 +3,12 @@
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { use } from "react";
+import {
+  AdminUserActivityCard,
+  AdminUserProfileFields,
+} from "@/components/admin/admin-user-detail-view";
 import PageHeader from "@/components/pageHeader/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { getUser } from "@/lib/auth-api";
 
 export default function ViewParticipantPage({
@@ -81,83 +84,15 @@ export default function ViewParticipantPage({
           </Button>
         </div>
       </PageHeader>
-      <div className="mx-auto max-w-md space-y-4">
-        <div>
-          <label
-            htmlFor="view-username"
-            className="text-muted-foreground mb-1 block text-sm font-medium"
-          >
-            Username
-          </label>
-          <Input
-            id="view-username"
-            value={user.username ?? "—"}
-            readOnly
-            disabled
-            className="bg-muted/50"
-          />
-        </div>
-        <div>
-          <label
-            htmlFor="view-email"
-            className="text-muted-foreground mb-1 block text-sm font-medium"
-          >
-            Email
-          </label>
-          <Input
-            id="view-email"
-            type="email"
-            value={user.email}
-            readOnly
-            disabled
-            className="bg-muted/50"
-          />
-        </div>
-        <div>
-          <label
-            htmlFor="view-role"
-            className="text-muted-foreground mb-1 block text-sm font-medium"
-          >
-            Role
-          </label>
-          <Input
-            id="view-role"
-            value={user.role}
-            readOnly
-            disabled
-            className="bg-muted/50"
-          />
-        </div>
-        <div>
-          <label
-            htmlFor="view-verified"
-            className="text-muted-foreground mb-1 block text-sm font-medium"
-          >
-            Email verified
-          </label>
-          <Input
-            id="view-verified"
-            value={user.emailVerified ? "Yes" : "No"}
-            readOnly
-            disabled
-            className="bg-muted/50"
-          />
-        </div>
-        <div>
-          <label
-            htmlFor="view-joined"
-            className="text-muted-foreground mb-1 block text-sm font-medium"
-          >
-            Joined
-          </label>
-          <Input
-            id="view-joined"
-            value={joinedDate}
-            readOnly
-            disabled
-            className="bg-muted/50"
-          />
-        </div>
+      <div className="mx-auto max-w-2xl space-y-6">
+        <AdminUserProfileFields user={user} />
+        <AdminUserActivityCard title="Activity">
+          <p className="text-sm text-muted-foreground">
+            Member since <span className="font-medium">{joinedDate}</span>.
+            Challenge enrollments and submissions are visible on the
+            participant&apos;s challenge pages.
+          </p>
+        </AdminUserActivityCard>
       </div>
     </div>
   );

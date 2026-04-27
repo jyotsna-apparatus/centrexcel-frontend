@@ -3,7 +3,6 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type * as React from "react";
 import { DayPicker } from "react-day-picker";
-import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>;
@@ -32,10 +31,8 @@ function Calendar({
           "text-muted-foreground text-center font-normal text-[0.8rem]",
         week: "grid grid-cols-7 mt-2",
         day: "h-8 w-8 justify-self-center text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-        day_button: cn(
-          buttonVariants({ variant: "ghost" }),
-          "h-8 w-8 p-0 font-normal aria-selected:opacity-100",
-        ),
+        day_button:
+          "inline-flex size-8 items-center justify-center rounded-md p-0 text-sm font-normal leading-none aria-selected:opacity-100 hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring",
         range_end: "day-range-end",
         selected:
           "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",

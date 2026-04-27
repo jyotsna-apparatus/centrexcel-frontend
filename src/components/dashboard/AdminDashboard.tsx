@@ -14,7 +14,8 @@ import { hackathonImageSrc } from "@/components/hackathon-card/HackathonCard";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/auth-context";
-import { getHackathons, getUsers } from "@/lib/auth-api";
+import { getUsers } from "@/lib/auth-api";
+import { listChallenges } from "@/lib/challenges-api";
 import { userListInitials, userTablePrimaryLine } from "@/lib/user-display";
 
 const PROFILE_PLACEHOLDER = "/profile-placeholder.svg";
@@ -83,15 +84,26 @@ export default function AdminDashboard() {
     queryFn: () => getUsers({ page: 1, limit: 1, role: "sponsor" }),
   });
 
-  const { data: hackathonsData } = useQuery({
-    queryKey: ["dashboard", "hackathons"],
-    queryFn: () => getHackathons({ page: 1, limit: 1 }),
+  const { data: challengesData } = useQuery({
+    queryKey: ["dashboard", "challenges-count"],
+    queryFn: () => listChallenges({ page: 1, limit: 1 }),
+  });
+
+  const { data: pendingData } = useQuery({
+    queryKey: ["dashboard", "pending-approvals"],
+    queryFn: () =>
+      listChallenges({
+        page: 1,
+        limit: 1,
+        approvalStatus: "pending_review",
+      }),
   });
 
   const totalParticipants = participantsData?.pagination?.total ?? 0;
   const totalJudges = judgesData?.pagination?.total ?? 0;
   const totalSponsors = sponsorsData?.pagination?.total ?? 0;
-  const totalHackathons = hackathonsData?.pagination?.total ?? 0;
+  const totalChallenges = challengesData?.pagination?.total ?? 0;
+  const pendingApprovals = pendingData?.pagination?.total ?? 0;
   const _totalUsers = totalParticipants + totalJudges + totalSponsors;
 
   // Get recent data for activity
@@ -116,19 +128,24 @@ export default function AdminDashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Challenges"
-          value={totalHackathons}
+          value={totalChallenges}
           icon={<Trophy className="size-6" />}
-          href="/hackathons"
-          trend={
-            totalHackathons === 0 ? "Create one to get started" : "View all"
-          }
+          href="/challenges"
+          trend={totalChallenges === 0 ? "Create one to get started" : "View all"}
         />
         <StatCard
-          title="Total Users"
+          title="Pending approvals"
+          value={pendingApprovals}
+          icon={<UsersRound className="size-6" />}
+          href="/challenges/approvals"
+          trend="Sponsor submissions awaiting review"
+        />
+        <StatCard
+          title="Sponsors"
           value={totalSponsors}
           icon={<UsersRound className="size-6" />}
-          href="/users/participants"
-          trend={`Active sponsors`}
+          href="/users/sponsors"
+          trend="Accounts"
         />
         <StatCard
           title="Participants"
@@ -169,9 +186,15 @@ export default function AdminDashboard() {
             </Link>
           </Button>
           <Button variant="outline" className="justify-start" asChild>
-            <Link href="/hackathons">
+            <Link href="/challenges">
               <Trophy className="mr-2 size-4" />
-              View Challenges
+              View challenges
+            </Link>
+          </Button>
+          <Button variant="outline" className="justify-start" asChild>
+            <Link href="/challenges/approvals">
+              <Trophy className="mr-2 size-4" />
+              Approvals queue
             </Link>
           </Button>
         </div>

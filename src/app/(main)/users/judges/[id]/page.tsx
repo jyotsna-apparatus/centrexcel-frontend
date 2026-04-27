@@ -4,10 +4,16 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { use } from "react";
 import { toast } from "sonner";
+import {
+  AdminUserActivityCard,
+  AdminUserProfileFields,
+} from "@/components/admin/admin-user-detail-view";
 import PageHeader from "@/components/pageHeader/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { getUser } from "@/lib/auth-api";
+import { listChallenges } from "@/lib/challenges-api";
+import type { Challenge } from "@/types/challenge";
 
 export default function ViewJudgePage({
   params,
@@ -23,6 +29,12 @@ export default function ViewJudgePage({
   } = useQuery({
     queryKey: ["judge", id],
     queryFn: () => getUser(id),
+  });
+
+  const { data: assignedRes, isLoading: chLoad } = useQuery({
+    queryKey: ["admin-judge-challenges", id],
+    queryFn: () => listChallenges({ page: 1, limit: 50, judgeId: id }),
+    enabled: Boolean(user),
   });
 
   if (isLoading) {
@@ -50,20 +62,6 @@ export default function ViewJudgePage({
     );
   }
 
-  const joinedDate = user.createdAt
-    ? (() => {
-        try {
-          return new Date(user.createdAt).toLocaleDateString(undefined, {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          });
-        } catch {
-          return user.createdAt;
-        }
-      })()
-    : "—";
-
   return (
     <div>
       <PageHeader title="Judge" description="View judge details.">
@@ -76,83 +74,30 @@ export default function ViewJudgePage({
           </Button>
         </div>
       </PageHeader>
-      <div className="mx-auto max-w-md space-y-4">
-        <div>
-          <label
-            htmlFor="view-username"
-            className="text-muted-foreground mb-1 block text-sm font-medium"
-          >
-            Username
-          </label>
-          <Input
-            id="view-username"
-            value={user.username ?? "—"}
-            readOnly
-            disabled
-            className="bg-muted/50"
-          />
-        </div>
-        <div>
-          <label
-            htmlFor="view-email"
-            className="text-muted-foreground mb-1 block text-sm font-medium"
-          >
-            Email
-          </label>
-          <Input
-            id="view-email"
-            type="email"
-            value={user.email}
-            readOnly
-            disabled
-            className="bg-muted/50"
-          />
-        </div>
-        <div>
-          <label
-            htmlFor="view-role"
-            className="text-muted-foreground mb-1 block text-sm font-medium"
-          >
-            Role
-          </label>
-          <Input
-            id="view-role"
-            value={user.role}
-            readOnly
-            disabled
-            className="bg-muted/50"
-          />
-        </div>
-        <div>
-          <label
-            htmlFor="view-verified"
-            className="text-muted-foreground mb-1 block text-sm font-medium"
-          >
-            Email verified
-          </label>
-          <Input
-            id="view-verified"
-            value={user.emailVerified ? "Yes" : "No"}
-            readOnly
-            disabled
-            className="bg-muted/50"
-          />
-        </div>
-        <div>
-          <label
-            htmlFor="view-joined"
-            className="text-muted-foreground mb-1 block text-sm font-medium"
-          >
-            Joined
-          </label>
-          <Input
-            id="view-joined"
-            value={joinedDate}
-            readOnly
-            disabled
-            className="bg-muted/50"
-          />
-        </div>
+      <div className="mx-auto max-w-2xl space-y-6">
+        <AdminUserProfileFields user={user} />
+        <AdminUserActivityCard title="Assigned challenges">
+          {chLoad ? (
+            <Skeleton className="h-16 w-full rounded-md" />
+          ) : (assignedRes?.data ?? []).length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              This judge is not assigned to any challenges yet.
+            </p>
+          ) : (
+            <ul className="space-y-2 text-sm">
+              {(assignedRes?.data ?? []).map((c: Challenge) => (
+                <li key={c.id}>
+                  <Link
+                    className="font-medium text-cs-primary hover:underline"
+                    href={`/challenges/${c.id}`}
+                  >
+                    {c.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </AdminUserActivityCard>
       </div>
     </div>
   );

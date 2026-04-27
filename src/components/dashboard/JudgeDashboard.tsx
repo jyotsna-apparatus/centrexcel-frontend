@@ -5,7 +5,7 @@ import { CheckCircle2, FileUp, Gavel, Trophy } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/auth-context";
-import { getHackathons } from "@/lib/auth-api";
+import { listChallenges } from "@/lib/challenges-api";
 
 type StatCardProps = {
   title: string;
@@ -23,9 +23,7 @@ function StatCard({ title, value, icon, href, className = "" }: StatCardProps) {
           <p className="text-muted-foreground text-sm font-medium">{title}</p>
           <p className="mt-2 text-3xl font-bold">{value}</p>
         </div>
-        <div className="rounded-full bg-primary/10 p-3 text-primary">
-          {icon}
-        </div>
+        <div className="rounded-full bg-primary/10 p-3 text-primary">{icon}</div>
       </div>
     </div>
   );
@@ -44,70 +42,65 @@ function StatCard({ title, value, icon, href, className = "" }: StatCardProps) {
 export default function JudgeDashboard() {
   const { user } = useAuth();
 
-  // Fetch hackathons assigned to this judge
-  const { data: hackathonsData } = useQuery({
-    queryKey: ["dashboard", "judge-hackathons"],
-    queryFn: () => getHackathons({ page: 1, limit: 10, forJudge: "me" }),
+  const { data: challengesData } = useQuery({
+    queryKey: ["dashboard", "judge-challenges"],
+    queryFn: () => listChallenges({ page: 1, limit: 20, mine: true }),
   });
 
-  const hackathons = hackathonsData?.data ?? [];
-  const openHackathons = hackathons.filter((h) => h.status === "open");
+  const challenges = challengesData?.data ?? [];
+  const openChallenges = challenges.filter((c) => c.status === "open");
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="h2 text-cs-heading">Judge Dashboard</h1>
         <p className="p1 mt-1 text-cs-text">
-          Welcome back, {user?.email}. Here's your judging overview.
+          Welcome back, {user?.email}. Review and score assigned challenges.
         </p>
       </div>
 
-      {/* Statistics Cards */}
       <div className="grid gap-4 md:grid-cols-2">
         <StatCard
-          title="Open for Scoring"
-          value={openHackathons.length}
+          title="Open challenges"
+          value={openChallenges.length}
           icon={<Gavel className="size-6" />}
-          href="/judge/hackathons"
+          href="/judge/challenges"
         />
         <StatCard
-          title="Total Assigned"
-          value={hackathons.length}
+          title="Assigned total"
+          value={challenges.length}
           icon={<CheckCircle2 className="size-6" />}
-          href="/judge/hackathons"
+          href="/judge/challenges"
         />
       </div>
 
-      {/* Quick Actions */}
       <div className="app-glass-surface rounded-lg p-6">
-        <h2 className="mb-4 text-lg font-semibold">Quick Actions</h2>
+        <h2 className="mb-4 text-lg font-semibold">Quick actions</h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <Button variant="outline" className="justify-start" asChild>
-            <Link href="/judge/hackathons">
+            <Link href="/judge/challenges">
               <Trophy className="mr-2 size-4" />
-              Challenges to judge
+              Assigned challenges
             </Link>
           </Button>
           <Button variant="outline" className="justify-start" asChild>
-            <Link href="/judge/hackathons">
+            <Link href="/judge/challenges">
               <FileUp className="mr-2 size-4" />
-              View and score submissions
+              Score submissions
             </Link>
           </Button>
         </div>
       </div>
 
-      {/* Instructions */}
       <div className="rounded-lg border border-cs-border bg-blue-500/10 p-6">
         <div className="flex items-start gap-3">
           <Gavel className="mt-0.5 size-5 text-blue-500" />
           <div>
-            <h3 className="font-semibold text-blue-500">Judging Guidelines</h3>
+            <h3 className="font-semibold text-blue-500">Judging</h3>
             <p className="text-muted-foreground mt-2 text-sm">
-              As a judge, you can view and score submissions for hackathons
-              you're assigned to. Use &quot;View and score submissions&quot; or
-              the sidebar &quot;Score submissions&quot; to open your assigned
-              hackathons and submit scores.
+              Scoring is available on the <strong>project</strong> stage only.
+              Open a challenge, pick the Project tab, then download and score each
+              submission.
             </p>
           </div>
         </div>

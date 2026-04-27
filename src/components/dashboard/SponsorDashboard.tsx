@@ -6,7 +6,7 @@ import Link from "next/link";
 import { HackathonCard } from "@/components/hackathon-card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/auth-context";
-import { getHackathons } from "@/lib/auth-api";
+import { listChallenges } from "@/lib/challenges-api";
 
 type StatCardProps = {
   title: string;
@@ -24,9 +24,7 @@ function StatCard({ title, value, icon, href, className = "" }: StatCardProps) {
           <p className="text-muted-foreground text-sm font-medium">{title}</p>
           <p className="mt-2 text-3xl font-bold">{value}</p>
         </div>
-        <div className="rounded-full bg-primary/10 p-3 text-primary">
-          {icon}
-        </div>
+        <div className="rounded-full bg-primary/10 p-3 text-primary">{icon}</div>
       </div>
     </div>
   );
@@ -45,22 +43,21 @@ function StatCard({ title, value, icon, href, className = "" }: StatCardProps) {
 export default function SponsorDashboard() {
   const { user } = useAuth();
 
-  // Fetch sponsor's hackathons
-  const { data: hackathonsData } = useQuery({
-    queryKey: ["dashboard", "sponsor-hackathons", user?.id],
-    queryFn: () => getHackathons({ page: 1, limit: 10, sponsorId: user?.id }),
+  const { data: challengesData } = useQuery({
+    queryKey: ["dashboard", "sponsor-challenges", user?.id],
+    queryFn: () => listChallenges({ page: 1, limit: 20, mine: true }),
     enabled: !!user?.id,
   });
 
-  const myHackathons = hackathonsData?.data ?? [];
-  const activeHackathons = myHackathons.filter(
+  const myChallenges = challengesData?.data ?? [];
+  const activeChallenges = myChallenges.filter(
     (h) => h.status !== "closed" && h.status !== "cancelled",
   );
-  const totalSubmissions = myHackathons.reduce(
-    (sum, h) => sum + (h._count?.submissions ?? 0),
+  const totalEnrollments = myChallenges.reduce(
+    (sum, h) => sum + (h._count?.participations ?? 0),
     0,
   );
-  const totalTeams = myHackathons.reduce(
+  const totalTeams = myChallenges.reduce(
     (sum, h) => sum + (h._count?.teams ?? 0),
     0,
   );
@@ -70,77 +67,74 @@ export default function SponsorDashboard() {
       <div>
         <h1 className="h2 text-cs-heading">Sponsor Dashboard</h1>
         <p className="p1 mt-1 text-cs-text">
-          Welcome back, {user?.email}. Here's your hackathon overview.
+          Welcome back, {user?.email}. Manage your challenges and shortlists.
         </p>
       </div>
 
-      {/* Statistics Cards */}
       <div className="grid gap-4 md:grid-cols-4">
         <StatCard
-          title="My Challenges"
-          value={myHackathons.length}
+          title="My challenges"
+          value={myChallenges.length}
           icon={<Trophy className="size-6" />}
-          href="/hackathons"
+          href="/challenges"
         />
         <StatCard
           title="Active"
-          value={activeHackathons.length}
+          value={activeChallenges.length}
           icon={<Trophy className="size-6" />}
-          href="/hackathons"
+          href="/challenges"
         />
         <StatCard
-          title="Total Submissions"
-          value={totalSubmissions}
+          title="Enrollments"
+          value={totalEnrollments}
           icon={<FileUp className="size-6" />}
         />
         <StatCard
-          title="Total Teams"
+          title="Teams"
           value={totalTeams}
           icon={<Users className="size-6" />}
         />
       </div>
 
-      {/* Quick Actions */}
       <div className="app-glass-surface rounded-lg p-6">
-        <h2 className="mb-4 text-lg font-semibold">Quick Actions</h2>
+        <h2 className="mb-4 text-lg font-semibold">Quick actions</h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Button variant="outline" className="justify-start" asChild>
-            <Link href="/hackathons">
+            <Link href="/challenges">
               <Trophy className="mr-2 size-4" />
-              My Challenges
+              My challenges
             </Link>
           </Button>
           <Button variant="outline" className="justify-start" asChild>
-            <Link href="/hackathons/new">
+            <Link href="/challenges/new">
               <Trophy className="mr-2 size-4" />
-              Submit challenge
+              New challenge
             </Link>
           </Button>
         </div>
       </div>
 
-      {/* My Challenges */}
       <div className="app-glass-surface rounded-lg p-6">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">My Challenges</h2>
+          <h2 className="text-lg font-semibold">My challenges</h2>
           <Button variant="ghost" size="sm" asChild>
-            <Link href="/hackathons">
+            <Link href="/challenges">
               View all
               <ArrowRight className="ml-2 size-4" />
             </Link>
           </Button>
         </div>
-        {myHackathons.length > 0 ? (
+        {myChallenges.length > 0 ? (
           <div
             className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
             style={{
               gridTemplateColumns: "repeat(auto-fill, minmax(300px, 400px))",
             }}
           >
-            {myHackathons.slice(0, 6).map((hackathon) => (
+            {myChallenges.slice(0, 6).map((c) => (
               <HackathonCard
-                key={hackathon.id}
-                hackathon={hackathon}
+                key={c.id}
+                hackathon={c}
                 variant="list"
                 isAdmin={false}
                 showApprovalBadge
@@ -150,8 +144,8 @@ export default function SponsorDashboard() {
             ))}
           </div>
         ) : (
-          <p className="text-muted-foreground text-center py-4 text-sm">
-            No hackathons yet
+          <p className="text-muted-foreground py-4 text-center text-sm">
+            No challenges yet
           </p>
         )}
       </div>

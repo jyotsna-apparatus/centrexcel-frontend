@@ -45,13 +45,13 @@ export const SIDEBAR_NAV_CONFIG: SidebarNavItem[] = [
   },
   {
     label: "Challenges",
-    href: "/hackathons",
+    href: "/challenges",
     icon: Trophy,
     roles: [ROLES.ADMIN, ROLES.SPONSOR, ROLES.PARTICIPANT, ROLES.JUDGE],
   },
   {
     label: "Approvals",
-    href: "/hackathons/approvals",
+    href: "/challenges/approvals",
     icon: ClipboardCheck,
     roles: [ROLES.ADMIN],
   },
@@ -69,7 +69,7 @@ export const SIDEBAR_NAV_CONFIG: SidebarNavItem[] = [
   },
   {
     label: "Score submissions",
-    href: "/judge/hackathons",
+    href: "/judge/challenges",
     icon: Gavel,
     roles: [ROLES.JUDGE],
   },
@@ -168,8 +168,10 @@ export function getRouteRolesMap(): Map<string, Role[]> {
       map.set(child.href, item.roles);
     }
   }
-  // Entry-fee checkout (e.g. from /hackathons/[id]/apply); list page is admin-only above.
+  // Entry-fee checkout (e.g. from /challenges/[id]/enroll); list page is admin-only above.
   map.set("/payments/checkout", [ROLES.ADMIN, ROLES.PARTICIPANT]);
+  // Legacy judge URLs (redirect to /judge/challenges)
+  map.set("/judge/hackathons", [ROLES.JUDGE]);
   return map;
 }
 

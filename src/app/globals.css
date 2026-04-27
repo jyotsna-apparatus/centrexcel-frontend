@@ -51,9 +51,9 @@
   --sidebar-border: var(--cs-border);
   --sidebar-ring: var(--cs-primary);
 
-  /* Glass surface — dark frost; higher opacity keeps panels readable over busy video */
-  --app-glass-surface-bg: rgba(0, 0, 0, 0.76);
-  --app-glass-surface-border: rgba(255, 255, 255, 0.14);
+  /* Glass surface controls (single place): increase alpha to reduce translucency globally */
+  --app-glass-surface-bg: rgba(0, 0, 0, 0.9);
+  --app-glass-surface-border: rgba(255, 255, 255, 0.18);
   /* Heavy frost — strong blur (browsers may clamp very large values) */
   --app-glass-surface-blur: 240px;
   --app-glass-surface-shadow:

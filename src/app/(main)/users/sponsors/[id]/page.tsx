@@ -4,10 +4,16 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { use } from "react";
 import { toast } from "sonner";
+import {
+  AdminUserActivityCard,
+  AdminUserProfileFields,
+} from "@/components/admin/admin-user-detail-view";
 import PageHeader from "@/components/pageHeader/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { getUser } from "@/lib/auth-api";
+import { listChallenges } from "@/lib/challenges-api";
+import type { Challenge } from "@/types/challenge";
 
 export default function ViewSponsorPage({
   params,
@@ -23,6 +29,12 @@ export default function ViewSponsorPage({
   } = useQuery({
     queryKey: ["sponsor", id],
     queryFn: () => getUser(id),
+  });
+
+  const { data: challengesRes, isLoading: chLoad } = useQuery({
+    queryKey: ["admin-sponsor-challenges", id],
+    queryFn: () => listChallenges({ page: 1, limit: 50, sponsorId: id }),
+    enabled: Boolean(user),
   });
 
   if (isLoading) {
@@ -50,20 +62,6 @@ export default function ViewSponsorPage({
     );
   }
 
-  const joinedDate = user.createdAt
-    ? (() => {
-        try {
-          return new Date(user.createdAt).toLocaleDateString(undefined, {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          });
-        } catch {
-          return user.createdAt;
-        }
-      })()
-    : "—";
-
   return (
     <div>
       <PageHeader title="Sponsor" description="View sponsor details.">
@@ -76,83 +74,33 @@ export default function ViewSponsorPage({
           </Button>
         </div>
       </PageHeader>
-      <div className="mx-auto max-w-md space-y-4">
-        <div>
-          <label
-            htmlFor="view-username"
-            className="text-muted-foreground mb-1 block text-sm font-medium"
-          >
-            Username
-          </label>
-          <Input
-            id="view-username"
-            value={user.username ?? "—"}
-            readOnly
-            disabled
-            className="bg-muted/50"
-          />
-        </div>
-        <div>
-          <label
-            htmlFor="view-email"
-            className="text-muted-foreground mb-1 block text-sm font-medium"
-          >
-            Email
-          </label>
-          <Input
-            id="view-email"
-            type="email"
-            value={user.email}
-            readOnly
-            disabled
-            className="bg-muted/50"
-          />
-        </div>
-        <div>
-          <label
-            htmlFor="view-role"
-            className="text-muted-foreground mb-1 block text-sm font-medium"
-          >
-            Role
-          </label>
-          <Input
-            id="view-role"
-            value={user.role}
-            readOnly
-            disabled
-            className="bg-muted/50"
-          />
-        </div>
-        <div>
-          <label
-            htmlFor="view-verified"
-            className="text-muted-foreground mb-1 block text-sm font-medium"
-          >
-            Email verified
-          </label>
-          <Input
-            id="view-verified"
-            value={user.emailVerified ? "Yes" : "No"}
-            readOnly
-            disabled
-            className="bg-muted/50"
-          />
-        </div>
-        <div>
-          <label
-            htmlFor="view-joined"
-            className="text-muted-foreground mb-1 block text-sm font-medium"
-          >
-            Joined
-          </label>
-          <Input
-            id="view-joined"
-            value={joinedDate}
-            readOnly
-            disabled
-            className="bg-muted/50"
-          />
-        </div>
+      <div className="mx-auto max-w-2xl space-y-6">
+        <AdminUserProfileFields user={user} />
+        <AdminUserActivityCard title="Challenges">
+          {chLoad ? (
+            <Skeleton className="h-16 w-full rounded-md" />
+          ) : (challengesRes?.data ?? []).length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No challenges created under this sponsor account.
+            </p>
+          ) : (
+            <ul className="space-y-2 text-sm">
+              {(challengesRes?.data ?? []).map((c: Challenge) => (
+                <li key={c.id} className="flex flex-wrap items-center gap-2">
+                  <Link
+                    className="font-medium text-cs-primary hover:underline"
+                    href={`/challenges/${c.id}`}
+                  >
+                    {c.title}
+                  </Link>
+                  <span className="text-xs text-muted-foreground">
+                    ({c.approvalStatus})
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </AdminUserActivityCard>
       </div>
     </div>
   );

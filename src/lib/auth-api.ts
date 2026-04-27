@@ -754,6 +754,16 @@ export type UserListItem = {
   role: string;
   emailVerified: boolean;
   createdAt: string;
+  /** Admin/self detail responses may include onboarding fields */
+  phone?: string | null;
+  profileBio?: string | null;
+  education?: string | null;
+  profession?: string | null;
+  workExperience?: string | null;
+  age?: number | null;
+  gender?: string | null;
+  isOnboarded?: boolean | null;
+  updatedAt?: string;
 };
 
 /** Paginated users response from GET /users. */
@@ -1707,7 +1717,7 @@ export async function getFeaturedHackathons(
   const baseUrl = getBaseUrl();
   if (!baseUrl) throw new Error("NEXT_PUBLIC_BACKEND_BASE_URL is not set");
   const res = await fetch(
-    `${baseUrl}/hackathons/featured?limit=${Math.min(limit, 10)}`,
+    `${baseUrl}/challenges/featured?limit=${Math.min(limit, 10)}`,
     {
       method: "GET",
       headers: { accept: "application/json" },
